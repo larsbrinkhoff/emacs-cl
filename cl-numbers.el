@@ -1,7 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
 ;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;
 ;;; This file implements operators in chapter 12, Numbers.
 
 (IN-PACKAGE "EMACS-CL")
@@ -853,10 +852,12 @@
   (cond
     ((eq num 0)		0)
     ((integerp num)	(1+ (logb num)))
-    ((cl::bignump num)	(let ((len (length num)))
+    ((cl::bignump num)	(let* ((len (length num))
+			       (last (aref num (1- len))))
 			  (+ (* 28 (- len 2))
-			     (logb (aref num (1- len)))
-			     1)))
+			     (if (zerop last)
+				 0
+				 (1+ (logb last))))))
     (t			(error "type error"))))
 
 (defun cl::bignump (num)
