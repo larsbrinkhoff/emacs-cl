@@ -63,7 +63,7 @@
     (dolist (seq sequences)
       (dosequence (x seq)
         (push (FUNCALL fn x) result)))
-    result))
+    (nreverse result)))
 
 ;;; TODO: map-into
 
