@@ -309,8 +309,8 @@
      (if info
 	 (cdr info)
 	 (cond
-	   ((FBOUNDP fn)			:function)
 	   ((gethash fn *macro-functions*)	:macro)
+	   ((FBOUNDP fn)			:function)
 	   ((SPECIAL-OPERATOR-P fn)		:special-operator))))
    (member fn (aref env 5))
    nil))
