@@ -14,7 +14,6 @@
 
 (defun var-steps (vars)
   (mappend (lambda (var)
-	     (print var)
 	     (when (and (consp var) (= (length var) 3))
 	       `(,(first var) ,(third var))))
 	   vars))
