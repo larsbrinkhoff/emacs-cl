@@ -29,18 +29,19 @@
 ;;; TODO: FLET
 
 (define-special-operator FUNCTION (form) env
-  (cond
-    ((SYMBOLP form)
-     (SYMBOL-FUNCTION form))
-    ((ATOM form)
-     (error "syntax error"))
-    ((case (first form)
-       (LAMBDA
-	(enclose form env))
-       (SETF
-	(FDEFINITION form))
-       (t
-	(error "syntax error"))))))
+  (VALUES
+    (cond
+      ((SYMBOLP form)
+       (SYMBOL-FUNCTION form))
+      ((ATOM form)
+       (error "syntax error"))
+      ((case (first form)
+	 (LAMBDA
+	     (enclose form env))
+	 (SETF
+	  (FDEFINITION form))
+	 (t
+	  (error "syntax error")))))))
 
 ;;; TODO: GO
 
@@ -64,7 +65,7 @@
 	  (setf (lexical-value binding new-env) nil)
 	  (setf (lexical-value (first binding) new-env)
 		(eval-with-env (second binding) env))))
-    (dolist (form forms lastval)
+    (dolist (form forms (VALUES lastval))
       (setq lastval (eval-with-env form new-env)))))
 
 (define-special-operator LET* (bindings &rest forms) env
@@ -76,7 +77,7 @@
 	      (eval-with-env (second binding) env)
 	      env (augment-environment env :variable (list (first binding))))))
   (let ((lastval nil))
-    (dolist (form forms lastval)
+    (dolist (form forms (VALUES lastval))
       (setq lastval (eval-with-env form env)))))
 
 ;;; TODO: LOAD-TIME-VALUE
@@ -91,13 +92,13 @@
 
 (define-special-operator PROGN (&rest forms) env
   (let (lastval)
-    (dolist (form forms lastval)
+    (dolist (form forms (VALUES lastval))
       (setq lastval (eval-with-env form env)))))
 
 ;;; TODO: PROGV
 
 (define-special-operator QUOTE (form) env
-  form)
+  (VALUES form))
 
 ;;; TODO: RETURN-FROM
 
@@ -109,7 +110,7 @@
 	(var (first forms))
 	(val (eval-with-env (second forms) env)))
        ((null forms)
-	lastval)
+	(VALUES lastval))
     (setq lastval
 	  (ecase (nth-value 0 (variable-information var env))
 	    ((nil)		(error "unbound variable %s" form))
@@ -220,17 +221,18 @@
 (defun eval-with-env (form env)
   (unless env
     (setq env *global-environment*))
-  (setq form (nth-value 0 (MACROEXPAND form)))
+  (setq form (NTH-VALUE 0 (MACROEXPAND form)))
   (cond
     ((SYMBOLP form)
-     (ecase (nth-value 0 (variable-information form env))
-       ((nil)		(error "unbound variable %s" form))
-       (:special	(SYMBOL-VALUE form))
-       (:lexical	(lexical-value form env))
-       (:symbol-macro	(error "shouldn't happen"))
-       (:constant	(SYMBOL-VALUE form))))
+     (VALUES
+       (ecase (nth-value 0 (variable-information form env))
+	 ((nil)		(error "unbound variable %s" form))
+	 (:special	(SYMBOL-VALUE form))
+	 (:lexical	(lexical-value form env))
+	 (:symbol-macro	(error "shouldn't happen"))
+	 (:constant	(SYMBOL-VALUE form)))))
     ((ATOM form)
-     form)
+     (VALUES form))
     (t
      (if (consp (car form))
 	 (if (eq (caar form) 'LAMBDA)

@@ -41,10 +41,10 @@
 
 (defun* GENTEMP (&optional (prefix "T") (package *PACKAGE*))
   (loop
-   (multiple-value-bind (symbol found)
+   (MULTIPLE-VALUE-BIND (symbol found)
        (INTERN (FORMAT nil "~A~D" prefix *gentemp-counter*) package)
      (unless found
-       (return-from GENTEMP symbol))
+       (return-from GENTEMP (VALUES symbol)))
      (incf *gentemp-counter*))))
 
 (fset 'SYMBOL-FUNCTION (symbol-function 'symbol-function))

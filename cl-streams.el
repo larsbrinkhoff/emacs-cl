@@ -80,9 +80,9 @@
        (cond
 	 ((eq char eof-value)
 	  (return-from READ-LINE
-	    (values (if (= (length line) 0) eof-value line) t)))
+	    (VALUES (if (= (length line) 0) eof-value line) t)))
 	 ((= char (CODE-CHAR 10))
-	  (return-from READ-LINE (values line nil))))
+	  (return-from READ-LINE (VALUES line nil))))
        (setq line (concat line (list (CHAR-CODE char))))))))
 
 (defun* WRITE-STRING (string &optional stream-designator &key (start 0) end)

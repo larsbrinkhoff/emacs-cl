@@ -50,6 +50,3 @@
 (defmacro* do-list-designator ((var list &optional result) &body body)
   `(dolist (,var (ensure-list ,list) ,result)
      ,@body))
-
-(defun keyword (string)
-  (nth-value 0 (INTERN string *keyword-package*)))

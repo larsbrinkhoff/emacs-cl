@@ -194,7 +194,7 @@
        (setq quotient (/ (NUMERATOR quotient) (DENOMINATOR quotient))))
       (t
        (error "type error")))
-    (values quotient (cl:- number (cl:* quotient divisor)))))
+    (VALUES quotient (cl:- number (cl:* quotient divisor)))))
 
 ;;; TODO: ftruncate, round, fround
 
@@ -661,7 +661,7 @@
       (incf i)
       (when (= i end)
 	(if junk-allowed
-	    (return-from PARSE-INTEGER (values nil i))
+	    (return-from PARSE-INTEGER (VALUES nil i))
 	    (error))))
     (setq char (CHAR string i))
     (when (find (CHAR-CODE char) "+-")
@@ -670,7 +670,7 @@
       (incf i)
       (when (= i end)
 	(if junk-allowed
-	    (return-from PARSE-INTEGER (values nil i))
+	    (return-from PARSE-INTEGER (VALUES nil i))
 	    (error)))
       (setq char (CHAR string i)))
     (while (setq digit (DIGIT-CHAR-P char radix))
@@ -681,15 +681,15 @@
       (incf i)
       (when (= i end)
 ;	(print (format "int: %s" integer))
-	(return-from PARSE-INTEGER (values (cl:* sign integer) i)))
+	(return-from PARSE-INTEGER (VALUES (cl:* sign integer) i)))
       (setq char (CHAR string i)))
     (cond
       (junk-allowed
-       (values (cl:* sign integer) i))
+       (VALUES (cl:* sign integer) i))
       (t
        (do ((j i (1+ j)))
 	   ((= j end)
-	    (values (cl:* sign integer) i))
+	    (VALUES (cl:* sign integer) i))
 	 (unless (whitespacep (CHAR string j))
 	   (error)))))))
 

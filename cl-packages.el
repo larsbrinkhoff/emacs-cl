@@ -39,7 +39,7 @@
 (defun* EXPORT (symbols &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
     (do-list-designator (sym symbols 'T)
-      (multiple-value-bind (s status) (FIND-SYMBOL (SYMBOL-NAME sym) package)
+      (MULTIPLE-VALUE-BIND (s status) (FIND-SYMBOL (SYMBOL-NAME sym) package)
 	(cond
 	  ((eq status *:inherited*)
 	   (IMPORT sym package))
@@ -93,38 +93,38 @@
 	     (progn
 	       (unless (SYMBOL-PACKAGE symbol)
 		 (setf (SYMBOL-PACKAGE symbol) *emacs-lisp-package*))
-	       (values symbol *:external*))
-	     (values nil nil))))
+	       (VALUES symbol *:external*))
+	     (VALUES nil nil))))
       (t
        (let* ((table (package-table package))
 	      (symbol (gethash string table not-found)))
 	 (if (not (eq symbol not-found))
-	     (values symbol
+	     (VALUES symbol
 		     (if (member symbol (package-exported package))
 			 *:external*
 			 *:internal*))
-	     (dolist (p (PACKAGE-USE-LIST package) (values nil nil))
-	       (multiple-value-bind (symbol found) (FIND-SYMBOL string p)
+	     (dolist (p (PACKAGE-USE-LIST package) (VALUES nil nil))
+	       (MULTIPLE-VALUE-BIND (symbol found) (FIND-SYMBOL string p)
 		 (when (and found
 			    ;; Special EMACS-LISP magic: EMACS-LISP doesn't
 			    ;; have a list of exported symbols.
 			    (or (eq p *emacs-lisp-package*)
 				(member symbol (package-exported p))))
 		   (return-from FIND-SYMBOL
-		     (values symbol *:inherited*)))))))))))
+		     (VALUES symbol *:inherited*)))))))))))
 
 (defun FIND-ALL-SYMBOLS (name)
   (let ((string (STRING name))
 	(syms nil))
     (dolist (p *all-packages* syms)
-      (multiple-value-bind (sym status) (FIND-SYMBOL string p)
+      (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL string p)
 	(if (or (eq status :internal) (eq status *:external*))
 	    (push sym syms))))))
 
 (defun* IMPORT (symbols &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
     (do-list-designator (symbol symbols 'T)
-      (multiple-value-bind (sym found)
+      (MULTIPLE-VALUE-BIND (sym found)
 	  (FIND-SYMBOL (SYMBOL-NAME symbol) package)
 	(when (and found (not (eq sym symbol)))
 	  (error "package error")))
@@ -145,7 +145,7 @@
 (defun* SHADOW (symbol-names &optional (package-designator *PACKAGE))
   (let ((package (FIND-PACKAGE package-designator)))
     (do-list-designator (name symbol-names)
-      (multiple-value-bind (sym status) (FIND-SYMBOL name package)
+      (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL name package)
 	(when (or (null status) (eq status *:inherited*))
 	  (setq sym (nth-value 0 (INTERN name package))))
 	(pushnew sym (aref package 3)))))
@@ -154,7 +154,7 @@
 (defun* SHADOWING-IMPORT (symbols &optional (package-designator *PACKAGE))
   (let ((package (FIND-PACKAGE package-designator)))
     (do-list-designator (symbol symbols)
-      (multiple-value-bind (sym found) (FIND-SYMBOL (SYMBOL-NAME sym package))
+      (MULTIPLE-VALUE-BIND (sym found) (FIND-SYMBOL (SYMBOL-NAME sym package))
 	(when found
 	  (UNINTERN sym package)))
       (IMPORT symbol package))))
@@ -249,9 +249,9 @@
   (let ((package (FIND-PACKAGE package-designator)))
     (when (null package)
       (error (format "package \"%s\" not found" package-designator)))
-    (multiple-value-bind (symbol found) (FIND-SYMBOL name package)
+    (MULTIPLE-VALUE-BIND (symbol found) (FIND-SYMBOL name package)
       (if found
-	  (values symbol found)
+	  (VALUES symbol found)
 	  (let ((symbol (if (eq package *emacs-lisp-package*)
 			    (intern name)
 			    (make-symbol name))))
@@ -260,7 +260,7 @@
 	      (setf (gethash name (package-table package)) symbol))
 	    (when (eq package *keyword-package*)
 	      (set symbol symbol))
-	    (values symbol nil))))))
+	    (VALUES symbol nil))))))
 
 (defconst *:internal* (keyword "INTERNAL"))
 (defconst *:external* (keyword "EXTERNAL"))

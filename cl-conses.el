@@ -329,10 +329,10 @@
 (defun* GET-PROPERTIES (plist indicators)
   (do ((plist plist (cddr plist)))
       ((null plist)
-       (values nil nil nil))
+       (VALUES nil nil nil))
     (when (memq (car plist) indicators)
       (return-from GET-PROPERTIES
-	(values (car plist) (cadr plist) plist)))))
+	(VALUES (car plist) (cadr plist) plist)))))
 
 (defun* GETF (plist indicator &optional default)
   (do ((plist plist (cddr plist)))
@@ -341,10 +341,11 @@
     (when (eq (car plist) indicator)
       (return-from GETF (cadr plist)))))
 
+;;; TODO: Can't use defsetf here, use DEFINE-SETF-EXPANDER instead.
 (defsetf GETF (plist indicator &optional default) (value)
-  `(multiple-value-bind (ind val tail)
+  `(MULTIPLE-VALUE-BIND (ind val tail)
        (GET-PROPERTIES ,plist '(,indicator))
-     (if (NULL tail)
+     (if (null tail)
 	 (progn (setf ,plist (LIST* ,indicator ,value ,plist) ,value))
 	 (setf (SECOND tail) ,value))))
 

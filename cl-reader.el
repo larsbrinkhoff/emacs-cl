@@ -26,7 +26,7 @@
   T)
 
 (defun* GET-MACRO-CHARACTER (char &optional (readtable *READTABLE*))
-  (values
+  (VALUES
    (aref (READTABLE-MACRO-TABLE readtable) (CHAR-CODE char))
    (eq (char-syntx char readtable) :non-terminating-macro)))
 
@@ -122,7 +122,7 @@
   (do ((string "")
        (char #1=(READ-CHAR stream T nil T) #1#))
       ((CHAR= char double-quote-char)
-       (values string))
+       (VALUES string))
     (setq string
 	  (concat string
 		  (list (CHAR-CODE
@@ -138,21 +138,21 @@
 	(funcall fn stream char2 nil))))
 
 (defun quote-reader (stream ch)
-  (values (list 'QUOTE (READ stream T nil T))))
+  (VALUES (list 'QUOTE (READ stream T nil T))))
 
 (defun* left-paren-reader (stream char)
   (do ((list nil)
        (char #1=(PEEK-CHAR T stream) #1#))
       ((EQL char (CODE-CHAR 41))
        (READ-CHAR stream)
-       (values (nreverse list)))
+       (VALUES (nreverse list)))
     (let ((object (READ stream T nil T)))
       (if (and (symbolp object) (string= (SYMBOL-NAME object) "."))
 	  (let ((cdr (READ stream T nil T)))
 	    (unless (EQL (READ-CHAR stream) (CODE-CHAR 41))
 	      (error "syntax error"))
 	    (return-from left-paren-reader
-	      (values (append (nreverse list) cdr))))
+	      (VALUES (append (nreverse list) cdr))))
 	  (push object list)))))
 
 (defun right-paren-reader (stream char)
@@ -165,54 +165,54 @@
     (let ((*backquote-level* (1- *backquote-level*)))
       (cond
 	((EQL next-char (CODE-CHAR 64))
-	 (values (list 'COMMA-AT (READ stream T nil T))))
+	 (VALUES (list 'COMMA-AT (READ stream T nil T))))
 	((EQL next-char (CODE-CHAR 46))
-	 (values (list 'COMMA-DOT (READ stream T nil T))))
+	 (VALUES (list 'COMMA-DOT (READ stream T nil T))))
 	(t
 	 (UNREAD-CHAR next-char stream)
-	 (values (list 'COMMA (READ stream T nil T))))))))
+	 (VALUES (list 'COMMA (READ stream T nil T))))))))
 
 (defun semicolon-reader (stream ch)
   (do ()
       ((CHAR= (READ-CHAR stream nil (CODE-CHAR 10) T) (CODE-CHAR 10))
-       (values))))
+       (VALUES))))
 
 (defun backquote-reader (stream char)
   (let* ((*backquote-level* (1+ *backquote-level*))
 	 (form (READ stream T nil T)))
-    (values (list 'BACKQUOTE form))))
+    (VALUES (list 'BACKQUOTE form))))
 
 (defun sharp-backslash-reader (stream char n)
   (do ((string "")
        (char #1=(READ-CHAR stream nil ?  T) #1#))
       ((not (constituentp char))
        (UNREAD-CHAR char stream)
-       (values (if (= (length string) 1)
+       (VALUES (if (= (length string) 1)
 		   (CODE-CHAR (aref string 0))
 		   (NAME-CHAR string))))
     (setq string (concat string (list (CHAR-CODE char))))))
 
 (defun sharp-quote-reader (stream char n)
-  (values (list 'FUNCTION (READ stream T nil T))))
+  (VALUES (list 'FUNCTION (READ stream T nil T))))
 
 (defun sharp-left-paren-reader (stream char n)
-  (values (CONCATENATE 'VECTOR (READ-DELIMITED-LIST (CODE-CHAR 41) stream))))
+  (VALUES (CONCATENATE 'VECTOR (READ-DELIMITED-LIST (CODE-CHAR 41) stream))))
 
 (defun sharp-asterisk-reader (stream char n) nil)
 
 (defun sharp-colon-reader (stream char n)
   (do ((string "")
-       (char #1=(READ-CHAR stream nil ?  T) #1#))
+       (char #1=(READ-CHAR stream nil (CODE-CHAR 32) T) #1#))
       ((not (constituentp char))
        (UNREAD-CHAR char stream)
-       (values (make-symbol string)))
+       (VALUES (make-symbol string)))
     (setq string (concat string (list (CHAR-CODE char))))))
 
 (defvar *READ-EVAL* T)
 
 (defun sharp-dot-reader (stream char n)
   (if *read-eval*
-      (values (eval (READ stream T nil T)))
+      (VALUES (eval (READ stream T nil T)))
       (error "reader error: #. disabled")))
 
 (defun sharp-b-reader (stream char n) nil)
@@ -223,7 +223,7 @@
 (defun sharp-c-reader (stream char n)
   (let ((list (READ stream T nil T)))
     (if (and (consp list) (= (length list) 2))
-	(values (COMPLEX (first list) (second list)))
+	(VALUES (COMPLEX (first list) (second list)))
 	(error "syntax error"))))
 
 (defun sharp-a-reader (stream char n) nil)
@@ -250,18 +250,18 @@
 (defun sharp-plus-reader (stream char n)
   (if (eval-feature-test (let ((*PACKAGE* *keyword-package*))
 			   (READ stream T nil T)))
-      (values (READ stream T nil T))
+      (VALUES (READ stream T nil T))
       (progn
 	(READ stream T nil T)
-	(values))))
+	(VALUES))))
 
 (defun sharp-minus-reader (stream char n)
   (if (not (eval-feature-test (let ((*PACKAGE* *keyword-package*))
 				(READ stream T nil T))))
-      (values (READ stream T nil T))
+      (VALUES (READ stream T nil T))
       (progn
 	(READ stream T nil T)
-	(values))))
+	(VALUES))))
 
 (defun sharp-bar-reader (stream char n)
   (do ((last nil)
@@ -269,7 +269,7 @@
        (char #1=(READ-CHAR stream T nil T) #1#))
       ((= level 0)
        (UNREAD-CHAR char stream)
-       (values))
+       (VALUES))
     (when (and (EQL last (CODE-CHAR 35)) (EQL char (CODE-CHAR 124)))
       (incf level))
     (when (and (EQL last (CODE-CHAR 124)) (EQL char (CODE-CHAR 35)))
@@ -365,8 +365,8 @@
 	(:whitespace
 	 (go STEP-1))
 	((:terminating-macro :non-terminating-macro)
-	 (multiple-value-bind (fn nt) (GET-MACRO-CHARACTER char)
-	   (let ((list (multiple-value-list (funcall fn stream char))))
+	 (MULTIPLE-VALUE-BIND (fn nt) (GET-MACRO-CHARACTER char)
+	   (let ((list (MULTIPLE-VALUE-LIST (funcall fn stream char))))
 	     (if (null list)
 		 (go STEP-1)
 		 (return-from READ (first list))))))
@@ -448,7 +448,7 @@
       (2 (error "too many colons"))))
   (when (null token)
     (error "token terminated by colon"))
-  (multiple-value-bind (sym status) (FIND-SYMBOL token package)
+  (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL token package)
     (cond
       ((or (eq status *:external*) (eq status *:inherited*))
        sym)
@@ -457,7 +457,7 @@
 	   (error "internal symbol")
 	   sym))
       ((null status)
-       (nth-value 0 (INTERN token package))))))
+       (NTH-VALUE 0 (INTERN token package))))))
 
 (defvar *READ-BASE* 10)
 
@@ -481,13 +481,13 @@
 
 (defun* parse-number (string)
   (when (potential-number-p string)
-    (multiple-value-bind (integer end)
+    (MULTIPLE-VALUE-BIND (integer end)
 	(PARSE-INTEGER string :radix *READ-BASE* :junk-allowed T)
       (when (and integer (= end (length string)))
 	(return-from parse-number integer))
       (when (and integer
 		 (CHAR= (CHAR string end) (CODE-CHAR 47)))
-	(multiple-value-bind (denumerator end2)
+	(MULTIPLE-VALUE-BIND (denumerator end2)
 	    (PARSE-INTEGER string :radix *READ-BASE* :start (1+ end)
 			   :junk-allowed T)
 	  (when (and denumerator (= end2 (length string)))

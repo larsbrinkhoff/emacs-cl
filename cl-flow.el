@@ -57,7 +57,7 @@
 (defun FUNCALL (fn &rest args)
   (cond
     ((INTERPRETED-FUNCTION-P fn)
-     (eval-with-env (cons (aref fn 1) args) (aref fn 2)))
+     (eval-lambda-form (cons (aref fn 1) args) (aref fn 2)))
     ((FUNCTIONP fn)
      (apply fn args))
     (t
@@ -66,9 +66,12 @@
 ;;; TODO: function
 
 (defun FUNCTION-LAMBDA-EXPRESSION (fn)
-  (if (INTERPRETED-FUNCTION-P fn)
-      (values (aref fn 1) T nil)
-      (values nil T nil)))
+  (cond
+    ((INTERPRETED-FUNCTION-P fn)	(VALUES (aref fn 1) T nil))
+    ((subrp fn)				(VALUES nil nil nil))
+    ((compiled-function-p fn)		(VALUES nil nil nil))
+    ((FUNCTIONP fn)			(VALUES nil T nil))
+    (t					(error "type error"))))
 
 (defun FUNCTIONP (object)
   (or (and (functionp object) (atom object) (not (symbolp object)))
@@ -209,6 +212,17 @@
 ;; 	    (setq ,vals (cdr-safe ,vals))))
 ;; 	(setq *multiple-values-variable* ,old)
 ;; 	,@body))))
+(defmacro* MULTIPLE-VALUE-BIND (vars form &body body)
+  (if (null vars)
+      `(progn ,form ,@body)
+      (let ((n -1))
+	`(let ((,(first vars) ,form)
+	       ,@(mapcar (lambda (var) `(,var (nth ,(incf n) mvals)))
+			 (rest vars)))
+	   ,@body))))
+
+(cl:defmacro MULTIPLE-VALUE-BIND (vars form &body body)
+  `(MULTIPLE-VALUE-CALL (LAMBDA ,vars ,@body) ,form))
 
 ;; (defmacro cl:multiple-value-call (function &rest forms)
 ;;   `(apply ,function
@@ -226,6 +240,15 @@
 ;;       (unless (eq ,vals ',empty)
 ;; 	(setq ,list ,vals))
 ;;       ,list)))
+(defmacro* MULTIPLE-VALUE-LIST (form)
+  (let ((val (gensym)))
+    `(let ((,val ,form))
+       (if (zerop nvals)
+	   nil
+	   (cons ,val mvals)))))
+
+(cl:defmacro MULTIPLE-VALUE-LIST (form)
+  `(MULTIPLE-VALUE-CALL #'LIST ,form))
 
 ;; ;;; multiple-value-prog1 first-form form* => first-form-results
 
@@ -240,14 +263,46 @@
 ;; 	  (set var (car-safe ,vals))
 ;; 	  (setq ,vals (cdr-safe ,vals))))
 ;;       ,@body)))
+(defmacro* MULTIPLE-VALUE-SETQ (vars form)
+  (if (null vars)
+      form
+      (let ((n -1))
+	`(setq ,(first vars) ,form
+	       ,@(mappend (lambda (var) `(,var (nth ,(incf n) mvals)))
+			  (rest vars))))))
+
+(cl:defmacro MULTIPLE-VALUE-SETQ (vars form)
+  (let ((vals (gensym))
+	(n -1))
+    `(let ((,vals (MULTIPLE-VALUE-LIST ,form)))
+       (SETQ ,@(mapcar (lambda (var) `(,var (nth ,(incf n) ,vals))) vars)))))
 
 ;; (defun cl:values (&rest vals)
 ;;   (cl:values-list vals))
+(defun VALUES (&rest vals)
+  (VALUES-LIST vals))
 
 ;; (defun cl:values-list (list)
 ;;   (when *multiple-values-variable*
 ;;     (set *multiple-values-variable* list))
 ;;   (car list))
+(defun VALUES-LIST (list)
+  (setq nvals (length list))
+  (setq mvals (cdr-safe list))
+  (car-safe list))
+
+(defmacro* NTH-VALUE (n form)
+  (if (eq n 0)
+      `(VALUES ,form)
+      `(progn
+	,form
+	(VALUES (nth ,(1- n) mvals)))))
+
+(cl:defmacro NTH-VALUE (n form)
+  `(MULTIPLE-VALUE-CALL (LAMBDA (&rest vals) (NTH ,n vals)) ,form))
+
+(defun keyword (string)
+  (NTH-VALUE 0 (INTERN string *keyword-package*)))
 
 (defmacro* DEFSETF (access-fn &rest args)
   (if (<= (length args) 2)

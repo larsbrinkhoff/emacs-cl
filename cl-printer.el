@@ -18,7 +18,7 @@
     (WRITE-STRING ">" stream)))
 
 (defun external-symbol-p (symbol)
-  (eq (nth-value 1 (FIND-SYMBOL (SYMBOL-NAME symbol) (SYMBOL-PACKAGE symbol)))
+  (eq (NTH-VALUE 1 (FIND-SYMBOL (SYMBOL-NAME symbol) (SYMBOL-PACKAGE symbol)))
       *:external*))
 
 (defun write-char-to-*standard-output* (char)
@@ -35,7 +35,7 @@
        (princ object))
       ((symbolp object)
        (cond
-	 ((eq (nth-value 0 (FIND-SYMBOL (SYMBOL-NAME object) *PACKAGE*))
+	 ((eq (NTH-VALUE 0 (FIND-SYMBOL (SYMBOL-NAME object) *PACKAGE*))
 	      object)
 	  (WRITE-STRING (SYMBOL-NAME object) stream))
 	 ((null (SYMBOL-PACKAGE object))
@@ -133,6 +133,19 @@
        (error))))
   object)
 
+(defun PRINC (object &optional stream-designator)
+  (let* ((stream (resolve-output-stream-designator stream-designator))
+	 (*STANDARD-OUTPUT* stream)
+	 (standard-output #'write-char-to-*standard-output*))
+    (cond
+      ((or (integerp object)
+	   (floatp object))
+       (princ object))
+      ((STRINGP object)
+       (WRITE-STRING object stream))
+      (t
+       (error "TODO")))))
+
 (defun PRINT (object &optional stream)
   (TERPRI stream)
   (PRIN1 object stream)
@@ -149,7 +162,7 @@
 	(if (eq (CHAR-CODE char) 126)
 	    (case (CHAR-CODE (CHAR format (incf i)))
 	      (37	(TERPRI))
-	      (65	(PRIN1 (pop args) stream))
+	      (65	(PRINC (pop args) stream))
 	      (68	(PRIN1 (pop args) stream)))
 	    (WRITE-CHAR char stream)))
       (incf i))
