@@ -155,7 +155,8 @@
 (define-typep (object LIST env)
   (listp object))
 
-;;; logical-pathname (atomic only)
+;;; (define-typep (object LOGICAL-PATHNAME env)
+;;; defined by defstruct.
 
 (define-typep (object (LONG-FLOAT &optional (low star) (high star)) env)
   (TYPEP object `(SINGLE-FLOAT ,low ,high)))
@@ -189,7 +190,9 @@
 
 ;;; package-error (atomic only)
 ;;; parse-error (atomic only)
-;;; pathname (atomic only)
+
+;;; defined by defstruct: pathname (atomic only)
+
 ;;; print-not-readable (atomic only)
 ;;; program-error (atomic only)
 

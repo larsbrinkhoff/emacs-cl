@@ -228,7 +228,38 @@
 
 ;;; TODO: TRANSLATE-LOGICAL-PATHNAME
 
-;;; TODO: TRANSLATE-PATHNAME
+(defun wild-or-nil (x y)
+  (if (or (null x) (eq x (kw WILD)))
+      y
+      x))
+
+(defun translate-dir (source from to)
+  (cond
+    ((null to)
+     nil)
+    ((eq (first to) (kw WILD))
+     (let ((pos (position (kw WILD) from)))
+       (if pos
+	   (cons (nth pos source)
+		 (translate-dir (nthcdr (incf pos) source)
+				(nthcdr pos from) (rest to)))
+	   (ERROR 'ERROR))))
+    (t
+     (cons (first to) (translate-dir source from (rest to))))))
+
+(defun TRANSLATE-PATHNAME (source from-wildcard to-wildcard)
+  (let ((source (PATHNAME source))
+	(from-wildcard (PATHNAME from-wildcard))
+	(to-wildcard (PATHNAME to-wildcard)))
+    (mkpathname
+     (wild-or-nil (PATHNAME-HOST to-wildcard) (PATHNAME-HOST source))
+     (wild-or-nil (PATHNAME-DEVICE to-wildcard) (PATHNAME-DEVICE source))
+     (translate-dir (PATHNAME-DIRECTORY source)
+		    (PATHNAME-DIRECTORY from-wildcard)
+		    (PATHNAME-DIRECTORY to-wildcard))
+     (wild-or-nil (PATHNAME-NAME to-wildcard) (PATHNAME-NAME source))
+     (wild-or-nil (PATHNAME-TYPE to-wildcard) (PATHNAME-TYPE source))
+     (wild-or-nil (PATHNAME-VERSION to-wildcard) (PATHNAME-VERSION source)))))
 
 (cl:defun MERGE-PATHNAMES (pathname-d &optional (default
 						 *DEFAULT-PATHNAME-DEFAULTS*)
