@@ -310,9 +310,9 @@
   (if (consp type)
       (let ((fn (gethash (first type) *compound-typespecs*)))
 	(if fn
-	    (apply fn object env (rest type))
+	    (APPLY fn object env (rest type))
 	    (error "invalid typespec: %s" type)))
       (let ((fn (gethash type *atomic-typespecs*)))
 	(if fn
-	    (funcall fn object env)
+	    (FUNCALL fn object env)
 	    (ERROR "Invalid typespec: ~A" type)))))
