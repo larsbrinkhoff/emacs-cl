@@ -140,7 +140,7 @@
     ((or (integerp num) (floatp num))
      (plusp num))
     ((cl::bignump num)
-     (plusp (aref num (1- (length num)))))
+     (>= (aref num (1- (length num))) 0))
     ((cl::ratiop num)
      (plusp (NUMERATOR num)))
     (t
@@ -517,9 +517,11 @@
     ((COMPLEXP number)
      (sqrt (+ (expt (REALPART number) 2) (expt (IMAGPART number) 2))))
     ((cl::bignump number)
-     0)
+     (if (MINUSP number)
+	 (cl:- number)
+	 number))
     (t
-     (error))))
+     (error "type error"))))
 
 ;;; TODO: EVENP, ODDP
 
