@@ -20,14 +20,20 @@
 
 (defun expand-do (let setq vars test result body)
   (with-gensyms (start)
-    `(,let ,(var-inits vars)
-       (BLOCK nil
-	 (TAGBODY
-	   ,start
-	   (WHEN ,test (RETURN (PROGN ,@result)))
-	   ,@body
-	   (,setq ,@(var-steps vars))
-	   (GO ,start))))))
+    (MULTIPLE-VALUE-BIND (body decls) (parse-body body)
+      (let ((block `(BLOCK nil
+		      (TAGBODY
+			,start
+			,@(when test `((WHEN ,test (RETURN (PROGN ,@result)))))
+			,@(if decls
+			      `((locally ,@decls ,@body))
+			      body)
+			,@(when vars `((,setq ,@(var-steps vars))))
+			(GO ,start)))))
+	(cond
+	  (vars		`(,let ,(var-inits vars) ,@decls ,block))
+	  (decls	`(locally ,@decls ,block))
+	  (t		block))))))
 
 (cl:defmacro DO (vars (test &rest result) &body body)
   (expand-do 'LET 'PSETQ vars test result body))
