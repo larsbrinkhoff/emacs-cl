@@ -508,7 +508,7 @@
   (with-gensyms (val)
     `(LET ((,val ,form1))
        ,@forms
-      ,val)))
+       ,val)))
 
 (cl:defmacro PROG2 (form1 form2 &rest forms)
   (with-gensyms (val)
@@ -565,7 +565,7 @@
 
 (cl:defmacro DEFINE-SETF-EXPANDER (access-fn lambda-list &body body)
   (setq lambda-list (copy-list lambda-list))
-  (remf lambda-list '&environment)
+  (remf lambda-list '&ENVIRONMENT)
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
      (SETF (GETHASH ',access-fn *setf-expanders*)
            (LAMBDA ,lambda-list ,@body))
@@ -600,25 +600,57 @@
    (t
     (error))))
 
-(defmacro* SETF (place value &environment env)
+(defmacro* SETF (place value &rest more &environment env)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
       (GET-SETF-EXPANSION place env)
     `(let* (,@(MAPCAR #'list temps values)
 	    (,(first variables) ,value))
-       ,setter)))
+       ,setter
+       ,@(when more
+	   `((SETF ,@more))))))
 
-(cl:defmacro SETF (place value)
+(cl:defmacro SETF (place value &rest more) ;TODO: &environment
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
       (GET-SETF-EXPANSION place env)
     `(LET* (,@(MAPCAR #'list temps values)
 	    (,(first variables) ,value))
-       ,setter)))
+       ,setter
+       ,@(when more
+	   `((SETF ,@more))))))
 
-;;; TODO: PSETF
+(cl:defmacro PSETF (place value &rest more) ;TODO: &environment
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION place env)
+    `(LET* (,@(MAPCAR #'list temps values)
+	    (,(first variables) ,value))
+       ,@(when more
+	   `((SETF ,@more)))
+       ,setter
+       nil)))
 
-;;; TODO: SHIFTF
+(cl:defmacro SHIFTF (place x &rest more) ;TODO: &environment
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION place env)
+    (with-gensyms (val)
+      `(LET* (,@(MAPCAR #'list temps values)
+	      (,val ,getter)
+	      (,(first variables) ,(if (null more) x `(SHIFTF ,x ,@more))))
+	 ,setter
+	 ,val))))
 
-;;; TODO: ROTATEF
-
+(cl:defmacro ROTATEF (&rest places) ;TODO: &environment
+  (if (or (null places) (null (rest places)))
+      nil
+      (let ((place (first places))
+	    (places (rest places))
+	    (val (gensym)))
+      (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+	  (GET-SETF-EXPANSION place env)
+	`(LET* (,@(MAPCAR #'list temps values)
+		(,val ,getter)
+		(,(first variables) (SHIFTF ,@places ,val)))
+	   ,setter
+	   nil)))))
+    
 ;;; CONTROL-ERROR, PROGRAM-ERROR, and UNDEFINED-FUNCTION are defined
 ;;; in cl-conditions.el.
