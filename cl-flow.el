@@ -33,13 +33,19 @@
            (FUNCTION (LAMBDA ,lambda-list (BLOCK ,name ,@body))))
      (QUOTE ,name)))
 
+(defun setf-name-p (name)
+  (and (consp name)
+       (eq (car name) 'SETF)
+       (symbolp (cadr name))
+       (null (cddr name))))
+
 (defun FDEFINITION (name)
   (cond
     ((symbolp name)
      (if (or (SPECIAL-OPERATOR-P name) (MACRO-FUNCTION name))
 	 nil
 	 (symbol-function name)))
-    ((and (consp name) (eq (first name) 'SETF) (eq (cddr name) nil))
+    ((setf-name-p name)
      (let ((fn (gethash (second name) *setf-definitions*)))
        (if (null fn)
 	   (error "unbound function")
@@ -51,7 +57,7 @@
   `(cond
     ((symbolp ,name)
      (setf (symbol-function ,name) ,fn))
-    ((and (consp ,name) (eq (first ,name) 'SETF) (eq (cddr ,name) nil))
+    ((setf-name-p name)
      (setf (gethash (second ,name) *setf-definitions*) ,fn))
     (t
      (error "type error"))))
@@ -60,7 +66,7 @@
   (cond
     ((symbolp name)
      (fboundp name))
-    ((and (consp name) (eq (first name) 'SETF) (eq (cddr name) nil))
+    ((setf-name-p name)
      (not (null (gethash (second name) *setf-definitions*))))
     (t
      (error "type error"))))
@@ -69,7 +75,7 @@
   (cond
     ((symbolp name)
      (fmakunbound name))
-    ((and (consp name) (eq (first name) 'SETF) (eq (cddr name) nil))
+    ((setf-name-p name)
      (remhash (second name) *setf-definitions*))
     (t
      (error "type error"))))
@@ -545,7 +551,7 @@
   `(COND
     ((SYMBOLP ,name)
      (SETF (SYMBOL-FUNCTION ,name) ,fn))
-    ((AND (CONSP ,name) (EQ (FIRST ,name) 'SETF) (EQ (CDDR ,name) NIL))
+    ((setf-name-p ,name)
      (SETF (gethash (second ,name) *setf-definitions*) ,fn))
     (T
      (error "type error"))))
