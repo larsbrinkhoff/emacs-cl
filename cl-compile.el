@@ -336,15 +336,18 @@
 	new-env)
       env))
 
+(defvar *toplevel-lambda* t)
+
 (defun* compile-lambda (form env)
   (MULTIPLE-VALUE-BIND (body decls) (cddr form)
     (let* ((vars (second form))
 	   (new-env (env-with-vars env vars decls)))
-      (let ((compiled-body (compile-body body new-env)))
+      (let ((compiled-body (let ((*toplevel-lambda* nil))
+			     (compile-body body new-env))))
 	(cond
 	  ((null *free*)
 	   (expand-lambda vars compiled-body new-env))
-	  ((every (lambda (var) (member (car var) *bound*)) *free*)
+	  (*toplevel-lambda*
 	   (let ((i -1))
 	     (dolist (var *free*)
 	       (NSUBST `(aref env ,(incf i)) (cdr var) compiled-body)))
@@ -359,7 +362,21 @@
 		,@compiled-body))
 	    new-env))
 	  (t
-	   `(trampoline ,(expand-lambda vars compiled-body new-env) env)))))))
+	   (let ((foo nil))
+	     (dolist (var *free*)
+	       (when (and (memq (car var) vars)
+			  (eq (compile-variable (car var) new-env) (cdr var)))
+		 (let ((reg (new-register)))
+		   (setf (lexical-value (car var) new-env) reg)
+		   (setq foo (append `(,(cdr var) ,reg) foo)))))
+	     `(trampoline ,(expand-lambda
+			    vars
+			    (if foo
+				`((setf ,@foo)
+				  ,@compiled-body)
+				compiled-body)
+			    new-env)
+	                  env))))))))
 
 (defun partition-bindings (bindings env)
   (let ((local-bindings nil)
