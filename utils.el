@@ -1,8 +1,7 @@
 ;;;; -*- emacs-lisp -*-
-;;;;
-;;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;;
-;;;; This file provides various small utilities.
+;;;
+;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; This file provides various small utilities.
 
 (defun strcat (&rest string-designators)
   (apply #'CONCATENATE 'STRING (mapcar #'STRING string-designators)))
@@ -43,8 +42,11 @@
 		   :from-end t :initial-value `(apply ',fn1 args))))
       #'identity))
 
+(defun ensure-list (object)
+  (if (listp object)
+      object
+      (list object)))
+
 (defmacro* do-list-designator ((var list &optional result) &body body)
-  (let ((list-var (gensym)))
-    `(let ((,list-var ,list))
-      (dolist (,var (if (listp ,list-var) ,list-var (list ,list-var)) ,result)
-	,@body))))
+  `(dolist (,var (ensure-list ,list) ,result)
+     ,@body))

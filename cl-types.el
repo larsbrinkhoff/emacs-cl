@@ -5,6 +5,39 @@
 
 (IN-PACKAGE "CL")
 
+(defun COERCE (object type)
+  (cond
+    ((TYPEP object type)
+     object)
+    ((SUBTYPEP type 'SEQUENCE)
+     (MAP 'LIST #'IDENTITY object))
+    ((eq type 'CHARACTER)
+     (CHARACTER object))
+    ((eq type 'COMPLEX)
+     (complex object (COERCE 0 (TYPE-OF object))))
+    ((SUBTYPEP type 'FLOAT)
+     (float object))
+    ((eq type 'FUNCTION)
+     (FDEFINITION object))
+    ((eq type 'T)
+     object)
+    (t
+     (error "type error"))))
+
+(defvar *deftype-expanders* (make-hash-table))
+
+(defmacro* DEFTYPE (name lambda-list &body body)
+  `(progn
+    (setf (gethash ',name *deftype-expanders*)
+          (function (lambda ,lambda-list ,@body)))
+    ',name))
+
+(defun expand-type (type)
+  (let* ((name (if atom type type (car type)))
+	 (fn (gethash name *deftype-expanders*)))
+    (if fn
+	(expand-type (apply fn type)))))
+
 (defmacro* CHECK-TYPE (place type &optional string &environment env)
   `(unless (TYPEP ,place ,type ,env)
     (error ,string)))
@@ -39,7 +72,7 @@
 			'INTERPRETED-FUNCTION)
 	  (ratio	'RATIO)
 	  (simple-vector
-			`(SIMPLE-VECTOR (1- (length object))))
+			`(SIMPLE-VECTOR ,(1- (length object))))
 	  (string	`(STRING ,(length (aref object 2))))
 	  (vector	`(VECTOR ,(length (aref object 2))))
 	  (t		(aref object 0))))
