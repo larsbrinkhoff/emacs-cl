@@ -89,6 +89,41 @@
 (defun write-char-to-*standard-output* (char)
   (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*))
 
+;;; TODO:
+; (cl:defun WRITE (object &key
+; 		 (array *PRINT-ARRAY*)
+; 		 (base *PRINT-BASE*)
+; 		 (case *PRINT-CASE*)
+; 		 (circle *PRINT-CIRCLE*)
+; 		 (escape *PRINT-ESCAPE*)
+; 		 (gensym *PRINT-GENSYM*)
+; 		 (length *PRINT-LENGTH*)
+; 		 (level *PRINT-LEVEL*)
+; 		 (lines *PRINT-LINES*)
+; 		 (miser-width *PRINT-MISER-WIDTH*)
+; 		 (pprint-dispatch *PRINT-PPRINT-DISPATCH*)
+; 		 (pretty *PRINT-PRETTY*)
+; 		 (radix *PRINT-RADIX*)
+; 		 (readably *PRINT-READABLY*)
+; 		 (right-margin *PRINT-RIGHT-MARGIN*)
+; 		 stream)
+;   (let ((*PRINT-ARRAY* array)
+; 	(*PRINT-BASE* base)
+; 	(*PRINT-CASE* case)
+; 	(*PRINT-CIRCLE* circle)
+; 	(*PRINT-ESCAPE* escape)
+; 	(*PRINT-GENSYM* gensym)
+; 	(*PRINT-LENGTH* length)
+; 	(*PRINT-LEVEL* level)
+; 	(*PRINT-LINES* lines)
+; 	(*PRINT-MISER-WIDTH* miser-width)
+; 	(*PRINT-PPRINT-DISPATCH* pprint-dispatch)
+; 	(*PRINT-PRETTY* pretty)
+; 	(*PRINT-RADIX* radix)
+; 	(*PRINT-READABLY* readably)
+; 	(*PRINT-RIGHT-MARGIN* right-margin))
+;     object))
+
 ;;; Ad-hoc unexensible.
 (defun PRIN1 (object &optional stream-designator)
   (let* ((stream (output-stream stream-designator))
@@ -195,6 +230,9 @@
 	 (when (RESTART-condition object)
 	   (WRITE-STRING " " stream)
 	   (PRIN1 (RESTART-condition object) stream))))
+      ((PATHNAMEP object)
+       (WRITE-STRING "#P" stream)
+       (PRIN1 (NAMESTRING object) stream))
       (t
        (error))))
   (VALUES object))
@@ -231,7 +269,10 @@
   (WRITE-CHAR (CODE-CHAR 32) stream)
   object)
 
-;;; TODO: PPRINT
+;;; TODO:
+; (defun PPRINT (object &optional stream-designator)
+;   (let ((stream (output-stream stream-designator)))
+;     (VALUES)))
 
 (defun PRINC (object &optional stream-designator)
   (let* ((stream (output-stream stream-designator))

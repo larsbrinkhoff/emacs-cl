@@ -426,7 +426,13 @@
 
 (defun sharp-a-reader (stream char n) nil)
 (defun sharp-s-reader (stream char n) nil)
-(defun sharp-p-reader (stream char n) nil)
+
+(defun sharp-p-reader (stream char n)
+  (unless-read-suppress-let (string (READ stream T nil T))
+    (unless (STRINGP string)
+      (ERROR 'READER-ERROR))
+    (PARSE-NAMESTRING string)))
+
 (defun sharp-equal-reader (stream char n) nil)
 (defun sharp-sharp-reader (stream char n) nil)
 
