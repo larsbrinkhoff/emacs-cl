@@ -68,7 +68,7 @@
       (let* ((start (1+ (point)))
 	     (ignore (PPRINT x))
 	     (end (point)))
-	(put-text-property start end 'face 'underline)
+	;(put-text-property start end 'face 'underline)
 	(put-text-property start end 'mouse-face 'modeline)
 	;(put-text-property start end 'keymap ...)
 	(put-text-property start end 'emacs-cl-object x)))))
