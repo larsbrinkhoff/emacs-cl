@@ -87,8 +87,8 @@
 (defun* WRITE-STRING (string &optional stream-designator &key (start 0) end)
   (do ((stream (resolve-output-stream-designator stream-designator))
        (i 0 (1+ i)))
-      ((= i (length string)) string)
-    (WRITE-CHAR (aref string i) stream)))
+      ((= i (LENGTH string)) string)
+    (WRITE-CHAR (CHAR string i) stream)))
 
 (defun* WRITE-LINE (string &optional stream-designator &key (start 0) end)
   (let ((stream (resolve-output-stream-designator stream-designator)))
