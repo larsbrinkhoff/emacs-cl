@@ -497,3 +497,6 @@
 				    (VECTOR-PUSH-EXTEND
 				     (CODE-CHAR char)
 				     (STRING-STREAM-string stream)))))
+
+(defun make-princ-stream ()
+  (MAKE-STREAM (kw write-fn) (lambda (char stream) (princ (string char)))))
