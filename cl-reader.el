@@ -570,7 +570,8 @@
   ;; exponent marker?  If so, can be either a decimal integer or a float.
   (MULTIPLE-VALUE-BIND (integer end)
       (PARSE-INTEGER string (kw RADIX) 10 (kw JUNK-ALLOWED) T)
-    (when (and (< end (LENGTH string))
+    (when (and integer
+	       (< end (LENGTH string))
 	       (FIND (CHAR string end) ".DEFLSdefls"))
       (if (and (eq (1+ end) (LENGTH string))
 	       (eq (CHAR-CODE (CHAR string end)) 46))

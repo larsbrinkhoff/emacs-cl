@@ -879,7 +879,7 @@
 	(when (= i end)
 	  (if junk-allowed
 	      (throw 'PARSE-INTEGER (VALUES nil i))
-	      (error))))
+	      (ERROR 'PARSE-ERROR))))
       (setq char (CHAR string i))
       (when (find (CHAR-CODE char) "+-")
 	(when (CHAR= char (CODE-CHAR 45))
@@ -888,8 +888,12 @@
 	(when (= i end)
 	  (if junk-allowed
 	      (throw 'PARSE-INTEGER (VALUES nil i))
-	      (error)))
+	      (ERROR 'PARSE-ERROR)))
 	(setq char (CHAR string i)))
+      (unless (DIGIT-CHAR-P char radix)
+	(if junk-allowed
+	    (throw 'PARSE-INTEGER (VALUES nil i))
+	    (ERROR 'PARSE-ERROR)))
       (while (setq digit (DIGIT-CHAR-P char radix))
 ;       (print (format "before: %s %s" (cl:* integer 10) digit))
 	(setq integer (cl:+ (cl:* integer radix) digit))
@@ -908,7 +912,7 @@
 	     ((= j end)
 	      (VALUES (cl:* sign integer) i))
 	   (unless (whitespacep (CHAR string j))
-	     (error))))))))
+	     (ERROR 'PARSE-ERROR))))))))
 
 (DEFCONSTANT BOOLE-1		 1)
 (DEFCONSTANT BOOLE-2		 2)
