@@ -369,7 +369,7 @@
 
 (defun no-param (char n)
   (when n
-    (WARN "Parameter %D ignored in #%C." n char)))
+    (WARN "Parameter ~D ignored in #~C." n char)))
 
 (defun sharp-backslash-reader (stream char n)
   (no-param (ch 92) n)
