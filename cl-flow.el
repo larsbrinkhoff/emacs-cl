@@ -15,15 +15,23 @@
     (t
      (error))))
 
-(defun set-fdefinition (name new)
+(defsetf fdefinition (name) (fn)
+  `(cond
+    ((symbolp ,name)
+     (setf (symbol-function ,name) ,fn))
+    ((and (consp ,name) (eq (first ,name) 'setf) (eq (cddr ,name) nil))
+     (setf (gethash (second ,name) *setf-definitions*) ,fn))
+    (t
+     (error "type error"))))
+
+(defun cl:funcall (fn &rest args)
   (cond
-    ((symbolp name)
-     (setf (symbol-function name) new))
-    ((and (consp name) (eq (first name) 'setf) (eq (cddr name) nil))
-     (setf (gethash (second name) *setf-definitions*) new))
+    ((symbolp fn)
+     (apply fn args))
+    ((and (consp fn) (eq (first fn) 'setf) (null (cddr fn)))
+     (apply (fdefinition fn) args))
     (t
      (error))))
-(defsetf fdefinition set-symbol-package)
 
 (defun expand-tagbody-forms (body start end)
   (do ((clauses nil)
@@ -115,3 +123,49 @@
 ;;   (when *multiple-values-variable*
 ;;     (set *multiple-values-variable* list))
 ;;   (car list))
+
+(defmacro* cl:defsetf (access-fn &rest args)
+  (if (<= (length args) 2)
+      `(define-setf-expander ,access-fn (&rest args2)
+	(let ((fn ',(first args))
+	      (var (gensym))
+	      (temps (mapcar (lambda (x) (gensym)) args2)))
+	  (values temps
+		  args2
+		  (list var)
+		  `(,fn ,@temps ,var)
+		  ())))
+      `(define-setf-expander ,access-fn ,(first args)
+	(let ((body '(progn ,@(cddr args))))
+	  (values ()
+		  ()
+		  ',(second args)
+		  body)))))
+
+(defvar *setf-expanders* (make-hash-table))
+
+(defmacro* define-setf-expander (access-fn lambda-list &body body)
+  (setq lambda-list (copy-list lambda-list))
+  (remf lambda-list '&environment)
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+    (setf (gethash ',access-fn *setf-expanders*)
+          (lambda ,lambda-list ,@body)))))
+
+(defun get-setf-expansion (place &optional env)
+  (let ((fn (gethash (first place) *setf-expanders*)))
+    (if fn
+	(apply fn (rest place))
+	(let ((temps (mapcar (lambda (x) (gensym)) (rest place)))
+	      (var (gensym)))
+	  (values temps
+		  (rest place)
+		  (list var)
+		  `(cl:funcall '(setf ,(first place)) ,var ,@temps)
+		  ())))))
+
+(defmacro* cl:setf (place value &environment env)
+  (multiple-value-bind (temps values variables setter getter)
+      (get-setf-expansion place env)
+    `(let* ,(cl:mapcar #'list temps values)
+      (let ((,(first variables) ,value))
+	,setter)))))

@@ -137,9 +137,8 @@
 (defun fill-pointer (vector)
   (aref vector 1))
 
-(defun setf-fill-pointer (vector fill-pointer)
-  (aset vector 1 fill-pointer))
-(defsetf fill-pointer setf-fill-pointer)
+(defsetf fill-pointer (vector) (fill-pointer)
+  `(aset ,vector 1 ,fill-pointer))
 
 (defun row-major-aref (array index)
   (cond
@@ -150,15 +149,16 @@
     (t
      (error))))
 
-(defun setf-row-major-aref (array index new)
-  (cond
-    ((cl:vectorp array)
-     (setf (cl:aref array index) new))
-    ((vector-and-typep array 'array)
-     (aset (aref array 2) index new))
+(defsetf row-major-aref (array index) (new)
+  `(cond
+    ((cl:vectorp ,array)
+     (setf (cl:aref ,array ,index) ,new))
+    ((and (vectorp ,array)
+          (case (aref ,array 0)
+	    ((array bit-array char-array))))
+     (aset (aref ,array 2) ,index ,new))
     (t
-     (error))))
-(defsetf row-major-aref setf-row-major-aref)
+     (error "type error"))))
 
 (defun upgraded-array-element-type (typespec &optional env)
   (cond

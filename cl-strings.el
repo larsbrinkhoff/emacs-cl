@@ -16,25 +16,20 @@
     (t
      (error "type error"))))
 
-(defun schar (string index)
-  (code-char (aref string index)))
-
-(defun setf-char (string index new)
-  (check-type new 'character)
-  (cond
+(defsetf char (string index) (char)
+  `(cond
     ((simple-string-p string)
-     (setf (schar string index) new))
+     (setf (schar ,string ,index) ,char))
     ((cl:stringp string)
-     (setf (schar (aref string 2) index) new))
+     (setf (schar (aref ,string 2) ,index) ,char))
     (t
      (error "type error"))))
 
-(defun setf-schar (string index new)
-  (check-type new 'character)
-  (aset string index (char-code new)))
+(defun schar (string index)
+  (code-char (aref string index)))
 
-(defsetf schar setf-schar)
-(defsetf char setf-char)
+(defsetf schar (string index) (char)
+  `(aset ,string ,index (char-code ,char)))
 
 (defun cl:string (x)
   (cond

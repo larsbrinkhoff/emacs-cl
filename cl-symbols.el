@@ -34,12 +34,7 @@
 (defun symbol-package (sym)
   (gethash sym *symbol-package-table*))
 
-(defun setf-symbol-package (sym package)
-  (check-type sym 'symbol)
-  (check-type package '(or null package))
-  (if (null package)
-      (remhash sym *symbol-package-table*)
-      (setf (gethash sym *symbol-package-table*) package))
-  package)
-
-(defsetf symbol-package setf-symbol-package)
+(defsetf symbol-package (sym) (package)
+  `(if (null ,package)
+       (progn (remhash ,sym *symbol-package-table*) ,package)
+       (setf (gethash ,sym *symbol-package-table*) ,package)))

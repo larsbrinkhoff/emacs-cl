@@ -21,9 +21,8 @@
 (defun symbol-register (sym)
   (gethash sym *variables*))
 
-(defun setf-symbol-register (sym reg)
-  (setf (gethash sym *variables*) reg))
-(defsetf symbol-register setf-symbol-register)
+(defsetf symbol-register (sym) (reg)
+  `(setf (gethash ,sym *variables*) ,reg))
 
 (defun* new-symbol (sym &key special)
   (cond
