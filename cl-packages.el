@@ -3,27 +3,26 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 11, Packages.
 
-; (DEFSTRUCT (PACKAGE (:constructor mk-package ())
-; 		    (:predicate PACKAGEP)
-; 		    (:copier nil))
-;   NAME
-;   NICKNAMES
-;   SHADOWING-SYMBOLS
-;   USE-LIST
-;   USED-BY-LIST
-;   table)
+(defun PACKAGE-NAME (package)
+  (aref package 1))
 
-(defconst not-found (cons nil nil))
+(defun PACKAGE-NICKNAMES (package)
+  (aref package 2))
 
-(defun* FIND-SYMBOL (string &optional (package-designator *PACKAGE*))
-  (let* ((package (FIND-PACKAGE package-designator))
-	 (table (package-table
-		 (or package
-		     (error (format "package \"%s\" not found" p)))))
-	 (symbol (gethash string table not-found)))
-    (if (eq symbol not-found)
-	(values nil nil)
-	(values symbol :external))))
+(defun PACKAGE-SHADOWING-SYMBOLS (package)
+  (aref package 3))
+
+(defun PACKAGE-USE-LIST (package)
+  (aref package 4))
+
+(defun PACKAGE-USED-BY-LIST (package)
+  (aref package 5))
+
+(defun package-table (package)
+  (aref package 6))
+
+(defun PACKAGEP (package)
+  (vector-and-typep package 'PACKAGE))
 
 (defvar *all-packages* nil)
 
@@ -33,16 +32,59 @@
       (let ((string (STRING name)))
 	(find-if 
 	 (lambda (p)
-	   (or (string= string (PACKAGE-NAME p))
+	   (or (STRING= string (PACKAGE-NAME p))
 	       (find string (PACKAGE-NICKNAMES p) :test 'equal)))
 	 *all-packages*))))
+
+(defun* MAKE-PACKAGE (name &key nicknames use)
+  (let ((package (make-vector 7 'PACKAGE))
+	(use-packages (mapcar #'FIND-PACKAGE use)))
+    (aset package 1 (STRING name))
+    (aset package 2 nicknames)
+    (aset package 3 nil)
+    (aset package 4 use-packages)
+    (aset package 6 (make-hash-table :test 'equal))
+    (dolist (p use-packages)
+      (aset p 5 (cons package (aref p 5))))
+    (push package *all-packages*)
+    package))
+
+(defvar *keyword-package* (MAKE-PACKAGE "KEYWORD"))
+(defvar *emacs-lisp-package* (MAKE-PACKAGE "EMACS-LISP" :nicknames '("EL")))
+(defvar *common-lisp-package* (MAKE-PACKAGE "COMMON-LISP" :nicknames '("CL")))
+(MAKE-PACKAGE "COMMON-LISP-USER" :nicknames '("CL-USER") :use '("CL" "EL"))
+
+(defconst not-found (cons nil nil))
+
+(defun* FIND-SYMBOL (string &optional (package-designator *PACKAGE*))
+  (let ((package (FIND-PACKAGE package-designator)))
+    (cond
+      ((null package)
+       (error (format "package \"%s\" not found" package-designator)))
+      ((eq package *emacs-lisp-package*)
+       (let ((symbol (intern-soft string)))
+	 (if symbol
+	     (progn
+	       (setf (SYMBOL-PACKAGE symbol) *emacs-lisp-package*)
+	       (values symbol *:external*))
+	     (values nil nil))))
+      (t
+       (let* ((table (package-table package))
+	      (symbol (gethash string table not-found)))
+	 (if (not (eq symbol not-found))
+	     (values symbol *:external*)
+	     (dolist (p (PACKAGE-USE-LIST package) (values nil nil))
+	       (multiple-value-bind (symbol found) (FIND-SYMBOL string p)
+		 (when found
+		   (return-from FIND-SYMBOL
+		     (values symbol *:inherited*)))))))))))
 
 (defun FIND-ALL-SYMBOLS (name)
   (let ((string (STRING name))
 	(syms nil))
     (dolist (p *all-packages* syms)
       (multiple-value-bind (sym status) (FIND-SYMBOL string p)
-	(if (or (eq status :internal) (eq status :external))
+	(if (or (eq status :internal) (eq status *:external*))
 	    (push sym syms))))))
 
 ;;; import
@@ -61,19 +103,6 @@
     (aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))
   (setq *all-packages* (delete package *all-packages*)))
 
-(defun* MAKE-PACKAGE (name &key nicknames use)
-  (let ((package (make-vector 7 'PACKAGE))
-	(use-packages (mapcar #'FIND-PACKAGE use)))
-    (aset package 1 (STRING name))
-    (aset package 2 nicknames)
-    (aset package 3 nil)
-    (aset package 4 use-packages)
-    (aset package 6 (make-hash-table :test 'equal))
-    (dolist (p use-packages)
-      (aset p 5 (cons package (aref p 5))))
-    (push package *all-packages*)
-    package))
-
 ;;; with-package-iterator
 
 ;;; unexport
@@ -86,7 +115,7 @@
 	 (sym (gethash name table not-found)))
     (unless (eq sym not-found)
       (remhash name table)
-      t)))
+      T)))
 
 (defmacro IN-PACKAGE (package)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
@@ -98,13 +127,13 @@
       (let ((p (FIND-PACKAGE p)))
 	(aset package 4 (delete p (PACKAGE-USE-LIST package)))
 	(aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))))
-  t)
+  T)
 
 (defun* USE-PACKAGE (packages-to-use &optional (package *PACKAGE*))
   (let ((package (FIND-PACKAGE package)))
     (dolist (p (ensure-list packages-to-use))
       (aset package 4 (cons (FIND-PACKAGE p) (PACKAGE-USE-LIST package)))))
-  t)
+  T)
 
 (defmacro DEFPACKAGE (name &body options)
   (let ((nicknames nil)
@@ -137,6 +166,13 @@
       (maphash (lambda (,ignore ,var) ,@body) (package-table ,package))
       ,result)))
 
+; (DEFMACRO DO-SYMBOLS ((var &optional (package *PACKAGE*) result)
+; 		      &body body)
+;   (let ((ignore (gensym)))
+;     `(progn
+;       (maphash (lambda (,ignore ,var) ,@body) (package-table ,package))
+;       ,result)))
+
 ;;; do-external-symbols
 
 ;;; do-all-symbols
@@ -148,38 +184,23 @@
     (multiple-value-bind (symbol found) (FIND-SYMBOL name package)
       (if found
 	  (values symbol found)
-	  (let ((symbol (make-symbol name)))
+	  (let ((symbol (if (eq package *emacs-lisp-package*)
+			    (intern name)
+			    (make-symbol name))))
 	    (setf (SYMBOL-PACKAGE symbol) package)
-	    (setf (gethash name (package-table package)) symbol)
+	    (unless (eq package *emacs-lisp-package*)
+	      (setf (gethash name (package-table package)) symbol))
+	    (when (eq package *keyword-package*)
+	      (set symbol symbol)
+	      (push symbol *constants*))
 	    (values symbol nil))))))
 
-(defun PACKAGE-NAME (package)
-  (aref package 1))
+(defconst *:internal* (nth-value 0 (INTERN "INTERNAL" *keyword-package*)))
+(defconst *:external* (nth-value 0 (INTERN "EXTERNAL" *keyword-package*)))
+(defconst *:inherited* (nth-value 0 (INTERN "INHERITED" *keyword-package*)))
 
-(defun PACKAGE-NICKNAMES (package)
-  (aref package 2))
-
-(defun PACKAGE-SHADOWING-SYMBOLS (package)
-  (aref package 3))
-
-(defun PACKAGE-USE-LIST (package)
-  (aref package 4))
-
-(defun PACKAGE-USED-BY-LIST (package)
-  (aref package 5))
-
-(defun package-table (package)
-  (aref package 6))
-
-(defun PACKAGEP (package)
-  (vector-and-typep package 'PACKAGE))
-
-(MAKE-PACKAGE "COMMON-LISP" :nicknames '("CL"))
-(MAKE-PACKAGE "COMMON-LISP-USER" :nicknames '("CL-USER") :use '("CL"))
-(MAKE-PACKAGE "KEYWORD")
-(MAKE-PACKAGE "EMACS-LISP" :nicknames '("EL"))
-
-(setf (gethash "NIL" (package-table (FIND-PACKAGE "CL"))) nil)
+(setf (gethash "NIL" (package-table *common-lisp-package*)) nil)
+(setf (SYMBOL-PACKAGE nil) *common-lisp-package*)
 
 (defvar *PACKAGE* (FIND-PACKAGE "CL-USER"))
 
@@ -187,9 +208,11 @@
 
 ;;; package-error-package
 
-(dolist (sym
-	  '(*GENSYM-COUNTER* *MACROEXPAND-HOOK* *READ-BASE* *READTABLE*
-	    *PACKAGE* ADJUST-ARRAY ADJUSTABLE-ARRAY-P ALPHA-CHAR-P
+(let ((cl-table (package-table *common-lisp-package*)))
+  (dolist (sym
+	    '(** *** *GENSYM-COUNTER* *MACROEXPAND-HOOK* *READ-BASE*
+	      *READTABLE* *PACKAGE* ABS ADJUST-ARRAY ADJUSTABLE-ARRAY-P
+	      ALPHA-CHAR-P
 	    ALPHANUMERICP AND AREF ARRAY ARRAY-DIMENSION ARRAY-DIMENSIONS
 	    ARRAY-ELEMENT-TYPE ARRAY-HAS-FILL-POINTER-P ARRAYP ASH ATAN ATOM
 	    BACKQUOTE BASE-CHAR BASE-STRING BIGNUM BIT BIT-VECTOR BIT-VECTOR-P
@@ -240,4 +263,24 @@
 	    USE-PACKAGE UNINTERN VALUES VECTORP WITH-INPUT-FROM-STRING
 	    WITH-OPEN-FILE WITH-OPEN-STREAM WRITE-CHAR WRITE-LINE WRITE-STRING
 	    ZEROP))
-  (setf (SYMBOL-PACKAGE sym) (FIND-PACKAGE "COMMON-LISP")))
+    (setf (gethash (SYMBOL-NAME sym) cl-table) sym)
+    (setf (SYMBOL-PACKAGE sym) *common-lisp-package*))
+
+  (dolist (name '("=" "/=" "<" ">" "<=" ">=" "*" "+" "-" "/" "1+" "1-"))
+    (let ((to (make-symbol name))
+	  (from (intern (concat "cl:" name))))
+      (setf (gethash name cl-table) to)
+      (setf (SYMBOL-PACKAGE to) *common-lisp-package*)
+      (fset to (symbol-function from))))
+
+  (dolist (sym '(** *** ++ +++ // ///))
+    (setf (gethash (symbol-name sym) cl-table) sym)
+    (setf (SYMBOL-PACKAGE sym) *common-lisp-package*)
+    (set sym nil)))
+
+; (let* ((el-table (package-table *emacs-lisp-package*)))
+;   (mapatoms
+;    (lambda (sym)
+;      (unless (SYMBOL-PACKAGE sym)
+;        (setf (gethash (symbol-name sym) el-table) sym)
+;        (setf (SYMBOL-PACKAGE sym) *emacs-lisp-package*)))))
