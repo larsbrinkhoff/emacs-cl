@@ -106,7 +106,13 @@ WITH-OPEN-FILE WITH-OPEN-STREAM WRITE-CHAR WRITE-LINE WRITE-STRING ZEROP))
       (set sym nil))
 
     (setq *global-environment*
-	  (vector 'environment nil nil nil nil nil nil nil))
+	  (vector 'environment
+		  ;; Variable information
+		  nil nil nil
+		  ;; Function information
+		  nil nil nil
+		  ;; Block and tagbody information
+		  nil nil))
 
     (dolist (sym '(&ALLOW-OTHER-KEYS &AUX &BODY &ENVIRONMENT &KEY &OPTIONAL
 &REST &WHOLE * ** *** *BREAK-ON-SIGNALS* *COMPILE-FILE-PATHNAME*

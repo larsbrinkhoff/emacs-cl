@@ -37,18 +37,31 @@
     (dolist (form body lastval)
       (setq lastval (eval-with-env form env)))))
 
-;;; TODO: FLET
+(define-special-operator FLET (fns &rest forms) env
+  (let ((new-env (augment-environment env :function (mapcar #'first fns)))
+	(lastval nil))
+    (dolist (fn fns)
+      (setf (lexical-function (first fn) new-env)
+	    (enclose `(LAMBDA ,@(rest fn)) env)))
+    (dolist (form forms lastval)
+      (setq lastval (eval-with-env form new-env)))))
 
 (define-special-operator FUNCTION (form) env
   (VALUES
     (cond
       ((SYMBOLP form)
-       (SYMBOL-FUNCTION form))
+       (multiple-value-bind (type localp decl) (function-information form env)
+	 (ecase type
+	   ((nil)	(error "unbound function %s" form))
+	   (:function	(if localp
+			    (lexical-function form env)
+			    (SYMBOL-FUNCTION form)))
+	   (t		(error "syntax error")))))
       ((ATOM form)
        (error "syntax error"))
       ((case (first form)
 	 (LAMBDA
-	     (enclose form env))
+	  (enclose form env))
 	 (SETF
 	  (FDEFINITION form))
 	 (t
@@ -65,7 +78,14 @@
       (eval-with-env then env)
       (eval-with-env else env)))
 
-;;; TODO: LABELS
+(define-special-operator LABELS (fns &rest forms) env
+  (let ((new-env (augment-environment env :function (mapcar #'first fns)))
+	(lastval nil))
+    (dolist (fn fns)
+      (setf (lexical-function (first fn) new-env)
+	    (enclose `(LAMBDA ,@(rest fn)) new-env)))
+    (dolist (form forms lastval)
+      (setq lastval (eval-with-env form new-env)))))
 
 (define-special-operator LET (bindings &rest forms) env
   (let ((new-env
@@ -187,39 +207,58 @@
 (defun variable-information (var &optional env)
   (unless env
     (setq env *global-environment*))
-  (let ((info (assoc var (aref env 1))))
-    (when (and (null info) (boundp var))
-      (setq info (if (CONSTANTP var env)
-		     (cons var :constant)
-		     (cons var :special))))
-    (values (cdr-safe info)
-	    (member var (aref env 2))
-	    nil)))
+  (values
+    (let ((info (assoc var (aref env 1))))
+      (if info
+	  (cdr info)
+	  (when (boundp var)
+	    (if (CONSTANTP var env)
+		:constant
+		:special))))
+    (member var (aref env 2))
+    nil))
 
 (defun lexical-value (var env)
   (cdr (assoc var (aref env 3))))
 
 (defsetf lexical-value (var env) (val)
   `(let ((cons (assoc ,var (aref ,env 3))))
-    (if cons
-	(setf (cdr cons) ,val)
-	(progn (aset ,env 3 (acons ,var ,val (aref ,env 3)))
-	       ,val))))
+     (if cons
+	 (setf (cdr cons) ,val)
+	 (progn (aset ,env 3 (acons ,var ,val (aref ,env 3)))
+		,val))))
 
 (defun function-information (fn &optional env)
   (unless env
     (setq env *global-environment*))
-  (values (assoc fn (aref env 4))
-	  (member fn (aref env 5))
-	  nil))
+  (values
+    (let ((info (assoc fn (aref env 4))))
+      (if info
+	  (cdr info)
+	  (cond
+	    ((FBOUNDP fn)		:function)
+	    ((MACRO-FUNCTION fn)	:macro)
+	    ((SPECIAL-OPERATOR-P fn)	:special-operator))))
+    (member fn (aref env 5))
+    nil))
+
+(defun lexical-function (name env)
+  (cdr (assoc name (aref env 6))))
+
+(defsetf lexical-function (name env) (fn)
+  `(let ((cons (assoc ,name (aref ,env 6))))
+     (if cons
+	 (setf (cdr cons) ,fn)
+	 (progn (aset ,env 6 (acons ,name ,fn (aref ,env 6)))
+		,fn))))
 
 (defun block-information (tag env)
   (when env
-    (assoc tag (aref env 6))))
+    (assoc tag (aref env 7))))
 
 (defun tagbody-information (tag env)
   (when env
-    (let ((tagbody (find-if (lambda (x) (member tag (rest x))) (aref env 7))))
+    (let ((tagbody (find-if (lambda (x) (member tag (rest x))) (aref env 8))))
       (first tagbody))))
 
 (defun* augment-environment (env &key variable symbol-macro function
@@ -230,8 +269,8 @@
 	(var-local (aref env 2))
 	(fn-info (aref env 4))
 	(fn-local (aref env 5))
-	(block-info (aref env 6))
-	(tagbody-info (aref env 7)))
+	(block-info (aref env 7))
+	(tagbody-info (aref env 8)))
     (setq var-info (reduce (lambda (env var) (acons var :lexical env))
 			   variable
 			   :initial-value var-info))
@@ -239,7 +278,7 @@
 			   symbol-macro
 			   :initial-value var-info))
     (setq var-local (append variable var-local))
-    (setq fn-info (reduce (lambda (fn var) (acons var :function env))
+    (setq fn-info (reduce (lambda (var fn) (acons fn :function var))
 			  function
 			  :initial-value fn-info))
     (setq fn-info (reduce (lambda (mac var) (acons mac :macro env))
@@ -248,7 +287,8 @@
     (setq fn-local (append function fn-local))
     (setq block-info (cons block block-info))
     (setq tagbody-info (cons tagbody tagbody-info))
-  (vector 'environment var-info var-local (aref env 3) fn-info fn-local
+  (vector 'environment var-info var-local (aref env 3)
+	               fn-info fn-local (aref env 6)
 	               block-info tagbody-info)))
 
 (defun enclose (lambda-exp &optional env)
@@ -291,7 +331,7 @@
 	 ((nil)		(error "unbound variable %s" form))
 	 (:special	(SYMBOL-VALUE form))
 	 (:lexical	(lexical-value form env))
-	 (:symbol-macro	(error "shouldn't happen"))
+	 (:symbol-macro	(error "shouldn't happen yet"))
 	 (:constant	(SYMBOL-VALUE form)))))
     ((ATOM form)
      (VALUES form))
@@ -303,7 +343,8 @@
 	 (let ((fn (gethash (first form) *special-operator-evaluators*)))
 	   (if fn
 	       (apply fn env (rest form))
-	       (let ((fn (symbol-function (first form))))
+	       (let ((fn (eval-with-env `(FUNCTION ,(first form)) env)))
+		         ;;(symbol-function (first form))))
 		 (if (listp fn)
 		     ;; Special hack for interpreted Emacs Lisp function.
 		     (apply fn (mapcar (lambda (arg) (eval-with-env arg env))
