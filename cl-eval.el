@@ -126,8 +126,8 @@
 	(VALUES lastval))
     (setq lastval
 	  (ecase (nth-value 0 (variable-information var env))
-	    ((nil)		(error "unbound variable %s" form))
-	    (:special		(set var val))
+	    ;;((nil)		(error "unbound variable %s" form))
+	    ((:special nil)	(set var val))
 	    (:lexical		(setf (lexical-value var env) val))
 	    (:symbol-macro	(error "shouldn't happen"))
 	    (:constant		(error "setting constant"))))))

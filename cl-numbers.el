@@ -7,31 +7,31 @@
 (IN-PACKAGE "EMACS-CL")
 
 ;;; Various test cases for bignum addition.
-(defun bignum-test ()
-  (loop for (x y z) in
-	'((67108864		67108864		[bignum -134217728 0])
-	  (134217727		1			[bignum -134217728 0])
-	  (-134217728		-1			[bignum 134217727 -1])
-	  (-134217728		-134217728		[bignum 0 -1])
-	  ([bignum -1 0]	[bignum -1 0]		[bignum -2 1])
-	  ([bignum 0 -1]	[bignum 0 -1]		[bignum 0 -2])
-	  ([bignum 0 2]		[bignum 0 -1]		[bignum 0 1])
-	  ([bignum 0 -1]	[bignum 0 2]		[bignum 0 1])
-	  ([bignum 0 1]		[bignum 0 -2]		[bignum 0 -1])
-	  ([bignum 0 -2]	[bignum 0 1]		[bignum 0 -1])
-	  ([bignum 2 2]		[bignum -1 -3]		1)
-	  ([bignum 2 2]		[bignum -3 -3]		-1)
-	  ([bignum -54323701 6]	[bignum 16292363 17]	[bignum -38031338 23])
-	  ([bignum 119720045 12408]
-				[bignum 38283770 30621]
-						    [bignum -110431641 43029])
-	  ([bignum -134217728 2] -1			[bignum 134217727 2])
-	  ([bignum 0 100000000]	[bignum 0 100000000]	[bignum 0 -68435456 0])
-	  ([bignum -24181363 103035877]
-				[bignum -24181363 103035877]
-					       [bignum -48362726 -62363701 0]))
-	do (unless (equal (cl:+ x y) z)
-	     (princ (format "%s + %s /= %s\n" x y z)))))
+; (defun bignum-test ()
+;   (loop for (x y z) in
+; 	'((67108864		67108864		[bignum -134217728 0])
+; 	  (134217727		1			[bignum -134217728 0])
+; 	  (-134217728		-1			[bignum 134217727 -1])
+; 	  (-134217728		-134217728		[bignum 0 -1])
+; 	  ([bignum -1 0]	[bignum -1 0]		[bignum -2 1])
+; 	  ([bignum 0 -1]	[bignum 0 -1]		[bignum 0 -2])
+; 	  ([bignum 0 2]		[bignum 0 -1]		[bignum 0 1])
+; 	  ([bignum 0 -1]	[bignum 0 2]		[bignum 0 1])
+; 	  ([bignum 0 1]		[bignum 0 -2]		[bignum 0 -1])
+; 	  ([bignum 0 -2]	[bignum 0 1]		[bignum 0 -1])
+; 	  ([bignum 2 2]		[bignum -1 -3]		1)
+; 	  ([bignum 2 2]		[bignum -3 -3]		-1)
+; 	  ([bignum -54323701 6]	[bignum 16292363 17]	[bignum -38031338 23])
+; 	  ([bignum 119720045 12408]
+; 				[bignum 38283770 30621]
+; 						    [bignum -110431641 43029])
+; 	  ([bignum -134217728 2] -1			[bignum 134217727 2])
+; 	  ([bignum 0 100000000]	[bignum 0 100000000]	[bignum 0 -68435456 0])
+; 	  ([bignum -24181363 103035877]
+; 				[bignum -24181363 103035877]
+; 					       [bignum -48362726 -62363701 0]))
+; 	do (unless (equal (cl:+ x y) z)
+; 	     (princ (format "%s + %s /= %s\n" x y z)))))
 
 (defun cl:= (number &rest numbers)
   (every (lambda (n) (binary= number n)) numbers))

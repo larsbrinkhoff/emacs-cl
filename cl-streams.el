@@ -135,6 +135,10 @@
   `(WITH-OPEN-STREAM (,stream (OPEN ,filespec ,@options))
      ,@body))
 
+(cl:defmacro WITH-OPEN-FILE ((stream filespec &rest options) &body body)
+  `(WITH-OPEN-STREAM (,stream (OPEN ,filespec ,@options))
+     ,@body))
+
 (defun* CLOSE (stream &key abort)
   (when (STREAM-filename stream)
     (save-current-buffer
@@ -142,13 +146,19 @@
       (write-region 1 (1+ (buffer-size)) (STREAM-filename stream))))
   (when (bufferp (STREAM-content stream))
     (kill-buffer (STREAM-content stream)))
-  t)
+  T)
 
 (defmacro* WITH-OPEN-STREAM ((var stream) &body body)
   `(let ((,var ,stream))
     (unwind-protect
 	 (progn ,@body)
       (CLOSE ,var))))
+
+(cl:defmacro WITH-OPEN-STREAM ((var stream) &body body)
+  `(LET ((,var ,stream))
+     (UNWIND-PROTECT
+	  (PROGN ,@body)
+       (CLOSE ,var))))
 
 ;;; TODO: listen
 
