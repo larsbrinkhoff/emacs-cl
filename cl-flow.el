@@ -52,15 +52,6 @@
     (t
      (error "type error"))))
 
-(DEFSETF FDEFINITION (name) (fn)
-  `(COND
-    ((SYMBOLP ,name)
-     (SETF (SYMBOL-FUNCTION ,name) ,fn))
-    ((AND (CONSP ,name) (EQ (FIRST ,name) 'SETF) (EQ (CDDR ,name) NIL))
-     (SETF (gethash (second ,name) *setf-definitions*) ,fn))
-    (T
-     (error "type error"))))
-
 (defun FBOUNDP (name)
   (cond
     ((symbolp name)
@@ -504,6 +495,15 @@
      (SETF (GETHASH ',access-fn *setf-expanders*)
            (LAMBDA ,lambda-list ,@body))
      (QUOTE ,access-fn)))
+
+(DEFSETF FDEFINITION (name) (fn)
+  `(COND
+    ((SYMBOLP ,name)
+     (SETF (SYMBOL-FUNCTION ,name) ,fn))
+    ((AND (CONSP ,name) (EQ (FIRST ,name) 'SETF) (EQ (CDDR ,name) NIL))
+     (SETF (gethash (second ,name) *setf-definitions*) ,fn))
+    (T
+     (error "type error"))))
 
 (defun GET-SETF-EXPANSION (place &optional env)
   (setq place (MACROEXPAND place))
