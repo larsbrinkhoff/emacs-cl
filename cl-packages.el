@@ -261,7 +261,7 @@
     (dolist (sym '(&ALLOW-OTHER-KEYS &AUX &BODY &ENVIRONMENT &KEY
 &OPTIONAL &REST &WHOLE ** *** *FEATURES* *GENSYM-COUNTER*
 *MACROEXPAND-HOOK* *READ-BASE* *READTABLE* *PACKAGE* ABS ADJUST-ARRAY
-ADJUSTABLE-ARRAY-P ALPHA-CHAR-P ALPHANUMERICP AND AREF ARRAY
+ADJUSTABLE-ARRAY-P ALPHA-CHAR-P ALPHANUMERICP AND APPEND AREF ARRAY
 ARRAY-DIMENSION ARRAY-DIMENSIONS ARRAY-ELEMENT-TYPE
 ARRAY-HAS-FILL-POINTER-P ARRAYP ASH ATAN ATOM BASE-CHAR BASE-STRING
 BIGNUM BIT BIT-VECTOR BIT-VECTOR-P BLOCK BOOLEAN BOUNDP BYTE
@@ -330,7 +330,7 @@ WRITE-LINE WRITE-STRING ZEROP))
     (dolist (name '("=" "/=" "<" ">" "<=" ">=" "*" "+" "-" "/" "1+" "1-"))
       (let ((to (make-symbol name))
 	    (from (intern (concat "cl:" name))))
-	(setf (gethash name cl-table) to)
+p	(setf (gethash name cl-table) to)
 	(setf (SYMBOL-PACKAGE to) *common-lisp-package*)
 	(if (boundp from)
 	    (set to (symbol-value from)))

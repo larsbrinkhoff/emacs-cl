@@ -72,6 +72,8 @@
 
 (fset 'NULL (symbol-function 'null))
 
+(fset 'APPEND (symbol-function 'append))
+
 (defun MAPCAR (fn &rest seqs)
   (if (null (cdr seqs))
       (mapcar fn (car seqs))
