@@ -237,12 +237,16 @@
 				      :use ,use-list)))
 	  ,package)))))
 
+(defun el-maphash (fn hash)
+  (maphash (lambda (k v) (FUNCALL fn k v)) hash))
+
 (cl:defmacro DO-SYMBOLS ((var &optional package result) &body body)
   (let ((p1 (gensym)) (p2 (gensym)) (ignore (gensym)))
     `(LET* ((,p1 ,package)
 	    (,p2 (IF ,p1 (FIND-PACKAGE ,p1) *PACKAGE*)))
-       (maphash (QUOTE (lambda (,ignore ,var) ,@body))
-	        (package-table ,p2)))))
+       (el-maphash (LAMBDA (,ignore ,var) ,@body)
+	           (package-table ,p2))
+       ,result)))
 
 (cl:defmacro DO-EXTERNAL-SYMBOLS ((var &optional package result) &body body)
   (let ((p1 (gensym)) (p2 (gensym)))
@@ -253,9 +257,9 @@
 
 (cl:defmacro DO-ALL-SYMBOLS ((var &optional result) &body body)
   (let ((p (gensym)) (ignore (gensym)))
-    `(DOLIST (,p *all-packages*)
-       (maphash (QUOTE (lambda (,ignore ,var) ,@body))
-	        (package-table ,p)))))
+    `(DOLIST (,p *all-packages* ,result)
+       (el-maphash (LAMBDA (,ignore ,var) ,@body)
+	           (package-table ,p)))))
 
 (defun* INTERN (name &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
