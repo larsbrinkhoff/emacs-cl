@@ -18,7 +18,7 @@
      ',name))
 
 (defun lambda-keyword-p (x)
-  (member x '(&OPTIONAL &REST &KEY)))
+  (memq x '(&OPTIONAL &REST &KEY)))
 
 (defvar rest-sym (make-symbol "rest"))
 
@@ -41,7 +41,7 @@
 	((consp x)
 	 (when (eq state :required)
 	   (error "required parameters must be symbols"))
-	 (when (lambda-keyword-p (car result))
+	 (when (memq (car result) '(&optional &rest))
 	   (pop result))
 	 (push '&rest result)
 	 (push rest-sym result)
@@ -50,7 +50,7 @@
 	 (error "syntax error"))))
     (nreverse result)))
 
-(defun* lambda-list-bindings (lambda-list)
+(defun* lambda-list-bindings (lambda-list env)
   (let ((bindings nil)
 	(state :required)
 	x)
@@ -58,12 +58,13 @@
       (setq x (pop lambda-list))
       (cond
 	((eq x '&KEY)
-	 (dolist (y (lambda-list-keyword-vars (cons '&KEY lambda-list) t))
+	 (dolist (y (lambda-list-keyword-vars (cons '&KEY lambda-list) env t))
 	   (push `(,y ',unbound) bindings))
 	 (return-from lambda-list-bindings (nreverse bindings)))
 	((lambda-keyword-p x)
 	 (setq state x))
 	((symbolp x)
+	 (when env (setq x (lexical-value x env)))
 	 (case state
 	   (:optional-rest
 	    (push `(,x (pop ,rest-sym)) bindings))
@@ -78,7 +79,9 @@
 		  (default (second x))
 		  (supplied (third x)))
 	      (when supplied
+		(when env (setq supplied (lexical-value supplied env)))
 		(push `(,supplied ,rest-sym) bindings))
+	      (when env (setq var (lexical-value var env)))
 	      (push `(,var (if ,rest-sym (pop ,rest-sym) ,default)) bindings)))
 	   (t
 	    (error "syntax error"))))
@@ -106,7 +109,7 @@
 		   (error "syntax error"))))
 	      (rest key)))))
 
-(defun lambda-list-keyword-vars (lambda-list &optional include-supplied)
+(defun lambda-list-keyword-vars (lambda-list env &optional include-supplied)
   (let ((key (copy-list (member '&KEY lambda-list))))
     (when key
       (let ((x key))
@@ -117,15 +120,26 @@
       (mappend (lambda (var)
 		 (cond
 		   ((symbolp var)
+		    (when env (setq var (lexical-value var env)))
 		    (list var))
 		   ((and (consp var) (symbolp (first var)))
 		    (if (and (cddr var) include-supplied)
-			(list (first var) (third var))
-			(list (first var))))
+			(if env
+			    (list (lexical-value (first var) env)
+				  (lexical-value (third var) env))
+			    (list (first var) (third var)))
+			(if env
+			    (list (lexical-value (first var) env))
+			    (list (first var)))))
 		   ((and (consp var) (consp (first var)))
 		    (if (and (cddr var) include-supplied)
-			(list (cadar var) (third var))
-			(list (cadar var))))))
+			(if env
+			    (list (lexical-value (cadar var) env)
+				  (lexical-value (third var) env))
+			    (list (cadar var) (third var)))
+			(if env
+			    (list (lexical-value (cadar var) env))
+			    (list (cadar var)))))))
 	       (rest key)))))
 
 (defun lambda-list-keyword-defaults (lambda-list)
@@ -141,11 +155,11 @@
 		  (second var)))
 	      (rest key)))))
 
-(defun keyword-bindings (lambda-list)
-  (let ((allow-other-keys (member '&ALLOW-OTHER-KEYS lambda-list))
+(defun keyword-bindings (lambda-list env)
+  (let ((allow-other-keys-p (member '&ALLOW-OTHER-KEYS lambda-list))
 	(temp (gensym))
 	(keys (lambda-list-keys lambda-list))
-	(vars (lambda-list-keyword-vars lambda-list))
+	(vars (lambda-list-keyword-vars lambda-list env))
 	(defaults (lambda-list-keyword-defaults lambda-list)))
     (when keys
       `((while ,rest-sym
@@ -155,8 +169,8 @@
 				 ;; identities.
 				 (mapcar #'keyword
 					 ',(mapcar #'symbol-name keys)))))
-	    ,@(unless allow-other-keys
-	       `((unless ,temp (error "unknown keyword"))))
+	    ,@(unless allow-other-keys-p
+	       `((unless ,temp (ERROR "Unknown keyword"))))
 	    (set (nth ,temp ',vars) (pop ,rest-sym))))
 	,@(mappend (lambda (var default)
 		     `((when (eq ,var ',unbound)
@@ -173,6 +187,18 @@
 		(t	x))))
 	  lambda-list))
 
+(defun lambda-list-variables (lambda-list)
+  (let ((vars nil))
+    (dolist (x lambda-list (nreverse vars))
+      (cond
+	((lambda-list-keyword-p x))
+	((symbolp x)
+	 (push x vars))
+	((consp x)
+	 (push (if (consp (car x)) (cadar x) (car x)) vars)
+	 (when (eq (length x) 3)
+	   (push (third x) vars)))))))
+
 (defun expand-lambda (lambda-list body &optional env)
   (dolist (k '(&optional &rest &key &aux &allow-other-keys))
     (when (memq k lambda-list)
@@ -183,8 +209,8 @@
       `(lambda ,(translate-lambda-list lambda-list env) ,@body)
       ;; Difficult case:
       `(lambda ,(simplify-lambda-list lambda-list env)
-	(let* ,(lambda-list-bindings lambda-list)
-	  ,@(keyword-bindings lambda-list)
+	(let* ,(lambda-list-bindings lambda-list env)
+	  ,@(keyword-bindings lambda-list env)
 	  ,@body))))
 
 (defmacro cl:lambda (lambda-list &rest body)

@@ -523,7 +523,7 @@
 
 (defun compile-lambda (lambda-list forms env &optional keep-bindings)
   (MULTIPLE-VALUE-BIND (body decls doc) (parse-body forms t)
-    (let* ((vars lambda-list)
+    (let* ((vars (lambda-list-variables lambda-list))
 	   (*bound* (when keep-bindings *bound*))
 	   (new-env (env-with-vars env vars decls))
 	   (compiled-body (compile-body body new-env)))
