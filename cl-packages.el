@@ -96,7 +96,7 @@
   (let ((package (FIND-PACKAGE package-designator)))
     (cond
       ((null package)
-       (error (format "package \"%s\" not found" package-designator)))
+       (ERROR "Package ~S not found" package-designator))
       ;; Special EMACS-LISP magic: EMACS-LISP doesn't have a separate
       ;; table, use intern-soft to find symbols instead.
       ((eq package *emacs-lisp-package*)
@@ -139,7 +139,8 @@
       (MULTIPLE-VALUE-BIND (sym found)
 	  (FIND-SYMBOL (SYMBOL-NAME symbol) package)
 	(when (and found (not (eq sym symbol)))
-	  (error "package error")))
+	  (ERROR "Importing ~S into ~S clash with existing symbol"
+		 sym package)))
       (setf (gethash (SYMBOL-NAME symbol) (package-table package)) symbol)
       (when (null (SYMBOL-PACKAGE symbol))
 	(setf (SYMBOL-PACKAGE symbol) package)))))
@@ -177,7 +178,7 @@
 	nil
 	(let ((package (FIND-PACKAGE package-designator)))
 	  (unless package
-	    (error "package error"))
+	    (ERROR "Package ~S not found" package-designator))
 	  (when (PACKAGE-USED-BY-LIST package)
 	    (error "package error"))
 	  (dolist (p (PACKAGE-USE-LIST package))
@@ -326,7 +327,7 @@
 (cl:defun INTERN (name &OPTIONAL (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
     (when (null package)
-      (error (format "package \"%s\" not found" package-designator)))
+      (ERROR "Package ~S not found" package-designator))
     (MULTIPLE-VALUE-BIND (symbol found) (FIND-SYMBOL name package)
       (if found
 	  (cl:values symbol found)
