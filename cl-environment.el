@@ -5,11 +5,78 @@
 
 (IN-PACKAGE "EMACS-CL")
 
-;;; TODO: Function DECODE-UNIVERSAL-TIME
+(defun leap-year-p (year)
+  (and (zerop (REM year 4))
+       (or (not (zerop (REM year 100)))
+	   (zerop (REM year 400)))))
 
-;;; TODO: function ENCODE-UNIVERSAL-TIME
+(defun days-to-month (month year)
+  (+ (ecase month
+       (1	0)
+       (2	31)
+       (3	59)
+       (4	90)
+       (5	120)
+       (6	151)
+       (7	181)
+       (8	212)
+       (9	243)
+       (10	273)
+       (11	304)
+       (12	334))
+     (if (and (leap-year-p year) (> month 2)) 1 0)))
 
-;;; TODO: Function GET-UNIVERSAL-TIME, GET-DECODED-TIME
+(defun days-to-year (year)
+  (do* ((days 0)
+	(y 1900 (1+ y)))
+       ((EQL y year)
+	days)
+    (incf days (if (leap-year-p y) 366 365))))
+
+(defun DECODE-UNIVERSAL-TIME (universal-time &optional time-zone)
+  (do ((next-year 1900 (1+ next-year))
+       (year 1900 next-year)
+       (next-time universal-time
+		  (binary- next-time
+			   (cl:* 3600 24 (if (leap-year-p next-year) 366 365))))
+       (time universal-time next-time))
+      ((MINUSP next-time)
+       (do ((month 1 (1+ month)))
+	   ((or (eq month 13)
+		(> (* 3600 24 (days-to-month month year)) time))
+	    (decf month)
+	    (decf time (* 3600 24 (days-to-month month year)))
+	    (MULTIPLE-VALUE-BIND (date time) (TRUNCATE time (* 3600 24))
+	      (MULTIPLE-VALUE-BIND (hour time) (TRUNCATE time 3600)
+		(MULTIPLE-VALUE-BIND (minute second) (TRUNCATE time 60)
+		  ;; TODO:
+		  (let (day daylight-p zone)
+		    (VALUES second minute hour (1+ date) month year
+			    day daylight-p zone))))))))))
+
+(defun encode-days (date month year)
+  (+ date -1 (days-to-month month year) (days-to-year year)))
+
+(defun ENCODE-UNIVERSAL-TIME (second minute hour date month year
+			      &optional time-zone)
+  (let* ((days (encode-days date month year))
+	 (hours (binary+ hour (binary* 24 days)))
+	 (minutes (binary+ minute (binary* 60 hours))))
+    (cl:+ second
+	  (binary* 60 minutes)
+	  (if time-zone (* 3600 time-zone) 0))))
+
+;;; Difference between Unix time and Common Lisp universal time is 70 years.
+(defconst universal-time-offset (ENCODE-UNIVERSAL-TIME 0 0 0 1 1 1970 0))
+
+(defun GET-UNIVERSAL-TIME ()
+  (let* ((time (current-time))
+	 (high (first time))
+	 (low (second time)))
+    (cl:+ (binary* high 65536) low universal-time-offset)))
+
+(defun GET-DECODED-TIME ()
+  (DECODE-UNIVERSAL-TIME (GET-UNIVERSAL-TIME)))
 
 (defun SLEEP (seconds)
   (sleep-for (if (or (integerp seconds) (floatp seconds))
