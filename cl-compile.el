@@ -261,33 +261,49 @@
 		(t				    (ERROR 'PROGRAM-ERROR)))
 	      result)))))
 
+(if (fboundp 'compiled-function-constants)
+    (progn
+      (defvar compiled-function-accessors
+	'(compiled-function-arglist compiled-function-instructions
+	  compiled-function-constants compiled-function-stack-depth
+	  compiled-function-doc-string compiled-function-interactive))
+      (defun cfref (fn i)
+	(funcall (nth i compiled-function-accessors) fn)))
+    (defun cfref (fn i)
+      (aref fn i)))
+
 (let ((fn (vector))
       (env (vector)))
   (defvar *trampoline-template*
     (byte-compile `(lambda (&rest args) (let ((env ,env)) (apply ,fn args)))))
+  (defvar *trampoline-constants*
+    (cfref *trampoline-template* 2))
   (defvar *trampoline-fn-pos*
-    (position fn (aref *trampoline-template* 2)))
+    (position fn *trampoline-constants*))
   (defvar *trampoline-env-pos*
-    (position env (aref *trampoline-template* 2))))
+    (position env *trampoline-constants*)))
+
+(defvar *trampoline-length*
+  (condition-case c
+      (length *trampoline-template*)
+    (error 6)))
 
 (defmacro defun-trampoline ()
   `(defun trampoline (fn env)
-     (let* ((consts (copy-sequence (aref *trampoline-template* 2)))
+     (let* ((consts (copy-sequence ,*trampoline-constants*))
 	    (tramp
 	     (make-byte-code
 	      ,@(let ((args nil))
-		  (dotimes (i (length *trampoline-template*) (nreverse args))
+		  (dotimes (i *trampoline-length* (nreverse args))
 		    (push (if (eq i 2)
 			      'consts
-			      `',(aref *trampoline-template* i))
+			      `',(cfref *trampoline-template* i))
 			  args))))))
        (aset consts *trampoline-fn-pos* fn)
        (aset consts *trampoline-env-pos* env)
        tramp)))
 
 (defun-trampoline)
-
-(defvar *compile-lambda* nil)
 
 (defun* compile-lambda (form env)
   (MULTIPLE-VALUE-BIND (body decls) (cddr form)
@@ -442,7 +458,7 @@
   (multiple-value-bind (type localp) (variable-information var env)
     (ecase type
       ((:lexical :special nil)
-       `(setq ,(compile-variable var env) ,(compile-form val env)
+       `(setf ,(compile-variable var env) ,(compile-form val env)
 	      ,@(when more
 		  (rest (compile-form `(SETQ ,@more)))))))))
 
