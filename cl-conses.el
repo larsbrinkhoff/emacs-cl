@@ -530,12 +530,12 @@
 	(unless (null default)
 	  (push dtemp temps)
 	  (push default values))
-	(if (quoted-object-p indicator)
-	    (setq itemp indicator
-		  ilist `(QUOTE (,(second indicator))))
-	    (setq ilist `(LIST ,itemp)
-		  temps (cons itemp temps)
-		  values (cons indicator values)))
+	(if (CONSTANTP indicator)
+	    (setq itemp (eval-with-env indicator nil) ;TODO: env
+		  ilist `(QUOTE (,itemp)))
+	    (setq temps (cons itemp temps)
+		  values (cons indicator values)
+		  ilist `(LIST ,itemp)))
 	(VALUES temps
 		values
 		(list obj)
