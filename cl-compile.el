@@ -46,7 +46,7 @@
 (defun symbol-lexical-p (sym)
   (not (symbol-special-p sym)))
 
-(defun cl:compile (name &optional definition)
+(defun COMPILE (name &optional definition)
   (when (null definition)
     (if (fboundp name)
 	(setq definition (fdefinition name))

@@ -21,20 +21,3 @@
 
 (defun LISP-IMPLEMENTATION-VERSION ()
   "0.1")
-
-(defun top-level-loop ()
-  (loop
-   (princ (format "%s> " (package-name *PACKAGE*)))
-   (setq +++ ++
-	 ++ +
-	 + -
-	 - (read)
-	 /// //
-	 *** **
-	 // /
-	 ** *
-	 / (list (eval -))
-	 * (first /))
-   (dolist (val /)
-     (princ val))
-   (princ "\n")))

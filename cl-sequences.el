@@ -15,14 +15,14 @@
      (let ((storage (aref sequence 2))
 	   (vector
 	    (make-vector
-	     (1+ (or (fill-pointer sequence) (LENGTH sequence))) nil)))
+	     (1+ (or (FILL-POINTER sequence) (LENGTH sequence))) nil)))
        (aset vector 0 'simple-vector)
        (do ((i 1 (1+ i)))
 	   ((= i (length vector)))
 	 (aset vector i (aref storage (1- i))))
        vector))
     ((VECTORP sequence)
-     (subseq (aref sequence 2) 0 (fill-pointer sequence)))
+     (subseq (aref sequence 2) 0 (FILL-POINTER sequence)))
     (t
      (error))))
 
@@ -32,7 +32,7 @@
      (nth index sequence))
     ((VECTORP sequence)
      (if (and (ARRAY-HAS-FILL-POINTER-P sequence)
-	      (cl:< index (fill-pointer sequence)))
+	      (cl:< index (FILL-POINTER sequence)))
 	 (aref sequence index)
 	 (error)))
     (t
@@ -82,7 +82,7 @@
      (1- (length sequence)))
     ((VECTORP sequence)
      (if (ARRAY-HAS-FILL-POINTER-P sequence)
-	 (fill-pointer sequence)
+	 (FILL-POINTER sequence)
 	 (length (aref sequence 2))))
     (t
      (error))))

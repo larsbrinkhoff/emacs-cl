@@ -514,7 +514,7 @@
      (random limit))
     ((floatp limit)
      (/ (* limit (random MOST-POSITIVE-FIXNUM)) MOST-POSITIVE-FIXNUM))
-    ((cl:bignump limit)
+    ((cl::bignump limit)
      ;; TODO
      0)))
 
@@ -769,7 +769,7 @@
   (LOGIOR x (LOGNOT y)))
 
 (defun LOGEQV (&rest numbers)
-  (LOGNOT (apply #'cl:logxor numbers)))
+  (LOGNOT (apply #'LOGXOR numbers)))
 
 (defun LOGXOR (&rest numbers)
   (reduce #'binary-logxor numbers :initial-value 0))
