@@ -55,6 +55,8 @@
 (cl:defmacro LAMBDA (lambda-list &body body)
   `(FUNCTION (LAMBDA ,lambda-list ,@body)))
 
+;;; TODO: COMPILE
+
 (defun MACROEXPAND-1 (form &optional env)
   (cond
     ((consp form)
@@ -91,7 +93,7 @@
               *symbol-macro-functions*)
      (QUOTE ,symbol)))
 
-;;; TODO: symbol-macrolet
+;;; TODO: SYMBOL-MACROLET
 
 (defvar *MACROEXPAND-HOOK* 'FUNCALL)
 
