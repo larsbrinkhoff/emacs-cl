@@ -11,19 +11,19 @@
 ;;; searched with intern-soft, and all symbols are exported.
 
 (defun PACKAGE-NAME (package)
-  (aref package 1))
+  (aref (FIND-PACKAGE package) 1))
 
 (defun PACKAGE-NICKNAMES (package)
-  (aref package 2))
+  (aref (FIND-PACKAGE package) 2))
 
 (defun PACKAGE-SHADOWING-SYMBOLS (package)
-  (aref package 3))
+  (aref (FIND-PACKAGE package) 3))
 
 (defun PACKAGE-USE-LIST (package)
-  (aref package 4))
+  (aref (FIND-PACKAGE package) 4))
 
 (defun PACKAGE-USED-BY-LIST (package)
-  (aref package 5))
+  (aref (FIND-PACKAGE package) 5))
 
 (defun package-table (package)
   (aref package 6))
