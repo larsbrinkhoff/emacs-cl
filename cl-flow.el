@@ -27,8 +27,10 @@
 		       (interp-fn-env fn)))
     ((functionp fn)
      (apply #'apply fn args))
+    ((or (symbolp fn) (consp fn))
+     (apply #'APPLY (FDEFINITION fn) args))
     (t
-     (apply #'APPLY (FDEFINITION fn) args))))
+     (type-error fn '(OR FUNCTION SYMBOL CONS)))))
 
 (cl:defmacro DEFUN (name lambda-list &body forms)
   (MULTIPLE-VALUE-BIND (body decls doc) (parse-body forms t)
@@ -167,11 +169,6 @@
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
      (SETQ ,name ,initial-value)
      (QUOTE ,name)))
-
-; (cl:defmacro DESTRUCTURING-BIND (lambda-list form &body body)
-;   (with-gensyms (name)
-;     `(MACROLET ((,name ,lambda-list ,@body))
-;        (,name ,form))))
 
 (defun lambda-list-keyword-p (x)
   (member x LAMBDA-LIST-KEYWORDS))
