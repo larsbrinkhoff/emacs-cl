@@ -207,7 +207,9 @@
       (setq quotient (binary- quotient 1)))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
 
-;;; TODO: ffloor
+(defun* FFLOOR (number &optional (divisor 1))
+  (MULTIPLE-VALUE-BIND (quotient remainder) (FLOOR number divisor)
+    (VALUES (FLOAT quotient remainder))))
 
 (defun* CEILING (number &optional (divisor 1))
   (let (quotient remainder)
@@ -228,7 +230,9 @@
       (setq quotient (binary+ quotient 1)))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
 
-;;; TODO: fceiling
+(defun* FCEILING (number &optional (divisor 1))
+  (MULTIPLE-VALUE-BIND (quotient remainder) (CEILING number divisor)
+    (VALUES (FLOAT quotient remainder))))
 
 (defun* TRUNCATE (number &optional (divisor 1))
   (let (quotient)
@@ -245,7 +249,11 @@
        (error "type error")))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
 
-;;; TODO: ftruncate, round, fround
+(defun* FTRUNCATE (number &optional (divisor 1))
+  (MULTIPLE-VALUE-BIND (quotient remainder) (TRUNCATE number divisor)
+    (VALUES (FLOAT quotient remainder))))
+
+;;; TODO: round, fround
 
 ;;; TODO: sin, cos, tan
 
