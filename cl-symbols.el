@@ -4,14 +4,14 @@
 ;;;;
 ;;;; This file implements operators in chapter 10, Symbols.
 
-(setf (symbol-function 'SYMBOLP) (symbol-function 'symbolp))
+(fset 'SYMBOLP (symbol-function 'symbolp))
 
 (defun KEYWORDP (sym)
   (and (SYMBOLP sym)
        (SYMBOL-PACKAGE sym)
        (equal (package-name (SYMBOL-PACKAGE sym)) "KEYWORD")))
 
-(setf (symbol-function 'MAKE-SYMBOL) (symbol-function 'make-symbol))
+(fset 'MAKE-SYMBOL (symbol-function 'make-symbol))
 
 (defun COPY-SYMBOL (sym &optional copy-properties)
   (let ((new (make-symbol (symbol-name sym))))
@@ -38,18 +38,18 @@
 
 (defun* GENTEMP (&optional (prefix "T") (package-designator *package*))
   (loop
-   (multiple-value-bind (symbol status)
+   (multiple-value-bind (symbol found)
        (INTERN (FORMAT NIL "~S~D" prefix *gentemp-counter*) package)
-     (unless status
+     (unless found
        (return-from GENTEMP symbol))
      (incf *gentemp-counter*))))
 
-(setf (symbol-function 'SYMBOL-FUNCTION) (symbol-function 'symbol-function))
+(fset 'SYMBOL-FUNCTION (symbol-function 'symbol-function))
 
 (defsetf SYMBOL-FUNCTION (symbol) (fn)
-  `(setf (symbol-function ,symbol) ,fn))
+  `(fset ,symbol ,fn))
 
-(setf (symbol-function 'SYMBOL-NAME) (symbol-function 'symbol-name))
+(fset 'SYMBOL-NAME (symbol-function 'symbol-name))
 
 (defvar *symbol-package-table* (make-hash-table :test 'eq :weakness t))
 
@@ -59,6 +59,33 @@
 (defsetf SYMBOL-PACKAGE (sym) (package)
   `(if (null ,package)
        (progn (remhash ,sym *symbol-package-table*) ,package)
-       (setf (gethash ,sym *symbol-package-table*) ,package)))
+       (puthash ,sym *symbol-package-table* ,package)))
 
-;;; TODO: symbol-plist, symbol-value, get, remprop, boundp, makunbound, set
+(fset 'SYMBOL-PLIST (symbol-function 'symbol-plist))
+
+(defsetf SYMBOL-PLIST (symbol) (plist)
+  `(setplist ,symbol ,plist))
+
+(fset 'SYMBOL-VALUE (symbol-function 'symbol-value))
+
+(defsetf SYMBOL-VALUE (symbol) (val)
+  `(set ,symbol ,val))
+
+(defun GET (symbol property &optional default)
+  (let ((val (member property (symbol-plist symbol))))
+    (if val
+	(car val)
+	default)))
+
+(defsetf GET (symbol prop &optional default) (val)
+  `(put ,symbol ,property ,val))
+
+(defun REMPROP (symbol property)
+  (setplist symbol (delete property (symbol-plist symbol))))
+
+(fset 'BOUNDP (symbol-function 'boundp))
+
+(fset 'MAKUNBOUND (symbol-function 'makunbound))
+
+(fset 'SET (symbol-function 'set))
+
