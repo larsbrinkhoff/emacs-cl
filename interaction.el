@@ -60,7 +60,7 @@
 	(/-sym (INTERN "/" "CL"))
 	(+-sym (INTERN "+" "CL"))
 	(values
-	 (restart-bind ((ABORT (lambda () (return-from emacs-cl-eval-print))))
+	 (restart-bind ((ABORT (lambda () (return-from emacs-cl-eval-1))))
 	   (MULTIPLE-VALUE-LIST (EVAL form)))))
     (setq +++ ++ ++ (SYMBOL-VALUE +-sym))
     (set +-sym form)
