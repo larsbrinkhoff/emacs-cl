@@ -3,7 +3,11 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements the FORMAT function from chapter 22, Printer.
 
+;;; This implementation is somewhat silly.  I don't know what I was
+;;; thinking.  I will improve it later.
+
 (IN-PACKAGE "EMACS-CL")
+
 
 ;;; Some tests:
 ;;; (FORMAT nil "~D~?~D" 1 "~X" '(10) 3)
