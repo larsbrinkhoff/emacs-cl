@@ -520,9 +520,18 @@
 
 ;;; Special Operator: PROGN
 
-;;; TODO:
-; (defmacro DEFINE-MODIFY-MACRO (name lambda-list fn &optional documentation)
-;   `',name)
+(cl:defmacro DEFINE-MODIFY-MACRO (name lambda-list fn &optional documentation)
+  (with-gensyms (place env temps values variables setter getter)
+    `(DEFMACRO ,name (,place ,@lambda-list &ENVIRONMENT ,env)
+       ,documentation
+       (MULTIPLE-VALUE-BIND (,temps ,values ,variables ,setter ,getter)
+	   (GET-SETF-EXPANSION ,place ,env)
+	 (BACKQUOTE
+	   (LET* ((COMMA-AT (MAPCAR (FUNCTION LIST) ,temps ,values))
+		  ((COMMA (FIRST ,variables))
+		   ;; TODO: only params from lambda-list
+		   (,fn (COMMA ,getter) ,@lambda-list)))
+	     (COMMA ,setter)))))))
 
 (defmacro* DEFSETF (access-fn &rest args)
   (case (length args)
