@@ -50,7 +50,7 @@
      (apply #'MAKE-CONDITION datum args))
     ((STRINGP datum)
      ;; TODO: (kw FORMAT-CONTROL) and (kw FORMAT-ARGUMENTS)
-     (MAKE-CONDITION default-type :format datum :args args))
+     (MAKE-CONDITION default-type (kw format) datum (kw args) args))
     (t
      (error "invalid condition designator"))))
 
@@ -124,11 +124,17 @@
     (PRINC "\nDebugger invoked on condition of type ")
     (PRIN1 (TYPE-OF condition))
     (PRINC "\nAvailable restarts: ")
-    (dolist (restart (COMPUTE-RESTARTS))
-      (PRINT restart))
-    (when (y-or-n-p "Restart? ")
-      (INVOKE-RESTART (first (COMPUTE-RESTARTS))))
-    (debug)))
+    (do ((restarts (COMPUTE-RESTARTS) (cdr restarts))
+	 (i 0 (1+ i)))
+	((null restarts))
+      (PRINC "\n")
+      (PRIN1 i)
+      (PRINC "  ")
+      (PRIN1 (RESTART-NAME (car restarts))))
+    (let ((n (read-minibuffer "Restart number: ")))
+      (if (minusp n)
+	  (debug)
+	  (INVOKE-RESTART (nth n (COMPUTE-RESTARTS)))))))
 
 (defun* BREAK (&optional format &rest args)
   (restart-bind ((CONTINUE (lambda () (return-from BREAK))))
@@ -245,6 +251,7 @@
 
 
 (DEFINE-CONDITION TYPE-ERROR (ERROR) (DATUM EXPECTED-TYPE))
+(DEFINE-CONDITION PROGRAM-ERROR (ERROR) ())
 (DEFINE-CONDITION CONTROL-ERROR (ERROR) ())
 (DEFINE-CONDITION UNBOUND-VARIABLE (CELL-ERROR) ())
 (DEFINE-CONDITION UNDEFINED-FUNCTION (CELL-ERROR) ())
