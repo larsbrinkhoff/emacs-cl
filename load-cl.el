@@ -5,13 +5,13 @@
       (debug-on-error t))
   (load "utils")
 
+  (load "cl-evaluation")
   (load "cl-flow")
   (load "cl-numbers")
   (load "cl-conses")
   (load "cl-arrays")
   (load "cl-sequences")
   (load "cl-structures")
-  (load "cl-evaluation")
 
   (load "cl-characters")
   (load "cl-strings")

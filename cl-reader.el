@@ -285,9 +285,8 @@
 
 
 
-(DEFMACRO BACKQUOTE (form)
-  (PRINT form)
-  (PRINT (expand-bq form)))
+(cl:defmacro BACKQUOTE (form)
+  (expand-bq form))
 
 (defun expand-bq (form)
   (cond

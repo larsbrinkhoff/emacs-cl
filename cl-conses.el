@@ -202,7 +202,7 @@
   (CAR (CAR (CAR list))))
 
 (defun FOURTH (list)
-  (CAR (CAR (CAR (CAR list))))
+  (CAR (CAR (CAR (CAR list)))))
 
 (defun FIFTH (list)
   (CAR (CAR (CAR (CAR (CAR list))))))

@@ -23,8 +23,8 @@
 			 ,@body))))
     ',name))
 
-(defmacro* DEFMACRO (name lambda-list &body body)
-  `(eval-when (:compile-toplevel :load-toplevel :execute)
+(defmacro* cl:defmacro (name lambda-list &body body)
+  `(progn
     (setf (MACRO-FUNCTION ',name)
           (function* (lambda (form env)
 	               (destructuring-bind ,lambda-list (cdr form)
@@ -37,7 +37,7 @@
 (defsetf MACRO-FUNCTION (name &optional env) (fn)
   `(setf (gethash ,name *macro-functions*) ,fn))
 
-(DEFMACRO LAMBDA (lambda-list &body body)
+(cl:defmacro LAMBDA (lambda-list &body body)
   (LIST 'FUNCTION (LIST* 'LAMBDA lambda-list body)))
 
 (defun MACROEXPAND-1 (form &optional env)

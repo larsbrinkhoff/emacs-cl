@@ -212,7 +212,7 @@
       (maphash (lambda (,ignore ,var) ,@body) (package-table ,package))
       ,result)))
 
-; (DEFMACRO DO-SYMBOLS ((var &optional (package *PACKAGE*) result)
+; (cl:defmacro DO-SYMBOLS ((var &optional (package *PACKAGE*) result)
 ; 		      &body body)
 ;   42)
 
