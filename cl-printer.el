@@ -4,8 +4,19 @@
 ;;;;
 ;;;; This file implements operators in chapter 14, Conses.
 
-(defun terpri ()
+(defun TERPRI ()
   (princ "\n"))
+
+(defmacro* PRINT-UNREADABLE-OBJECT ((object stream &key identity) &body body)
+  `(progn
+    (princ "#<")
+    (princ (TYPE-OF ,object))
+    (princ " ")
+    ,@body
+    ,@(when identity
+        `((princ " ")
+	  (princ "identity")))
+    (princ ">")))
 
 ;;; Ad-hoc unexensible.
 (defun PRINT (object &optional stream-designator)
@@ -56,6 +67,22 @@
 	 (when (< (1+ i) (LENGTH object))
 	   (princ " ")))
        (princ ")"))
+      ((PACKAGEP object)
+       (PRINT-UNREADABLE-OBJECT (object stream)
+         (princ (PACKAGE-NAME object))))
+      ((READTABLEP object)
+       (PRINT-UNREADABLE-OBJECT (object stream :identity t)))
+      ((STREAMP object)
+       (PRINT-UNREADABLE-OBJECT (object stream :identity t)
+         (cond
+	   ((STREAM-filename object)
+	    (princ object))
+	   ((bufferp (STREAM-content object))
+	    (princ (buffer-name (STREAM-content object))))
+	   ((STRINGP (STREAM-content object))
+	    (princ (string 34))
+	    (princ (STREAM-content object))
+	    (princ (string 34))))))
       (t
        (error))))
   object)
