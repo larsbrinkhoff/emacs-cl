@@ -524,7 +524,7 @@
 	 (let* ((r (REALPART number))
 		(i (IMAGPART number))
 		(x (binary- (binary* r r) (binary* i i))))
-	   (COMPLEX (binary/ r x) (binary/ i x))))
+	   (COMPLEX (binary/ r x) (cl:- (binary/ i x)))))
 	(t
 	 (error)))
       (dolist (num numbers number)
