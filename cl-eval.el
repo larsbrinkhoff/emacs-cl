@@ -209,20 +209,23 @@
 
 (define-special-operator SETQ (&rest forms) env
   (when (oddp (length forms))
-    (ERROR (format "odd number of forms in setq")))
-  (do* (lastval
-	(forms forms (cddr forms)))
-       ((null forms)
-	(cl:values lastval))
+    (ERROR "Odd number of forms in SETQ"))
+  (do ((lastval nil)
+       (forms forms (cddr forms)))
+      ((null forms)
+       (cl:values lastval))
     (let ((var (first forms))
 	  (val (eval-with-env (second forms) env)))
+      (unless (symbolp var)
+	(ERROR "Setting non-symbol ~S" var))
       (setq lastval
 	    (ecase (nth-value 0 (variable-information var env))
-	      ;;((nil)		(error "unbound variable %s" form))
-	      ((:special nil)	(set var val))
 	      (:lexical		(setf (lexical-value var env) val))
-	      (:symbol-macro	(error "shouldn't happen"))
-	      (:constant	(error "setting constant")))))))
+	      (:special		(set var val))
+	      ((nil)		(WARN "Setting undefined variable ~S" var)
+				(set var val))
+	      (:symbol-macro	(eval-with-env `(SETF ,var (QUOTE ,val)) env))
+	      (:constant	(ERROR "Setting constant ~S" var)))))))
 
 (define-special-operator SYMBOL-MACROLET (macros &rest forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
@@ -294,12 +297,6 @@
 
 (defsetf lexical-value (var env) (val)
   `(setf (cdr (assq ,var (aref ,env 3))) ,val))
-
-;   `(let ((cons (assoc ,var (aref ,env 3))))
-;      (if cons
-; 	 (setf (cdr cons) ,val)
-; 	 (progn (aset ,env 3 (acons ,var ,val (aref ,env 3)))
-; 		,val))))
 
 (defun function-information (fn &optional env)
   (unless env
