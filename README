@@ -1,6 +1,6 @@
 This is an implementation of Common Lisp, written in Emacs Lisp.  It
 does not yet purport to conform to the ANSI standard since CLOS, LOOP,
-and compilation are missing.
+and compilation are missing.  Some things have been inspired by SBCL.
 
 See INSTALL for usage instructions.
 
