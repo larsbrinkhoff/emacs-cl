@@ -83,6 +83,9 @@
     (compile-form form *global-environment*)))
 
 (defun compiler-macroexpand (form env)
+  (print (format "compiler-macroexpand %s" form))
+  (if (and (consp form) (eq (first form) 'trampoline))
+      (error))
   (let ((exp1 t) (exp2 nil))
     (while (or exp1 exp2)
       (MULTIPLE-VALUE-SETQ (form exp1) (MACROEXPAND form env))
@@ -125,8 +128,7 @@
 	    (fn (gethash name *form-compilers*)))
        (if fn
 	   (apply fn env (rest form))
-	   (compile-funcall `(QUOTE ,name)
-			    (compile-forms (rest form) env) env))))
+	   (compile-funcall `(QUOTE ,name) (rest form) env))))
     (t
      (ERROR "Syntax error: ~S" form))))
 
