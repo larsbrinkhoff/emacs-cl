@@ -68,7 +68,18 @@
   (maphash fn (htab hash))
   nil)
 
-;;; TODO: WITH-HASH-TABLE-ITERATOR
+(defun hashlist (hash)
+  (let ((list nil))
+    (maphash (lambda (k v) (push (cons k v) list)) hash)
+    list))
+
+(cl:defmacro WITH-HASH-TABLE-ITERATOR ((name hash) &body body)
+  (with-gensyms (l)
+    `(LET ((,l (hashlist ,hash)))
+       (MACROLET ((,name () (IF (NULL ,l) (VALUES nil nil nil)
+				(LET ((cons (POP ,l)))
+				  (VALUES T (CAR cons) (CDR cons)))))))
+	 ,@body)))
 
 (defun CLRHASH (hash)
   (clrhash (htab hash))
