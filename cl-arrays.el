@@ -84,6 +84,21 @@
     (t
      (error))))
 
+(defsetf AREF (array &rest subscripts) (obj)
+  `(cond
+     ((BIT-VECTOR-P ,array)
+      (setf (BIT ,array (just-one ',subscripts))) ,obj)
+     ((STRINGP ,array)
+      (setf (CHAR ,array (just-one ',subscripts))) ,obj)
+     ((vector-and-typep ,array 'simple-vector)
+      (setf (SVREF ,array ,(first subscripts)) ,obj))
+     ((vector-and-typep ,array 'vector)
+      (setf (aref (aref ,array 2) (just-one ',subscripts)) ,obj))
+     ((vector-and-typep ,array 'array)
+      (setf (aref (aref ,array 2) (ARRAY-ROW-MAJOR-INDEX ,@subscripts)) ,obj))
+     (t
+      (error))))
+
 (defun ARRAY-DIMENSION (array axis)
   (cond
     ((VECTORP array)		(LENGTH array))
@@ -168,6 +183,9 @@
 
 (defun SVREF (vector index)
   (aref vector (1+ index)))
+
+(defsetf SVREF (vector index) (obj)
+  `(setf (aref ,vector (1+ ,index)) ,obj))
 
 (defun VECTOR (&rest objects)
   (let ((vector (make-vector (1+ (length objects)) nil))
