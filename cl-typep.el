@@ -179,7 +179,7 @@
   (some (lambda (type) (TYPEP object type env)) types))
 
 (define-typep (object package env)
-  (packagep object))
+  (PACKAGEP object))
 
 ;;; package-error (atomic only)
 ;;; parse-error (atomic only)

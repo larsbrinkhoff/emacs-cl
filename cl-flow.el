@@ -35,7 +35,7 @@
 
 ;;; TODO: flet, labels, macrolet
 
-(defun cl:funcall (fn &rest args)
+(defun FUNCALL (fn &rest args)
   (cond
     ((symbolp fn)
      (apply fn args))
@@ -239,7 +239,7 @@
 	  (values temps
 		  (rest place)
 		  (list var)
-		  `(cl:funcall '(SETF ,(first place)) ,var ,@temps)
+		  `(FUNCALL '(SETF ,(first place)) ,var ,@temps)
 		  ())))))
 
 (defmacro* SETF (place value &environment env)

@@ -3,14 +3,14 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 11, Packages.
 
-(defstruct (package (:constructor mk-package ())
-		    (:predicate packagep)
+(DEFSTRUCT (PACKAGE (:constructor mk-package ())
+		    (:predicate PACKAGEP)
 		    (:copier nil))
-  name
-  nicknames
-  shadowing-symbols
-  use-list
-  used-by-list
+  NAME
+  NICKNAMES
+  SHADOWING-SYMBOLS
+  USE-LIST
+  USED-BY-LIST
   table
   doc)
 
@@ -18,7 +18,7 @@
 
 (defun* FIND-SYMBOL (string &optional (p *package*))
   (let* ((package (FIND-PACKAGE p))
-	 (table (package-table
+	 (table (PACKAGE-table
 		 (or package
 		     (error (format "package \"%s\" not found" p)))))
 	 (symbol (gethash string table not-found)))
@@ -29,13 +29,13 @@
 (defvar *all-packages* nil)
 
 (defun FIND-PACKAGE (name)
-  (if (packagep name)
+  (if (PACKAGEP name)
       name
       (let ((string (STRING name)))
 	(find-if 
 	 (lambda (p)
-	   (or (string= string (package-name p))
-	       (find string (package-nicknames p) :test 'equal)))
+	   (or (string= string (PACKAGE-NAME p))
+	       (find string (PACKAGE-NICKNAMES p) :test 'equal)))
 	 *all-packages*))))
 
 (defun FIND-ALL-SYMBOLS (name)
@@ -58,19 +58,19 @@
 ;;; shadowing-import
 
 (defun DELETE-PACKAGE (package)
-  (dolist (p (package-use-list package))
-    (setf (package-used-by-list p) (delete package (package-used-by-list p))))
+  (dolist (p (PACKAGE-USE-LIST package))
+    (setf (PACKAGE-USED-BY-LIST p) (delete package (PACKAGE-USED-BY-LIST p))))
   (setf *all-packages* (delete package *all-packages*)))
 
 (defun* MAKE-PACKAGE (name &key nicknames use)
   (let ((package (mk-package))
 	(use-packages (mapcar (lambda (p) (FIND-PACKAGE p)) use)))
-    (setf (package-table package) (make-hash-table :test 'equal)
-	  (package-name package) (STRING name)
-	  (package-nicknames package) nicknames
-	  (package-use-list package) use-packages)
+    (setf (PACKAGE-table package) (make-hash-table :test 'equal)
+	  (PACKAGE-NAME package) (STRING name)
+	  (PACKAGE-NICKNAMES package) nicknames
+	  (PACKAGE-USE-LIST package) use-packages)
     (dolist (p use-packages)
-      (push package (package-used-by-list p)))
+      (push package (PACKAGE-USED-BY-LIST p)))
     (push package *all-packages*)
     package))
 
@@ -81,7 +81,7 @@
 (defun* UNINTERN (symbol &optional (package *package*))
   (when (eq (SYMBOL-PACKAGE symbol) package)
     (setf (SYMBOL-PACKAGE symbol) nil))
-  (let* ((table (package-table package))
+  (let* ((table (PACKAGE-table package))
 	 (name (symbol-name symbol))
 	 (sym (gethash name table not-found)))
     (unless (eq sym not-found)
@@ -92,23 +92,20 @@
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     (setq *package* (FIND-PACKAGE ,package))))
 
-(defun ensure-list (x)
-  (if (listp x) x (list x)))
-
 (defun* UNUSE-PACKAGE (packages-to-unuse &optional (package *package*))
   (let ((package (FIND-PACKAGE package)))
     (dolist (p (ensure-list packages-to-unuse))
       (let ((p (FIND-PACKAGE p)))
-	(setf (package-use-list package)
-	      (delete p (package-use-list package))
-	      (package-used-by-list p)
-	      (delete package (package-used-by-list p))))))
+	(setf (PACKAGE-USE-LIST package)
+	      (delete p (PACKAGE-USE-LIST package))
+	      (PACKAGE-USED-BY-LIST p)
+	      (delete package (PACKAGE-USED-BY-LIST p))))))
   t)
 
 (defun* USE-PACKAGE (packages-to-use &optional (package *package*))
   (let ((package (FIND-PACKAGE package)))
     (dolist (p (ensure-list packages-to-use))
-      (pushnew (FIND-PACKAGE p) (package-use-list package))))
+      (pushnew (FIND-PACKAGE p) (PACKAGE-USE-LIST package))))
   t)
 
 (defmacro DEFPACKAGE (name &body options)
@@ -133,14 +130,14 @@
 	(let ((,package (MAKE-PACKAGE ,name
 				      :nicknames ,nicknames
 				      :use ,use-list)))
-	  (setf (package-doc doc))
+	  (setf (PACKAGE-doc doc))
 	  ,package)))))
 
 (defmacro* DO-SYMBOLS ((var &optional (package *package*) result)
 		       &body body)
   (let ((ignore (gensym)))
     `(progn
-      (maphash (lambda (,ignore ,var) ,@body) (package-table ,package))
+      (maphash (lambda (,ignore ,var) ,@body) (PACKAGE-table ,package))
       ,result)))
 
 ;;; do-external-symbols
@@ -156,7 +153,7 @@
 	  (values symbol status)
 	  (let ((symbol (make-symbol name)))
 	    (setf (SYMBOL-PACKAGE symbol) package)
-	    (setf (gethash name (package-table package)) symbol)
+	    (setf (gethash name (PACKAGE-table package)) symbol)
 	    (values symbol nil))))))
 
 ;;; package-error
@@ -182,14 +179,16 @@
 	    COPY-TREE DEFCONSTANT DEFINE-COMPILER-MACRO DEFINE-SETF-EXPANDER
 	    DEFINE-SYMBOL-MACRO DEFMACRO DEFPACKAGE DEFSETF DEFSTRUCT DEFUN
 	    DELETE-PACKAGE DO-SYMBOLS ELT EQ EQL EQUAL EVAL-WHEN FDEFINITION
-	    FIND-SYMBOL FIND-ALL-SYMBOLS FIND-PACKAGE FLET FLOAT FUNCTION
+	    FIND-ALL-SYMBOLS FIND-PACKAGE FIND-SYMBOL FLET FLOAT FUNCTION
 	    FUNCTIONP GENSYM GENTEMP GET-SETF-EXPANSION GO IF IN-PACKAGE
 	    INTEGER INTEGERP INTERN KEYWORDP LABELS LENGTH LET LET*
 	    LIST-ALL-PACKAGES LOAD-TIME-VALUE LOCALLY LOGAND LOGANDC1 LOGANDC2
 	    LOGEQV LOGIOR LOGNAND LOGNOR LOGNOT LOGORC1 LOGORC2 LOGXOR
 	    MACRO-FUNCTION MACROEXPAND MACROEXPAND-1 MACROLET MAKE-ARRAY
 	    MAKE-LIST MAKE-PACKAGE MAKE-SYMBOL MAPCAN MAPCAR MAX MIN MINUSP
-	    MULTIPLE-VALUE-CALL MULTIPLE-VALUE-PROG1 NIL NOT NUMBERP PEEK-CHAR
+	    MULTIPLE-VALUE-CALL MULTIPLE-VALUE-PROG1 NIL NOT NUMBERP PACKAGE
+	    PACKAGE-NAME PACKAGE-NICKNAMES PACKAGE-SHADOWING-SYMBOLS
+	    PACKAGE-USE-LIST PACKAGE-USED-BY-LIST PACKAGEP PEEK-CHAR
 	    PRINT PROGN PROGV QUOTE RANDOM READ-CHAR READ-LINE RETURN-FROM
 	    RPLACA RPLACD SETF SETQ SIMPLE-BIT-VECTOR-P SIMPLE-VECTOR-P
 	    SPECIAL-OPERATOR-P STRING STRINGP SUBTYPEP SYMBOL SYMBOL-FUNCTION

@@ -16,6 +16,9 @@
     ((cdr list)		(error))
     (t			(car list))))
 
+(defun ensure-list (x)
+  (if (listp x) x (list x)))
+
 (defun mappend (fn &rest lists)
   (apply #'append
    (if (null (cdr lists))
