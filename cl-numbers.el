@@ -1098,8 +1098,53 @@
 	      ,value)
 	    `(MASK-FIELD ,byte ,getter)))))
 
-;;; TODO: decode-float, scale-float, float-radix, float-sign, float-digits,
-;;; float-precision, integer-decode-float
+(defun DECODE-FLOAT (float)
+  (unless (floatp float)
+    (error "type error"))
+  (if (zerop float)
+      (VALUES 0.0 0 1.0)
+      (let ((exponent (1+ (logb float))))
+	(VALUES (* (abs float) (expt 2 (- (float exponent))))
+		exponent
+		(if (minusp float) -1.0 1.0)))))
+
+(defun SCALE-FLOAT (float integer)
+  (unless (and (floatp float) (INTEGERP integer))
+    (error "type error"))
+  (* float (expt 2.0 (FLOAT integer))))
+
+(defun FLOAT-RADIX (float)
+  (unless (floatp float)
+    (error "type error"))
+  2)
+
+(defun* FLOAT-SIGN (float1 &optional (float2 1.0))
+  (if (minusp float1)
+      (- float2)
+      float2))
+
+(defun FLOAT-DIGITS (float)
+  (unless (floatp float)
+    (error "type error"))
+  53)
+
+(defun FLOAT-PRECISION (float)
+  (unless (floatp float)
+    (error "type error"))
+  (if (zerop float)
+      0
+      ;; TODO: return number of significant digits in denormals.
+      53))
+
+(defun INTEGER-DECODE-FLOAT (float)
+  (unless (floatp float)
+    (error "type error"))
+  (if (zerop float)
+      (VALUES 0.0 0 1)
+      (let ((exponent (1+ (logb float))))
+	(VALUES (* (abs float) (expt 2 (- (float exponent))))
+		exponent
+		(if (minusp float) 1 1)))))
 
 (defun bignum-float (num)
   (do ((i 1 (1+ i))
