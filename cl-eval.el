@@ -46,26 +46,24 @@
     (dolist (form forms lastval)
       (setq lastval (eval-with-env form new-env)))))
 
+(defun lexical-or-global-function (name env)
+  (multiple-value-bind (type localp decl) (function-information name env)
+    (ecase type
+      ((nil)		(error "unbound function %s" name))
+      (:function	(if localp
+			    (lexical-function name env)
+			    (FDEFINITION name)))
+      (t		(error "syntax error")))))
+
 (define-special-operator FUNCTION (form) env
   (VALUES
     (cond
-      ((SYMBOLP form)
-       (multiple-value-bind (type localp decl) (function-information form env)
-	 (ecase type
-	   ((nil)	(error "unbound function %s" form))
-	   (:function	(if localp
-			    (lexical-function form env)
-			    (SYMBOL-FUNCTION form)))
-	   (t		(error "syntax error")))))
-      ((ATOM form)
-       (error "syntax error"))
+      ((SYMBOLP form)		(lexical-or-global-function form env))
+      ((ATOM form)		(error "syntax error"))
       ((case (first form)
-	 (LAMBDA
-	  (enclose form env))
-	 (SETF
-	  (FDEFINITION form))
-	 (t
-	  (error "syntax error")))))))
+	 (LAMBDA		(enclose form env))
+	 (SETF			(lexical-or-global-function form env))
+	 (t			(error "syntax error")))))))
 
 (define-special-operator GO (tag) env
   (let ((info (tagbody-information tag env)))
@@ -343,8 +341,7 @@
 	 (let ((fn (gethash (first form) *special-operator-evaluators*)))
 	   (if fn
 	       (apply fn env (rest form))
-	       (let ((fn (eval-with-env `(FUNCTION ,(first form)) env)))
-		         ;;(symbol-function (first form))))
+	       (let ((fn (lexical-or-global-function (first form) env)))
 		 (if (listp fn)
 		     ;; Special hack for interpreted Emacs Lisp function.
 		     (apply fn (mapcar (lambda (arg) (eval-with-env arg env))
