@@ -156,12 +156,14 @@
 	((and (STRINGP x) (STRINGP y))
 	 (and (eq (LENGTH x) (LENGTH y))
 	      (every #'eq x y)))
-	((and (BIT-STRING-P x) (BIT-STRING-P y))
+	((and (BIT-VECTOR-P x) (BIT-VECTOR-P y))
 	 (and (eq (LENGTH x) (LENGTH y))
 	      (every #'eq x y)))
 	;; TODO: pathnames
 	(t
 	 nil))))
+
+;;; TODO: EQUALP
 
 (defun IDENTITY (object)
   object)
