@@ -83,12 +83,12 @@
 (defvar *emacs-lisp-package*
   (MAKE-PACKAGE "EMACS-LISP" (kw NICKNAMES) '("EL")))
 (defvar *emacs-cl-package*
-  (MAKE-PACKAGE "EMACS-CL" (kw NICKNAMES) '("E-CL")))
+  (MAKE-PACKAGE "EMACS-COMMON-LISP" (kw NICKNAMES) '("EMACS-CL")))
 (defvar *cl-package*
   (MAKE-PACKAGE "COMMON-LISP" (kw NICKNAMES) '("CL")))
 (defvar *cl-user-package*
   (MAKE-PACKAGE "COMMON-LISP-USER"
-		(kw NICKNAMES) '("CL-USER") (kw USE) '("CL" "E-CL" "EL")))
+		(kw NICKNAMES) '("CL-USER") (kw USE) '("CL" "EMACS-CL" "EL")))
 
 (defconst not-found (cons nil nil))
 
