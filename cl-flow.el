@@ -10,10 +10,10 @@
 (defun APPLY (fn &rest args)
   (cond
     ((INTERPRETED-FUNCTION-P fn)
-     (eval-with-env (append (list (aref fn 1))
-			    (butlast args)
-			    (car (last args)))
-		    (aref fn 2)))
+     (eval-lambda-form (append (list (aref fn 1))
+			       (butlast args)
+			       (car (last args)))
+		       (aref fn 2)))
     ((FUNCTIONP fn)
      (apply #'apply fn args))
     (t
