@@ -84,8 +84,9 @@
   (MAKE-PACKAGE "EMACS-CL" (kw NICKNAMES) '("E-CL")))
 (defvar *cl-package*
   (MAKE-PACKAGE "COMMON-LISP" (kw NICKNAMES) '("CL")))
-(MAKE-PACKAGE "COMMON-LISP-USER"
-	      (kw NICKNAMES) '("CL-USER") (kw USE) '("CL" "E-CL" "EL"))
+(defvar *cl-user-package*
+  (MAKE-PACKAGE "COMMON-LISP-USER"
+		(kw NICKNAMES) '("CL-USER") (kw USE) '("CL" "E-CL" "EL")))
 
 (defconst not-found (cons nil nil))
 
@@ -336,7 +337,7 @@
 	      (pushnew symbol (aref package 7)))
 	    (VALUES symbol nil))))))
 
-(defvar *PACKAGE* (FIND-PACKAGE "CL-USER"))
+(defvar *PACKAGE* *cl-user-package*)
 
 ;;; PACKAGE-ERROR and PACKAGE-ERROR-PACKAGE are defined in cl-conditions.el.
 
