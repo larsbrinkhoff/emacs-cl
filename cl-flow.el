@@ -280,6 +280,8 @@
       (cond
 	((and (CHARACTERP x) (CHARACTERP y))
 	 (eq (CHAR-CODE x) (CHAR-CODE y)))
+	((and (floatp x) (floatp y))
+	 (equal x y))
 	((and (bignump x) (bignump y))
 	 (and (eq (length x) (length y))
 	      (every #'eq x y)))
