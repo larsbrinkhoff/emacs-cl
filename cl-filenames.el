@@ -27,6 +27,8 @@
   (unless DEFAULTS
     (setq DEFAULTS (mkpathname (PATHNAME-HOST *DEFAULT-PATHNAME-DEFAULTS*)
 			       nil nil nil nil nil)))
+  (when (eq DIRECTORY (kw WILD))
+    (setq DIRECTORY `(,(kw ABSOLUTE) ,(kw WILD-INFERIORS))))
   (MERGE-PATHNAMES (mkpathname HOST DEVICE DIRECTORY NAME TYPE VERSION)
 		   DEFAULTS))
 
@@ -103,10 +105,15 @@
 		    (cond
 		      ((STRINGP x)	x)
 		      ((eq x (kw UP))	"..")
+		      ((eq x (kw WILD))	"*")
+		      ((eq x (kw WILD-INFERIORS))
+					"**")
 		      ((eq x (kw BACK))	(ERROR 'ERROR))
 		      (t		(type-error
 					 x `(OR STRING
-					     (MEMBER ,(kw UP) ,(kw BACK))))))
+					     (MEMBER
+					      ,(kw BACK) ,(kw WILD) ,(kw UP)
+					      ,(kw WILD-INFERIORS))))))
 		    "/")))))
 
 (defun HOST-NAMESTRING (pathname-designator)
@@ -243,7 +250,7 @@
 	     `(,(kw HOST) ,(kw DEVICE) ,(kw DIRECTORY)
 	       ,(kw NAME) ,(kw TYPE) ,(kw VERSION))))
       (t
-       (type-error field `(MEMBER ,(kw HOST) ,(kw DEVICE) ,(kw DIRECTORY)
+       (type-error field `(MEMBER NULL ,(kw HOST) ,(kw DEVICE) ,(kw DIRECTORY)
 			          ,(kw NAME) ,(kw TYPE) ,(kw VERSION)))))))
 
 (defmacro wild-test (fn pathname wildcard)
