@@ -361,10 +361,16 @@
 	(ERROR "No tagbody for (GO ~S)" tag))))
 
 (define-compiler IF (condition then &optional else) env
-  `(if ,(compile-form condition env)
-       ,(compile-form then env)
-       ,@(when else
-	   (list (compile-form else env)))))
+  (let ((compiled-condition (compile-form condition env))
+	(compiled-then (compile-form then env)))
+    (if (equal compiled-condition compiled-then)
+	`(or ,compiled-condition
+	     ,@(when else
+	         (list (compile-form else env))))
+	`(if ,compiled-condition
+	     ,compiled-then
+	     ,@(when else
+	         (list (compile-form else env)))))))
 
 (define-compiler LABELS (fns &rest forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
