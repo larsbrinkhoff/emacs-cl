@@ -54,15 +54,17 @@
     (t			(type-error x '(OR STRING SYMBOL CHARACTER)))))
 
 (cl:defun STRING-UPCASE (string &KEY (START 0) END)
-  (NSTRING-UPCASE (COPY-SEQ string) (kw START) START (kw END) END))
+  (NSTRING-UPCASE (COPY-SEQ (STRING string)) (kw START) START (kw END) END))
 
 (cl:defun STRING-DOWNCASE (string &KEY (START 0) END)
-  (NSTRING-DOWNCASE (COPY-SEQ string) (kw START) START (kw END) END))
+  (NSTRING-DOWNCASE (COPY-SEQ (STRING string)) (kw START) START (kw END) END))
 
 (cl:defun STRING-CAPITALIZE (string &KEY (START 0) (END (LENGTH string)))
-  (NSTRING-CAPITALIZE (COPY-SEQ string) (kw START) START (kw END) END))
+  (NSTRING-CAPITALIZE (COPY-SEQ (STRING string)) 
+		      kw START) START (kw END) END))
 
 (cl:defun NSTRING-UPCASE (string &KEY (START 0) END)
+  (setq string (STRING string))
   (unless END
     (setq END (LENGTH string)))
   (do ((i START (1+ i)))
@@ -70,6 +72,7 @@
     (setf (CHAR string i) (CHAR-UPCASE (CHAR string i)))))
 
 (cl:defun NSTRING-DOWNCASE (string &KEY (START 0) END)
+  (setq string (STRING string))
   (unless END
     (setq END (LENGTH string)))
   (do ((i START (1+ i)))
@@ -77,6 +80,7 @@
     (setf (CHAR string i) (CHAR-DOWNCASE (CHAR string i)))))
 
 (cl:defun NSTRING-CAPITALIZE (string &KEY (START 0) (END (LENGTH string)))
+  (setq string (STRING string))
   (do* ((i START (1+ i))
 	(in-word-p nil))
        ((eq i END)
@@ -92,6 +96,7 @@
   (STRING-LEFT-TRIM chars (STRING-RIGHT-TRIM chars string)))
 
 (defun STRING-LEFT-TRIM (chars string)
+  (setq string (STRING string))
   (let ((i 0)
 	(len (LENGTH string)))
     (while (and (FIND (CHAR string i) chars)
@@ -100,6 +105,7 @@
     (SUBSEQ string i)))
 
 (defun STRING-RIGHT-TRIM (chars string)
+  (setq string (STRING string))
   (let* ((i (1- (LENGTH string))))
     (while (and (FIND (CHAR string i) chars)
 		(>= i 0))
@@ -107,6 +113,8 @@
     (SUBSEQ string 0 (1+ i))))
 
 (cl:defun STRING= (string1 string2 &KEY (START1 0) END1 (START2 0) END2)
+  (setq string1 (STRING string1))
+  (setq string2 (STRING string2))
   (string= (substring string1 START1 END1)
 	   (substring string2 START2 END2)))
 
@@ -115,6 +123,8 @@
 		                :START2 START2 :END2 END2)))
 
 (cl:defun STRING< (string1 string2 &KEY (START1 0) END1 (START2 0) END2)
+  (setq string1 (STRING string1))
+  (setq string2 (STRING string2))
   (let ((len1 (LENGTH string1))
 	(len2 (LENGTH string2)))
     (block nil
@@ -131,6 +141,8 @@
        (incf START2)))))
 
 (cl:defun STRING> (string1 string2 &KEY START1 END1 START2 END2)
+  (setq string1 (STRING string1))
+  (setq string2 (STRING string2))
   (let ((i 0)
 	(len1 (LENGTH string1))
 	(len2 (LENGTH string2)))
