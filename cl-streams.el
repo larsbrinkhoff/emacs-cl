@@ -112,25 +112,27 @@
 (cl:defun OPEN (filespec &key (direction (kw INPUT)) (element-type 'CHARACTER)
 		              if-exists if-does-not-exist
 			      (external-format (kw DEFAULT)))
-  (MAKE-STREAM :filename (when (eq direction :output) filespec)
-	       :content (let ((buffer (create-file-buffer filespec)))
-			  (when (eq direction :input)
-			    (save-current-buffer
-			      (set-buffer buffer)
-			      (insert-file-contents-literally filespec)))
-			  buffer)
-	       :index 0
-	       :read-fn (lambda (stream)
-			  (save-current-buffer
-			    (set-buffer (STREAM-content stream))
-			    (if (= (STREAM-index stream) (buffer-size))
-				:eof
-				(char-after (incf (STREAM-index stream))))))
-	       :write-fn (lambda (char stream)
-			   (save-current-buffer
-			     (set-buffer (STREAM-content stream))
-			     (goto-char (incf (STREAM-index stream)))
-			     (insert char)))))
+  (MAKE-STREAM (kw filename) (when (eq direction :output) filespec)
+	       (kw content) (let ((buffer (create-file-buffer filespec)))
+			      (when (eq direction :input)
+				(save-current-buffer
+				  (set-buffer buffer)
+				  (insert-file-contents-literally filespec)))
+			      buffer)
+	       (kw index) 0
+	       (kw read-fn)
+	         (lambda (stream)
+		   (save-current-buffer
+		     (set-buffer (STREAM-content stream))
+		     (if (= (STREAM-index stream) (buffer-size))
+			 :eof
+			 (char-after (incf (STREAM-index stream))))))
+	       (kw write-fn)
+	         (lambda (char stream)
+		   (save-current-buffer
+		     (set-buffer (STREAM-content stream))
+		     (goto-char (incf (STREAM-index stream)))
+		     (insert char)))))
 
 ;;; TODO: stream-external-format
 
@@ -180,12 +182,14 @@
 ;;; TODO: make-broadcast-stream
 
 (defun MAKE-TWO-WAY-STREAM (input output)
-  (MAKE-STREAM :content (cons input output)
-	       :index 0
-	       :read-fn (lambda (stream)
-			  (READ-CHAR (car (STREAM-content stream))))
-	       :write-fn (lambda (char stream)
-			   (WRITE-CHAR char (cdr (STREAM-content stream))))))
+  (MAKE-STREAM (kw content) (cons input output)
+	       (kw index) 0
+	       (kw read-fn)
+	         (lambda (stream)
+		   (READ-CHAR (car (STREAM-content stream))))
+	       (kw write-fn)
+	         (lambda (char stream)
+		   (WRITE-CHAR char (cdr (STREAM-content stream))))))
 
 (defun TWO-WAY-STREAM-INPUT-STREAM (stream)
   (car (STREAM-content stream)))
@@ -205,28 +209,31 @@
   (STREAM-content stream))
 
 (cl:defun MAKE-STRING-INPUT-STREAM (string &optional (start 0) end)
-  (MAKE-STREAM :content (let ((substr (substring string start end)))
-			  (if (> (length substr) 0)
-			      substr
-			      :eof))
-	       :index 0
-	       :read-fn (lambda (stream)
-			  (cond
-			    ((eq (STREAM-content stream) :eof)
-			     :eof)
-			    ((= (STREAM-index stream)
-				(length (STREAM-content stream)))
-			     (setf (STREAM-content stream) :eof))
-			    (t
-			     (aref (STREAM-content stream)
-				   (1- (incf (STREAM-index stream)))))))
-	       :write-fn (lambda (c s) (error "write to input stream"))))
+  (MAKE-STREAM (kw content) (let ((substr (substring string start end)))
+			      (if (> (length substr) 0)
+				  substr
+				  :eof))
+	       (kw index) 0
+	       (kw read-fn)
+	         (lambda (stream)
+		   (cond
+		     ((eq (STREAM-content stream) :eof)
+		      :eof)
+		     ((= (STREAM-index stream)
+			 (length (STREAM-content stream)))
+		      (setf (STREAM-content stream) :eof))
+		     (t
+		      (aref (STREAM-content stream)
+			    (1- (incf (STREAM-index stream)))))))
+	       (kw write-fn)
+	         (lambda (c s) (error "write to input stream"))))
 
 (cl:defun MAKE-STRING-OUTPUT-STREAM (&key (element-type 'CHARACTER))
-  (MAKE-STREAM :content ""
-	       :index 0
-	       :read-fn (lambda (s) (error "read from output stream"))
-	       :write-fn
+  (MAKE-STREAM (kw content) ""
+	       (kw index) 0
+	       (kw read-fn)
+	         (lambda (s) (error "read from output stream"))
+	       (kw write-fn)
 	         (lambda (char stream)
 		   (setf (STREAM-content stream)
 			 (concat (STREAM-content stream)
@@ -261,25 +268,25 @@
 
 
 (defun make-buffer-output-stream (buffer)
-  (MAKE-STREAM :content buffer
-	       :index 0
-	       :read-fn (lambda (s) (error "read from output stream"))
-	       :write-fn
-	         (lambda (char stream)
-		   (insert char)
-		   (sit-for 0))))
+  (MAKE-STREAM (kw content) buffer
+	       (kw index) 0
+	       (kw read-fn) (lambda (s) (error "read from output stream"))
+	       (kw write-fn) (lambda (char stream)
+			       (insert char)
+			       (when (eq char 10)
+				 (sit-for 0)))))
 
 (defun make-read-char-exclusive-input-stream ()
-  (MAKE-STREAM :content nil
-	       :index 0
-	       :read-fn (lambda (s) (read-char-exclusive))
-	       :write-fn (lambda (c s) (error "write to input stream"))))
+  (MAKE-STREAM (kw content) nil
+	       (kw index) 0
+	       (kw read-fn) (lambda (s) (read-char-exclusive))
+	       (kw write-fn) (lambda (c s) (error "write to input stream"))))
 
 (defun make-fill-pointer-output-stream (string)
-  (MAKE-STREAM :content string
-	       :index 0
-	       :read-fn (lambda (s) (error "read from output stream"))
-	       :write-fn (lambda (char stream)
-			   (VECTOR-PUSH-EXTEND
-			    (CODE-CHAR char)
-			    (STREAM-content stream)))))
+  (MAKE-STREAM (kw content) string
+	       (kw index) 0
+	       (kw read-fn) (lambda (s) (error "read from output stream"))
+	       (kw write-fn) (lambda (char stream)
+			       (VECTOR-PUSH-EXTEND
+				(CODE-CHAR char)
+				(STREAM-content stream)))))
