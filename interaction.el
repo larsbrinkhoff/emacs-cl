@@ -84,6 +84,8 @@
 	((END-OF-FILE
 	  (lambda (c)
 	    (insert "\n")
+	    (dotimes (i (length (PACKAGE-NAME *PACKAGE*)))
+	      (insert " "))
 	    (throw 'read-continue nil)))
 	 (ERROR
 	  (lambda (c)
