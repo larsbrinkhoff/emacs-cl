@@ -135,14 +135,14 @@
 	(funcall fn stream char2 nil))))
 
 (defun quote-reader (stream ch)
-  (values (list 'QUOTE (cl:read stream t nil t))))
+  (values (list 'QUOTE (READ stream t nil t))))
 
 (defun left-paren-reader (stream char)
   (do ((list nil)
        (char #1=(PEEK-CHAR t stream) #1#))
       ((eql char (CODE-CHAR 41))
        (values (nreverse list)))
-    (push (cl:read stream t nil t) list)))
+    (push (READ stream t nil t) list)))
 
 (defun right-paren-reader (stream char)
   (error "unbalanced '%c'" char))
@@ -154,12 +154,12 @@
     (let ((*backquote-level* (1- *backquote-level*)))
       (cond
 	((eql next-char (CODE-CHAR 64))
-	 (values (list 'COMMA-AT (cl:read stream t nil t))))
+	 (values (list 'COMMA-AT (READ stream t nil t))))
 	((eql next-char (CODE-CHAR 46))
-	 (values (list 'COMMA-DOT (cl:read stream t nil t))))
+	 (values (list 'COMMA-DOT (READ stream t nil t))))
 	(t
 	 (UNREAD-CHAR next-char stream)
-	 (values (list 'COMMA (cl:read stream t nil t))))))))
+	 (values (list 'COMMA (READ stream t nil t))))))))
 
 (defun semicolon-reader (stream ch)
   (do ()
@@ -168,7 +168,7 @@
 
 (defun backquote-reader (stream char)
   (let* ((*backquote-level* (1+ *backquote-level*))
-	 (form (cl:read stream t nil t)))
+	 (form (READ stream t nil t)))
     (values (list 'BACKQUOTE form))))
 
 (defun sharp-backslash-reader (stream char n)
@@ -182,7 +182,7 @@
     (setq string (concat string (list (CHAR-CODE char))))))
 
 (defun sharp-quote-reader (stream char n)
-  (values (list 'FUNCTION (cl:read stream t nil t))))
+  (values (list 'FUNCTION (READ stream t nil t))))
 
 (defun sharp-left-paren-reader (stream char n)
   (values (CONCATENATE 'VECTOR (read-delimited-list (CODE-CHAR 41) stream))))
@@ -201,7 +201,7 @@
 
 (defun sharp-dot-reader (stream char n)
   (if *read-eval*
-      (values (eval (cl:read stream t nil t)))
+      (values (eval (READ stream t nil t)))
       (error "reader error: #. disabled")))
 
 (defun sharp-b-reader (stream char n) nil)
@@ -210,7 +210,7 @@
 (defun sharp-r-reader (stream char n) nil)
 
 (defun sharp-c-reader (stream char n)
-  (let ((list (cl:read stream t nil t)))
+  (let ((list (READ stream t nil t)))
     (if (and (consp list) (= (length list) 2))
 	(values (complex (first list) (second list)))
 	(error "syntax error"))))
@@ -269,7 +269,7 @@
     (:downcase (char-downcase char))
     (:invert (error "not implemented"))))
 
-(defun* cl:read (&optional stream (eof-error-p t) eof-value recursive-p)
+(defun* READ (&optional stream (eof-error-p t) eof-value recursive-p)
   (let (char
 	(escape nil)
 	(package nil)
@@ -279,7 +279,7 @@
       STEP-1
        (setq char (READ-CHAR stream eof-error-p eof-value recursive-p))
        (when (eql char eof-value)
-	 (return-from cl:read eof-value))
+	 (return-from READ eof-value))
 
       (case (char-syntx char)
 	(:whitespace
@@ -289,7 +289,7 @@
 	   (let ((list (multiple-value-list (funcall fn stream char))))
 	     (if (null list)
 		 (go STEP-1)
-		 (return-from cl:read (first list))))))
+		 (return-from READ (first list))))))
 	(:single-escape
 	 (setq escape t)
 	 (setq char (READ-CHAR stream t nil t))
@@ -354,7 +354,7 @@
 	 (go STEP-8)))
 
       STEP-10
-      (return-from cl:read (process-token package colons token escape)))))
+      (return-from READ (process-token package colons token escape)))))
 
 (defun* process-token (package colons token escape)
   (when (and (zerop colons) (not escape))
@@ -371,11 +371,11 @@
   (multiple-value-bind (sym status) (FIND-SYMBOL token package)
     (case status
       (:external
-       (return-from cl:read sym))
+       (return-from READ sym))
       ((:internal :inherited)
        (error))
       ((nil)
-       (return-from cl:read (INTERN token package))))))
+       (return-from READ (INTERN token package))))))
 
 (defvar *read-base* 10)
 
@@ -414,12 +414,12 @@
       ((char= char delimiter)
        (READ-CHAR stream t nil recursive-p)
        (nreverse list))
-    (push (cl:read stream t nil recursive-p) list)))
+    (push (READ stream t nil recursive-p) list)))
 
-(defun* cl:read-from-string (string &optional (eof-error-p t) eof-value
-				    &key (start 0) end preserve-whitespace)
+(defun* READ-FROM-STRING (string &optional (eof-error-p t) eof-value
+				 &key (start 0) end preserve-whitespace)
   (let ((stream (make-string-input-stream string start end)))
     (if preserve-whitespace
 	(read-preserving-whitespace stream eof-error-p eof-value)
-	(cl:read stream eof-error-p eof-value))))
+	(READ stream eof-error-p eof-value))))
 
