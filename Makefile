@@ -4,7 +4,7 @@ EMACS = emacs20
 #EMACS = xemacs20
 #EMACS = xemacs21
 
-EMACSEN = emacs20 emacs21 xemacs21
+EMACSEN = ../emacs-19.34/src/emacs emacs20 emacs21 xemacs21
 
 all:
 	$(EMACS) -batch -l load-cl.el -f compile-cl
@@ -13,6 +13,7 @@ all:
 
 check:
 	for e in $(EMACSEN); do						\
+		echo === CHECKING $$e ===;				\
 		$$e -batch -l load-cl.el -l tests.el -f test-cl;	\
 	done
 
