@@ -167,9 +167,10 @@
   (mapcar (lambda (x)
 	    (let ((cons (assq x '((&OPTIONAL . &optional)
 				  (&REST . &rest)))))
-	      (if cons
-		  (cdr cons)
-		  x)))
+	      (cond
+		(cons	(cdr cons))
+		(env	(lexical-value x env))
+		(t	x))))
 	  lambda-list))
 
 (defun expand-lambda (lambda-list body &optional env)
