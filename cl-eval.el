@@ -24,7 +24,11 @@
       (dolist (form forms lastval)
 	(setq lastval (eval-with-env form env))))))
 
-;;; TODO: EVAL-WHEN
+(define-special-operator EVAL-WHEN (situations &body body) env
+  ;; TODO: Proper implementation.
+  (let (lastval)
+    (dolist (form body (VALUES lastval))
+      (setq lastval (eval-with-env form env)))))
 
 ;;; TODO: FLET
 
