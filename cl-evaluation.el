@@ -48,7 +48,7 @@
     ((symbolp form)
      (let ((fn (gethash form *symbol-macro-functions*)))
        (if fn
-	   (values (funcall *MACROEXPAND-HOOK* fn form env) t)
+	   (values (funcall *MACROEXPAND-HOOK* fn form env) T)
 	   (values form nil))))
     (t
      (values form nil))))
@@ -58,7 +58,7 @@
     (loop
      (multiple-value-setq (form exp) (MACROEXPAND-1 form env))
      (if exp
-	 (setq expanded-p t)
+	 (setq expanded-p T)
 	 (return-from MACROEXPAND (values form expanded-p))))))
 
 (defmacro* DEFINE-SYMBOL-MACRO (symbol expansion)
@@ -98,7 +98,14 @@
      form)
     (t
      (case (first form)
+       (IF
+	(if (EVAL (second form))
+	    (third form)
+	    (fourth form)))
        (QUOTE
 	(second form))
+       (SETQ
+	(set (second form) (EVAL (third form))))
        (t
-	(apply (symbol-function (first form)) (rest form)))))))
+	(apply (symbol-function (first form))
+	       (mapcar #'EVAL (rest form))))))))
