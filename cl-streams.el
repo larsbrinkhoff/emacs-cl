@@ -17,18 +17,18 @@
   read-fn
   write-fn)
 
-(defun* peek-char (&optional peek-type stream (eof-error-p t)
+(defun* PEEK-CHAR (&optional peek-type stream (eof-error-p t)
 			     eof-value recursive-p)
   (loop
-   (let ((char (cl:read-char stream eof-error-p eof-value recursive-p)))
+   (let ((char (READ-CHAR stream eof-error-p eof-value recursive-p)))
      (cond
        ((eq char eof-value)
-	(return-from peek-char eof-value))
+	(return-from PEEK-CHAR eof-value))
        ((or (eq peek-type nil)
 	    (and (eq peek-type t) (not (whitespacep char)))
 	    (char= char peek-type))
-	(unread-char char stream)
-	(return-from peek-char char))))))
+	(UNREAD-CHAR char stream)
+	(return-from PEEK-CHAR char))))))
 
 (defun resolve-input-stream-designator (designator)
   (case designator
@@ -42,7 +42,7 @@
     ((t)	*terminal-io*)
     (t		designator)))
 
-(defun* cl:read-char (&optional stream-designator (eof-error-p t)
+(defun* READ-CHAR (&optional stream-designator (eof-error-p t)
 				eof-value recursive-p)
   (let* ((stream (resolve-input-stream-designator stream-designator))
 	 (ch (funcall (stream-read-fn stream) stream)))
@@ -52,40 +52,40 @@
 	    eof-value)
 	(code-char ch))))
 
-(defun unread-char (char &optional stream-designator)
+(defun UNREAD-CHAR (char &optional stream-designator)
   (let ((stream (resolve-input-stream-designator stream-designator)))
     (when (> (stream-index stream) 0)
       (decf (stream-index stream)))))
 
-(defun cl:write-char (char &optional stream-designator)
+(defun WRITE-CHAR (char &optional stream-designator)
   (let ((stream (resolve-output-stream-designator stream-designator)))
     (funcall (stream-write-fn stream) char stream)
     char))
 
-(defun* read-line (&optional stream-designator (eof-error-p t)
+(defun* READ-LINE (&optional stream-designator (eof-error-p t)
 			     eof-value recursive-p)
   (let ((stream (resolve-input-stream-designator stream-designator))
 	(line ""))
     (loop
-     (let ((char (cl:read-char stream eof-error-p eof-value recursive-p)))
+     (let ((char (READ-CHAR stream eof-error-p eof-value recursive-p)))
        (cond
 	 ((eq char eof-value)
-	  (return-from read-line
+	  (return-from READ-LINE
 	    (values (if (= (length line) 0) eof-value line) t)))
 	 ((= char (code-char 10))
-	  (return-from read-line (values line nil))))
+	  (return-from READ-LINE (values line nil))))
        (setq line (concat line (list (char-code char))))))))
 
-(defun* write-string (string &optional stream-designator &key (start 0) end)
+(defun* WRITE-STRING (string &optional stream-designator &key (start 0) end)
   (do ((stream (resolve-output-stream-designator stream-designator))
        (i 0 (1+ i)))
       ((= i (length string)) string)
-    (cl:write-char (aref string i) stream)))
+    (WRITE-CHAR (aref string i) stream)))
 
-(defun* write-line (string &optional stream-designator &key (start 0) end)
+(defun* WRITE-LINE (string &optional stream-designator &key (start 0) end)
   (let ((stream (resolve-output-stream-designator stream-designator)))
-    (write-string string stream :start start :end end)
-    (cl:write-char 10 stream)
+    (WRITE-STRING string stream :start start :end end)
+    (WRITE-CHAR 10 stream)
     string))
 
 ;;; TODO: read-sequence

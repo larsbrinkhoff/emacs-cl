@@ -117,18 +117,18 @@
 
 (defun double-quote-reader (stream double-quote-char)
   (do ((string "")
-       (char #1=(cl:read-char stream t nil t) #1#))
+       (char #1=(READ-CHAR stream t nil t) #1#))
       ((char= char double-quote-char)
        (values string))
     (setq string
 	  (concat string
 		  (list (char-code
 			 (if (eq (char-syntx char) :single-escape)
-			     (cl:read-char stream t nil t)
+			     (READ-CHAR stream t nil t)
 			     char))))))
 
 (defun sharp-reader (stream char1)
-  (let* ((char2 (cl:read-char stream t nil t))
+  (let* ((char2 (READ-CHAR stream t nil t))
 	 (fn (get-dispatch-macro-character char1 char2)))
     (if (null fn)
 	(error "invalid dispatching macro: %s" string)
@@ -139,7 +139,7 @@
 
 (defun left-paren-reader (stream char)
   (do ((list nil)
-       (char #1=(peek-char t stream) #1#))
+       (char #1=(PEEK-CHAR t stream) #1#))
       ((eql char (code-char 41))
        (values (nreverse list)))
     (push (cl:read stream t nil t) list)))
@@ -150,7 +150,7 @@
 (defun comma-reader (stream char)
   (unless (plusp *backquote-level*)
     (error "comma outside backquote"))
-  (let ((next-char (cl:read-char stream t nil t)))
+  (let ((next-char (READ-CHAR stream t nil t)))
     (let ((*backquote-level* (1- *backquote-level*)))
       (cond
 	((eql next-char (code-char 64))
@@ -158,12 +158,12 @@
 	((eql next-char (code-char 46))
 	 (values (list 'COMMA-DOT (cl:read stream t nil t))))
 	(t
-	 (unread-char next-char stream)
+	 (UNREAD-CHAR next-char stream)
 	 (values (list 'COMMA (cl:read stream t nil t))))))))
 
 (defun semicolon-reader (stream ch)
   (do ()
-      ((char= (cl:read-char stream nil (code-char 10) t) (code-char 10))
+      ((char= (READ-CHAR stream nil (code-char 10) t) (code-char 10))
        (values))))
 
 (defun backquote-reader (stream char)
@@ -173,9 +173,9 @@
 
 (defun sharp-backslash-reader (stream char n)
   (do ((string "")
-       (char #1=(cl:read-char stream nil ?  t) #1#))
+       (char #1=(READ-CHAR stream nil ?  t) #1#))
       ((not (constituentp char))
-       (unread-char char stream)
+       (UNREAD-CHAR char stream)
        (values (if (= (length string) 1)
 		   (aref string 0)
 		   (name-char string))))
@@ -192,9 +192,9 @@
 
 (defun sharp-colon-reader (stream char n)
   (do ((string "")
-       (char #1=(cl:read-char stream nil ?  t) #1#))
+       (char #1=(READ-CHAR stream nil ?  t) #1#))
       ((not (constituentp char))
-       (unread-char char stream)
+       (UNREAD-CHAR char stream)
        (values (make-symbol string)))
     (setq string (concat string (list (char-code char))))))
 
@@ -227,9 +227,9 @@
 (defun sharp-bar-reader (stream char n)
   (do ((last nil)
        (level 1)
-       (char #1=(cl:read-char stream t nil t) #1#))
+       (char #1=(READ-CHAR stream t nil t) #1#))
       ((= level 0)
-       (unread-char char stream)
+       (UNREAD-CHAR char stream)
        (values))
     (when (and (eql last (code-char 35)) (eql char (code-char 124)))
       (incf level))
@@ -278,7 +278,7 @@
 	(token nil))
     (tagbody
       STEP-1
-       (setq char (cl:read-char stream eof-error-p eof-value recursive-p))
+       (setq char (READ-CHAR stream eof-error-p eof-value recursive-p))
        (when (eql char eof-value)
 	 (return-from cl:read eof-value))
 
@@ -293,7 +293,7 @@
 		 (return-from cl:read (first list))))))
 	(:single-escape
 	 (setq escape t)
-	 (setq char (cl:read-char stream t nil t))
+	 (setq char (READ-CHAR stream t nil t))
 	 (setq token (concat token (list (char-code char))))
 	 (go STEP-8))
 	(:multiple-escape
@@ -314,7 +314,7 @@
 	(t
 	 (setq token (concat token (list (char-code char))))))
       STEP-8
-      (setq char (cl:read-char stream nil nil t))
+      (setq char (READ-CHAR stream nil nil t))
       (when (null char)
 	(go STEP-10))
       (case (char-syntx char)
@@ -323,22 +323,22 @@
 	 (go STEP-8a))
 	(:single-escape
 	 (setq escape t)
-	 (setq char (cl:read-char stream t nil t))
+	 (setq char (READ-CHAR stream t nil t))
 	 (setq token (concat token (list (char-code char))))
 	 (go STEP-8))
 	(:multiple-escape
 	 (go STEP-9))
 	(:terminating-macro
-	 (unread-char char stream)
+	 (UNREAD-CHAR char stream)
 	 (go STEP-10))
 	(:whitespace
 	 (when nil
-	   (unread-char char stream))
+	   (UNREAD-CHAR char stream))
 	 (go STEP-10)))
 
       STEP-9
       (setq escape t)
-      (setq char (cl:read-char stream nil nil t))
+      (setq char (READ-CHAR stream nil nil t))
       (when (null char)
 	(error "end of file"))
       (case (char-syntx char)
@@ -346,7 +346,7 @@
 	 (setq token (concat token (list (char-code char))))
 	 (go STEP-9))
 	(:single-escape
-	 (setq char (cl:read-char stream t nil t))
+	 (setq char (READ-CHAR stream t nil t))
 	 (setq token (concat token (list (char-code char))))
 	 (go STEP-9))
 	(:multiple-escape
@@ -411,9 +411,9 @@
 (defun* read-delimited-list (delimiter &optional (stream *standard-input*)
 			                         recursive-p)
   (do ((list nil)
-       (char #1=(peek-char t stream t nil recursive-p) #1#))
+       (char #1=(PEEK-CHAR t stream t nil recursive-p) #1#))
       ((char= char delimiter)
-       (cl:read-char stream t nil recursive-p)
+       (READ-CHAR stream t nil recursive-p)
        (nreverse list))
     (push (cl:read stream t nil recursive-p) list)))
 
