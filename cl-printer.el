@@ -58,6 +58,8 @@
   `(print-unreadable-object ,object ,stream (LAMBDA () ,@body) ,@keys))
 
 (cl:defun print-unreadable-object (object stream fn &key type identity)
+  (when *PRINT-READABLY*
+    (ERROR 'PRINT-NOT-READABLE (kw OBJECT) object))
   (WRITE-STRING "#<" stream)
   (when type
     (PRIN1 (TYPE-OF object) stream)
@@ -313,12 +315,11 @@
 
 ;;; TODO: Variable *PRINT-PRETTY*
 
-;;; TODO: Variable *PRINT-READABLY*
+(defvar *PRINT-READABLY* nil)
 
 ;;; TODO: Variable *PRINT-RIGHT-MARGIN*
 
-;;; TODO: Condition Type PRINT-NOT-READABLE
-
-;;; TODO: Function PRINT-NOT-READABLE-OBJECT
+;;; PRINT-NOT-READABLE and PRINT-NOT-READABLE-OBJECT defined in
+;;; cl-conditions.el.
 
 ;;; TODO: Function FORMAT
