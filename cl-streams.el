@@ -241,6 +241,7 @@
 		      (insert-file-contents-literally
 		       (NAMESTRING filespec))))
 		  buffer)
+   (kw position) 0
    (kw read-fn)
      (lambda (stream)
        (save-current-buffer
@@ -267,7 +268,8 @@
      ,@body))
 
 (cl:defun CLOSE (stream &KEY ABORT)
-  (when (TYPEP stream 'FILE-STREAM)
+  (when (and (TYPEP stream 'FILE-STREAM)
+	     (FILE-STREAM-filename stream))
     (save-current-buffer
       (set-buffer (STREAM-content stream))
       (write-region 1 (1+ (buffer-size)) (FILE-STREAM-filename stream))))
