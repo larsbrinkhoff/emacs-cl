@@ -128,7 +128,9 @@
      (WRITE-STRING "(" stream)
      (write-object (car object) stream)
      (while (consp (cdr object))
-       (if (integer-and-plus-p (gethash (cdr object) *print-circle-table*))
+       (if (and *print-circle-table*
+		(integer-and-plus-p (gethash (cdr object)
+					     *print-circle-table*)))
 	   (progn
 	     (WRITE-STRING " . " stream)
 	     (write-object (cdr object) stream)
