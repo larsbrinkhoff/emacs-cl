@@ -52,6 +52,16 @@
   (eq (NTH-VALUE 1 (FIND-SYMBOL (SYMBOL-NAME symbol) (SYMBOL-PACKAGE symbol)))
       (kw EXTERNAL)))
 
+(defun print-symbol-name (symbol stream)
+  (let* ((name (SYMBOL-NAME symbol))
+	 (read-sym (READ-FROM-STRING name))
+	 (escape (if (and (symbolp read-sym)
+			  (string= name (SYMBOL-NAME read-sym)))
+		     "" "|")))
+    (WRITE-STRING escape stream)
+    (WRITE-STRING name stream)
+    (WRITE-STRING escape stream)))
+
 (defun write-char-to-*standard-output* (char)
   (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*))
 
@@ -69,17 +79,17 @@
        (cond
 	 ((eq (NTH-VALUE 0 (FIND-SYMBOL (SYMBOL-NAME object) *PACKAGE*))
 	      object)
-	  (WRITE-STRING (SYMBOL-NAME object) stream))
+	  (print-symbol-name object stream))
 	 ((null (SYMBOL-PACKAGE object))
 	  (WRITE-STRING "#:" stream)
-	  (WRITE-STRING (SYMBOL-NAME object) stream))
+	  (print-symbol-name object stream))
 	 ((eq (SYMBOL-PACKAGE object) *keyword-package*)
 	  (WRITE-STRING ":" stream)
-	  (WRITE-STRING (SYMBOL-NAME object) stream))
+	  (print-symbol-name object stream))
 	 (t
 	  (WRITE-STRING (PACKAGE-NAME (SYMBOL-PACKAGE object)) stream)
 	  (WRITE-STRING (if (external-symbol-p object) ":" "::") stream)
-	  (WRITE-STRING (SYMBOL-NAME object) stream))))
+	  (print-symbol-name object stream))))
       ((CHARACTERP object)
        (WRITE-STRING "#\\" stream)
        (WRITE-STRING (or (CHAR-NAME object) (string (CHAR-CODE object)))
