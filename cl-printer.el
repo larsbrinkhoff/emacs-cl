@@ -45,6 +45,49 @@
 
 ;;; TODO: Function PPRINT-TAB
 
+(defvar *print-circle-table* nil)
+(defvar *print-circle-counter* 0)
+
+(defun check-circles (object)
+  (let ((n (gethash object *print-circle-table*)))
+    (cond
+      ((null n)
+       (setf (gethash object *print-circle-table*) t)
+       (cond
+	 ((consp object)
+	  (check-circles (car object))
+	  (check-circles (cdr object)))
+	 ((arrayp object)
+	  (dotimes (i (length object))
+	    (check-circles (aref object i))))))
+      ((eq n 0))
+      (t
+       (setf (gethash object *print-circle-table*) 0)))))
+
+(defun write-object (object stream)
+  (if *PRINT-CIRCLE*
+      (if *print-circle-table*
+	  (let ((n (gethash object *print-circle-table*)))
+	    (cond
+	      ((eq n 0)
+	       (WRITE-CHAR (ch 35) stream)
+	       (print-integer (setf (gethash object *print-circle-table*)
+				    (incf *print-circle-counter*))
+			      stream 10)
+	       (WRITE-CHAR (ch 61) stream)
+	       (PRINT-OBJECT object stream))
+	      ((integerp n)
+	       (WRITE-CHAR (ch 35) stream)
+	       (print-integer n stream 10)
+	       (WRITE-CHAR (ch 35) stream))
+	      (t
+	       (PRINT-OBJECT object stream))))
+	  (let ((*print-circle-table* (make-hash-table))
+		(*print-circle-counter* 0))
+	    (check-circles object)
+	    (write-object object stream)))
+      (PRINT-OBJECT object stream)))
+
 ;;; TODO: PRINT-OBJECT should be a generic function
 (defun PRINT-OBJECT (object stream)
   (cond
@@ -67,7 +110,7 @@
 	      (WRITE-STRING (symbol-name-capitalize name) stream))
 	     (t
 	      (type-error *PRINT-CASE* `(MEMBER ,(kw UPCASE) ,(kw DOWNCASE)
-					        ,(kw CAPITALIZE))))))))
+						,(kw CAPITALIZE))))))))
     ((CHARACTERP object)
      (if (printer-escaping-p)
 	 (progn
@@ -78,14 +121,20 @@
 	 (WRITE-CHAR object stream)))
     ((consp object)
      (WRITE-STRING "(" stream)
-     (PRIN1 (car object) stream)
+     (write-object (car object) stream)
      (while (consp (cdr object))
-       (WRITE-STRING " " stream)
-       (setq object (cdr object))
-       (PRIN1 (car object) stream))
+       (if (gethash (cdr object) *print-circle-table*)
+	   (progn
+	     (WRITE-STRING " . " stream)
+	     (write-object (cdr object) stream)
+	     (setq object '(t)))
+	   (progn
+	     (WRITE-STRING " " stream)
+	     (setq object (cdr object))
+	     (write-object (car object) stream))))
      (unless (null (cdr object))
        (WRITE-STRING " . " stream)
-       (PRIN1 (cdr object) stream))
+       (write-object (cdr object) stream))
      (WRITE-STRING ")" stream))
     ((FUNCTIONP object)
      (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
@@ -108,7 +157,7 @@
 	  (PRIN1 (AREF object i) stream)))
        (t
 	(PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t
-					        (kw IDENTITY) t)))))
+						(kw IDENTITY) t)))))
     ((STRINGP object)
      (when *PRINT-ESCAPE*
        (WRITE-STRING "\"" stream))
@@ -275,7 +324,7 @@
 	       (when found
 		 (FUNCALL fn stream object)
 		 t)))
-	(PRINT-OBJECT object stream))
+	(write-object object stream))
     (VALUES object)))
 
 (defun symbol-name-capitalize (string)
@@ -405,12 +454,12 @@
     (SET-PPRINT-DISPATCH `(CONS (EQL QUOTE) (CONS ,star NULL))
 			 (lambda (stream object)
 			   (WRITE-CHAR (ch 39) stream)
-			   (PRINT-OBJECT (second object) stream))
+			   (write-object (second object) stream))
 			 100 table)
     (SET-PPRINT-DISPATCH `(CONS (EQL FUNCTION) (CONS ,star NULL))
 			 (lambda (stream object)
 			   (WRITE-STRING "#'" stream)
-			   (PRINT-OBJECT (second object) stream))
+			   (write-object (second object) stream))
 			 100 table)
     table))
 
