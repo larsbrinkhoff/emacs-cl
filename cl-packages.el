@@ -11,6 +11,7 @@
 ;;; searched with intern-soft, and all symbols are exported.
 
 (defconst kw:EXTERNAL (keyword "EXTERNAL"))
+(defconst kw:INTERNAL (keyword "INTERNAL"))
 (defconst kw:INHERITED (keyword "INHERITED"))
 
 ;;; The PACKAGE system class is built in.
@@ -113,7 +114,7 @@
 	     (VALUES symbol
 		     (if (member symbol (package-exported package))
 			 kw:EXTERNAL
-			 (kw INTERNAL)))
+			 kw:INTERNAL))
 	     (dolist (p (PACKAGE-USE-LIST package) (VALUES nil nil))
 	       (MULTIPLE-VALUE-BIND (symbol found) (FIND-SYMBOL string p)
 		 (when (and found
