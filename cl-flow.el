@@ -13,7 +13,9 @@
 
 ; (DEFMACRO DEFUN (name lambda-list &body body)
 ;   `(EVAL-WHEN (:COMPILE-TOPLEVEL :LOAD-TOPLEVEL :EXECUTE)
-;      (SETF (FDEFINITION ,name) (FUNCTION (LAMBDA ,lambda-list ,@body)))
+;      (SETF (FDEFINITION ,name)
+;	     (FUNCTION (LAMBDA ,lambda-list
+;	       (BLOCK ,name ,@body))))
 ;      ',name))
 
 (defun FDEFINITION (name)
@@ -46,12 +48,19 @@
      (apply fn args))
     ((and (consp fn) (eq (first fn) 'setf) (null (cddr fn)))
      (apply (FDEFINITION fn) args))
+    ((INTERPRETED-FUNCTION-P fn)
+     (eval-with-env (cons (aref fn 1) args) (aref fn 2)))
+    ((FUNCTIONP fn)
+     (apply fn args))
     (t
-     (error))))
+     (error "type error"))))
 
 ;;; TODO: function
 
-;;; TODO: function-lambda-expression
+(defun FUNCTION-LAMBDA-EXPRESSION (fn)
+  (if (INTERPRETED-FUNCTION-P fn)
+      (values (aref fn 1) T nil)
+      (values nil T nil)))
 
 (defun FUNCTIONP (object)
   (or (and (functionp object) (atom object) (not (symbolp object)))
@@ -63,7 +72,7 @@
 
 ;;; TODO: call-argument-limit
 
-(defvar lambda-list-keywords
+(defvar LAMBDA-LIST-KEYWORDS
         '(&allow-other-keys &aux &body &environment &key &optional
 	  &rest &whole))
 
