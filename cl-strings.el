@@ -23,7 +23,7 @@
     ((STRINGP string)
      (SCHAR (aref string 2) index))
     (t
-     (error "type error"))))
+     (type-error string 'STRING))))
 
 (defsetf CHAR (string index) (char)
   `(cond
@@ -32,12 +32,17 @@
     ((STRINGP ,string)
      (setf (SCHAR (aref ,string 2) ,index) ,char))
     (t
-     (error "type error"))))
+     (type-error ,string 'STRING))))
+
+(unless (fboundp 'char-octet)
+  (defmacro char-octet (x) x))
 
 (defun SCHAR (string index)
-  (CODE-CHAR (aref string index)))
+  ;; TODO: make use of XEmacs' character type
+  (CODE-CHAR (char-octet (aref string index))))
 
 (defsetf SCHAR (string index) (char)
+  ;; TODO: make use of XEmacs' character type
   `(aset ,string ,index (CHAR-CODE ,char)))
 
 (defun STRING (x)

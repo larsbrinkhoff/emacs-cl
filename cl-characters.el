@@ -10,6 +10,8 @@
 ;;; Type STANDARD-CHAR
 ;;; Type EXTENDED-CHAR
 
+;;; TODO: use the XEmacs character type
+
 (define-storage-layout char (code))
 
 (defun CHAR= (&rest chars)

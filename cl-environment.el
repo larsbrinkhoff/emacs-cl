@@ -362,7 +362,7 @@
   (system-name))
 
 (defun MACHINE-TYPE ()
-  (subseq system-configuration 0 (position ?- system-configuration)))
+  (subseq system-configuration 0 (position 45 system-configuration)))
 
 (defun MACHINE-VERSION ()
   nil)

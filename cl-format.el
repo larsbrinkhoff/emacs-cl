@@ -88,7 +88,7 @@
 (defun printing-char-p (char)
   (and (not (ch= char 32)) (GRAPHIC-CHAR-P char)))
 
-(define-format-directive ?C (stream state atp colonp)
+(define-format-directive 67 (stream state atp colonp)	; ~C
   (when (printing-p state)
     (let ((char (next-arg state)))
       (cond
@@ -101,31 +101,31 @@
 	(t
 	 (WRITE-CHAR char stream))))))
 
-(define-format-directive ?% (stream state atp colonp &optional (n 1))
+(define-format-directive 37 (stream state atp colonp &optional (n 1))	; ~%
   (when (printing-p state)
     (dotimes (i n)
       (TERPRI stream))))
 
-(define-format-directive ?& (stream state atp colonp &optional (n 1))
+(define-format-directive 38 (stream state atp colonp &optional (n 1))	; ~&
   (when (printing-p state)
     (when (plusp n)
       (FRESH-LINE stream)
       (dotimes (i (1- n))
 	(TERPRI stream)))))
 
-(define-format-directive ?| (stream state atp colonp &optional (n 1))
+(define-format-directive 124 (stream state atp colonp &optional (n 1))	; ~|
   (when (printing-p state)
     (dotimes (i n)
       (WRITE-CHAR (ch 12) stream))))
 
-(define-format-directive ?~ (stream state atp colonp &optional (n 1))
+(define-format-directive 126 (stream state atp colonp &optional (n 1))	; ~~
   (when (printing-p state)
     (dotimes (i n)
       (WRITE-CHAR (ch 126) stream))))
 
 ;;; Radix Control ----------------------------------------
 
-(define-format-directive ?R (stream state atp colonp &optional radix mincol
+(define-format-directive 82 (stream state atp colonp &optional radix mincol	; ~R
 				    padchar commachar comma-interval)
   (when (printing-p state)
     (let ((num (next-arg state)))
@@ -139,22 +139,22 @@
   (WRITE num (kw STREAM) stream (kw ESCAPE) nil (kw RADIX) nil
 	     (kw BASE) radix (kw READABLY) nil))
       
-(define-format-directive ?D (stream state atp colonp &optional mincol padchar
+(define-format-directive 68 (stream state atp colonp &optional mincol padchar	; ~D
 				    commachar comma-interval)
   (when (printing-p state)
     (print-in-radix (next-arg state) stream atp 10)))
 
-(define-format-directive ?B (stream state atp colonp &optional mincol padchar
+(define-format-directive 66 (stream state atp colonp &optional mincol padchar	; ~B
 				    commachar comma-interval)
   (when (printing-p state)
     (print-in-radix (next-arg state) stream atp 2)))
 
-(define-format-directive ?O (stream state atp colonp &optional mincol padchar
+(define-format-directive 79 (stream state atp colonp &optional mincol padchar	; ~O
 				    commachar comma-interval)
   (when (printing-p state)
     (print-in-radix (next-arg state) stream atp 8)))
 
-(define-format-directive ?X (stream state atp colonp &optional mincol padchar
+(define-format-directive 88 (stream state atp colonp &optional mincol padchar	; ~X
 				    commachar comma-interval)
   (when (printing-p state)
     (print-in-radix (next-arg state) stream atp 16)))
@@ -168,17 +168,17 @@
 
 ;;; Printer Operations ----------------------------------------
 
-(define-format-directive ?A (stream state atp colonp
+(define-format-directive 65 (stream state atp colonp	; ~A
 			     &optional mincol colinc minpad padchar)
   (when (printing-p state)
     (PRINC (next-arg state) stream)))
 
-(define-format-directive ?S (stream state atp colonp
+(define-format-directive 83 (stream state atp colonp	; ~S
 			     &optional mincol colinc minpad padchar)
   (when (printing-p state)
     (PRIN1 (next-arg state) stream)))
 
-(define-format-directive ?W (stream state atp colonp)
+(define-format-directive 87 (stream state atp colonp)	; ~W
   (when (printing-p state)
     (let ((*PRINT-PRETTY* colonp)
 	  (*PRINT-LEVEL* (if atp nil *PRINT-LEVEL*))
@@ -187,7 +187,7 @@
 
 ;;; Pretty Printer Operations ----------------------------------------
 
-(define-format-directive ?_ (stream state atp colonp &rest args)
+(define-format-directive 95 (stream state atp colonp &rest args)	; ~_
   (when (printing-p state)
     (PPRINT-NEWLINE (if atp
 			(if colonp (kw MANDATORY) (kw MISER))
@@ -196,10 +196,10 @@
 
 ;;; TODO: ~<
 
-(define-format-directive ?I (stream state atp colonp &optional (n 0))
+(define-format-directive 73 (stream state atp colonp &optional (n 0))	; ~I
   (PPRINT-INDENT (if colonp (kw CURRENT) (kw BLOCK)) n))
 
-(define-format-directive ?/ (stream state atp colonp &rest args)
+(define-format-directive 47 (stream state atp colonp &rest args)	; ~/
   (when (printing-p state)
     (let ((name "")
 	  (package *cl-user-package*)
@@ -223,7 +223,7 @@
 
 ;;; Control-Flow Operations ----------------------------------------
 
-(define-format-directive ?* (stream state atp colonp &optional n)
+(define-format-directive 42 (stream state atp colonp &optional n)	; ~*
   (when (printing-p state)
     (cond
       (atp	(setf (arg-index state) (or n 0)))
@@ -255,7 +255,7 @@
 (define-format-directive 93 (stream state atp colonp)		      ; ~]
   (pop-nesting state :conditional))
 
-(define-format-directive ?{ (stream state atp colonp &optional n)
+(define-format-directive 123 (stream state atp colonp &optional n)	; ~{
   (if atp
       (progn
 	(push-nesting state :iteration :at)
@@ -273,7 +273,7 @@
     (setf (arg-index state) 0)
     (setf (iteration-kind state) :colon)))
 
-(define-format-directive ?} (stream state atp colonp &optional n)
+(define-format-directive 125 (stream state atp colonp &optional n)	; ~}
   (cond
     ((eq (iteration-kind state) :colon)
      (pop-nesting state :iteration)
@@ -290,7 +290,7 @@
     (t
      (setf (format-index state) (iteration-index state)))))
 
-(define-format-directive ?? (stream state atp colonp)
+(define-format-directive 63 (stream state atp colonp)	; ~?
   (when (printing-p state)
     (let* ((format (next-arg state))
 	   (args (next-arg state)))
@@ -302,7 +302,7 @@
 
 ;;; TODO: ~)
 
-(define-format-directive ?P (stream state atp colonp)
+(define-format-directive 80 (stream state atp colonp)	; ~P
   (when (printing-p state)
     (when colonp
       (decf (arg-index state)))
@@ -318,7 +318,7 @@
   (incf (conditional-index state))
   (check-condition state colonp))
 
-(define-format-directive ?^ (stream state atp colonp &optional n1 n2 n3)
+(define-format-directive 94 (stream state atp colonp &optional n1 n2 n3)	; ~^
   (when (and (printing-p state)
 	     (cond
 	       ((null n1)	(>= (arg-index state)
@@ -374,8 +374,8 @@
 		 (let ((colonp nil) (atp nil))
 		   (while (FIND (setq char (next-char state)) ":@")
 		     (cond
-		       ((ch= char ?:)	(setq colonp t))
-		       ((ch= char ?@)	(setq atp t))))
+		       ((ch= char 58)	(setq colonp t))
+		       ((ch= char 64)	(setq atp t))))
 		   (let ((fn (gethash (char-upcase-code char)
 				      *format-directives*)))
 		     (apply fn stream state atp colonp nil))))
