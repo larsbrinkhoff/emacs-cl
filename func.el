@@ -164,6 +164,15 @@
 			 (setq ,var ,default))))
 		   vars defaults)))))
 
+(defun translate-lambda-list (lambda-list env)
+  (mapcar (lambda (x)
+	    (let ((cons (assq x '((&OPTIONAL . &optional)
+				  (&REST . &rest)))))
+	      (if cons
+		  (cdr cons)
+		  x)))
+	  lambda-list))
+
 (defun expand-lambda (lambda-list body &optional env)
   (dolist (k '(&optional &rest &key &aux &allow-other-keys))
     (when (memq k lambda-list)
@@ -171,7 +180,7 @@
   (if (and (every 'symbolp lambda-list)
 	   (notany (lambda (x) (member x '(&KEY))) lambda-list))
       ;; Easy case: no defaults, suppliedp, or keyword arguments.
-      `(lambda ,(simplify-lambda-list lambda-list env) ,@body)
+      `(lambda ,(translate-lambda-list lambda-list env) ,@body)
       ;; Difficult case:
       `(lambda ,(simplify-lambda-list lambda-list env)
 	(let* ,(lambda-list-bindings lambda-list)
