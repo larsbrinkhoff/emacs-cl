@@ -131,10 +131,11 @@
 ;;; TODO: SETF SUBSEQ
 
 (defun* MAP (type fn &rest sequences)
-  (let ((i 0)
+  (let ((len (apply #'min (mapcar #'LENGTH sequences)))
+	(i 0)
 	(result nil))
     (loop
-      (when (some (lambda (seq) (eq i (LENGTH seq))) sequences)
+      (when (eq i len)
 	(return-from MAP
 	  (progn
 	    (setq result (nreverse result))
@@ -148,13 +149,13 @@
       (incf i))))
 
 (defun* MAP-INTO (result fn &rest sequences)
-  (let ((i 0))
+  (let ((len (apply #'min (mapcar #'LENGTH (cons result sequences))))
+	(i 0))
     (loop
-      (when (or (eq i (LENGTH result))
-		(some (lambda (seq) (eq i (LENGTH seq))) sequences))
+      (when (eq i len)
 	(return-from MAP-INTO result))
-      (setf (ELT result i) (APPLY fn (mapcar (lambda (seq) (ELT seq i))
-					     sequences)))
+      (setf (ELT result i)
+	    (APPLY fn (mapcar (lambda (seq) (ELT seq i)) sequences)))
       (incf i))))
 
 ;;; TODO: REDUCE
