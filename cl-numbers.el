@@ -8,27 +8,27 @@
 ;;; Various test cases for bignum addition.
 ; (defun bignum-test ()
 ;   (loop for (x y z) in
-; 	'((67108864		67108864		[bignum -134217728 0])
-; 	  (134217727		1			[bignum -134217728 0])
-; 	  (-134217728		-1			[bignum 134217727 -1])
-; 	  (-134217728		-134217728		[bignum 0 -1])
-; 	  ([bignum -1 0]	[bignum -1 0]		[bignum -2 1])
-; 	  ([bignum 0 -1]	[bignum 0 -1]		[bignum 0 -2])
-; 	  ([bignum 0 2]		[bignum 0 -1]		[bignum 0 1])
-; 	  ([bignum 0 -1]	[bignum 0 2]		[bignum 0 1])
-; 	  ([bignum 0 1]		[bignum 0 -2]		[bignum 0 -1])
-; 	  ([bignum 0 -2]	[bignum 0 1]		[bignum 0 -1])
-; 	  ([bignum 2 2]		[bignum -1 -3]		1)
-; 	  ([bignum 2 2]		[bignum -3 -3]		-1)
-; 	  ([bignum -54323701 6]	[bignum 16292363 17]	[bignum -38031338 23])
-; 	  ([bignum 119720045 12408]
-; 				[bignum 38283770 30621]
-; 						    [bignum -110431641 43029])
-; 	  ([bignum -134217728 2] -1			[bignum 134217727 2])
-; 	  ([bignum 0 100000000]	[bignum 0 100000000]	[bignum 0 -68435456 0])
-; 	  ([bignum -24181363 103035877]
-; 				[bignum -24181363 103035877]
-; 					       [bignum -48362726 -62363701 0]))
+; 	'((67108864		67108864		[BIGNUM -134217728 0])
+; 	  (134217727		1			[BIGNUM -134217728 0])
+; 	  (-134217728		-1			[BIGNUM 134217727 -1])
+; 	  (-134217728		-134217728		[BIGNUM 0 -1])
+; 	  ([BIGNUM -1 0]	[BIGNUM -1 0]		[BIGNUM -2 1])
+; 	  ([BIGNUM 0 -1]	[BIGNUM 0 -1]		[BIGNUM 0 -2])
+; 	  ([BIGNUM 0 2]		[BIGNUM 0 -1]		[BIGNUM 0 1])
+; 	  ([BIGNUM 0 -1]	[BIGNUM 0 2]		[BIGNUM 0 1])
+; 	  ([BIGNUM 0 1]		[BIGNUM 0 -2]		[BIGNUM 0 -1])
+; 	  ([BIGNUM 0 -2]	[BIGNUM 0 1]		[BIGNUM 0 -1])
+; 	  ([BIGNUM 2 2]		[BIGNUM -1 -3]		1)
+; 	  ([BIGNUM 2 2]		[BIGNUM -3 -3]		-1)
+; 	  ([BIGNUM -54323701 6]	[BIGNUM 16292363 17]	[BIGNUM -38031338 23])
+; 	  ([BIGNUM 119720045 12408]
+; 				[BIGNUM 38283770 30621]
+; 						    [BIGNUM -110431641 43029])
+; 	  ([BIGNUM -134217728 2] -1			[BIGNUM 134217727 2])
+; 	  ([BIGNUM 0 100000000]	[BIGNUM 0 100000000]	[BIGNUM 0 -68435456 0])
+; 	  ([BIGNUM -24181363 103035877]
+; 				[BIGNUM -24181363 103035877]
+; 					       [BIGNUM -48362726 -62363701 0]))
 ; 	do (unless (equal (cl:+ x y) z)
 ; 	     (princ (format "%s + %s /= %s\n" x y z)))))
 
@@ -43,10 +43,10 @@
     ((or (COMPLEXP num1) (COMPLEXP num2))
      (and (binary= (REALPART num1) (REALPART num2))
 	  (binary= (IMAGPART num1) (IMAGPART num2))))
-    ((or (cl::ratiop num1) (cl::ratiop num2))
+    ((or (ratiop num1) (ratiop num2))
      (and (binary= (NUMERATOR num1) (NUMERATOR num2))
 	  (binary= (DENOMINATOR num1) (DENOMINATOR num2))))
-    ((and (cl::bignump num1) (cl::bignump num2))
+    ((and (bignump num1) (bignump num2))
      (and (= (length num1) (length num2))
 	  (every #'eql num1 num2)))
     ((and (NUMBERP num1) (NUMBERP num2))
@@ -71,11 +71,11 @@
     ((and (or (integerp num1) (floatp num1))
 	  (or (integerp num2) (floatp num2)))
      (< num1 num2))
-    ((or (cl::ratiop num1) (cl::ratiop num2))
+    ((or (ratiop num1) (ratiop num2))
      ;; TODO
      (< (/ (FLOAT (NUMERATOR num1)) (FLOAT (DENOMINATOR num1)))
 	(/ (FLOAT (NUMERATOR num2)) (FLOAT (DENOMINATOR num2)))))
-    ((or (cl::bignump num1) (cl::bignump num2))
+    ((or (bignump num1) (bignump num2))
      (MINUSP (binary- num1 num2)))
     (t
      (error "type error: = %s %s" num1 num2))))
@@ -97,11 +97,11 @@
     ((and (or (integerp num1) (floatp num1))
 	  (or (integerp num2) (floatp num2)))
      (<= num1 num2))
-    ((or (cl::ratiop num1) (cl::ratiop num2))
+    ((or (ratiop num1) (ratiop num2))
      ;; TODO
      (<= (/ (FLOAT (NUMERATOR num1)) (FLOAT (DENOMINATOR num1)))
 	 (/ (FLOAT (NUMERATOR num2)) (FLOAT (DENOMINATOR num2)))))
-    ((or (cl::bignump num1) (cl::bignump num2))
+    ((or (bignump num1) (bignump num2))
      (let ((diff (binary- num1 num2)))
        (or (MINUSP diff) (ZEROP diff))))
     (t
@@ -127,9 +127,9 @@
   (cond
     ((or (integerp num) (floatp num))
      (minusp num))
-    ((cl::bignump num)
+    ((bignump num)
      (minusp (aref num (1- (length num)))))
-    ((cl::ratiop num)
+    ((ratiop num)
      (minusp (NUMERATOR num)))
     (t
      (error "type error"))))
@@ -138,9 +138,9 @@
   (cond
     ((or (integerp num) (floatp num))
      (plusp num))
-    ((cl::bignump num)
+    ((bignump num)
      (>= (aref num (1- (length num))) 0))
-    ((cl::ratiop num)
+    ((ratiop num)
      (plusp (NUMERATOR num)))
     (t
      (error "type error"))))
@@ -149,11 +149,11 @@
   (cond
     ((or (integerp num) (floatp num))
      (zerop num))
-    ((cl::ratiop num)
+    ((ratiop num)
      (zerop (NUMERATOR num)))
     ((COMPLEXP num)
      (and (ZEROP (REALPART num)) (ZEROP (IMAGPART num))))
-    ((cl::bignump num)
+    ((bignump num)
      nil)
     (t
      (error "type error"))))
@@ -162,7 +162,7 @@
   (cond
     ((and (integerp x) (integerp y))
      (if (and (eql x MOST-NEGATIVE-FIXNUM) (eql y -1))
-	 (VALUES (vector 'bignum MOST-NEGATIVE-FIXNUM 0) nil)
+	 (VALUES (vector 'BIGNUM MOST-NEGATIVE-FIXNUM 0) nil)
 	 (VALUES (/ x y) (not (zerop (% x y))))))
     ((and (INTEGERP x) (INTEGERP y))
      (let ((sign 1)
@@ -193,7 +193,7 @@
       ((or (floatp number) (floatp divisor))
        ;; TODO: floor can only output an Emacs Lisp integer.
        (setq quotient (floor (FLOAT number) (FLOAT divisor))))
-      ((or (cl::ratiop number) (cl::ratiop divisor))
+      ((or (ratiop number) (ratiop divisor))
        (MULTIPLE-VALUE-SETQ (quotient remainder)
 	 (integer-truncate
 	  (binary* (NUMERATOR number) (DENOMINATOR divisor))
@@ -217,7 +217,7 @@
       ((or (floatp number) (floatp divisor))
        ;; TODO: ceiling can only output an Emacs Lisp integer.
        (setq quotient (ceiling (FLOAT number) (FLOAT divisor))))
-      ((or (cl::ratiop number) (cl::ratiop divisor))
+      ((or (ratiop number) (ratiop divisor))
        (MULTIPLE-VALUE-SETQ (quotient remainder)
 	 (integer-truncate
 	  (binary* (NUMERATOR number) (DENOMINATOR divisor))
@@ -241,7 +241,7 @@
       ((or (floatp number) (floatp divisor))
        ;; TODO: truncate can only output an Emacs Lisp integer.
        (setq quotient (truncate (FLOAT number) (FLOAT divisor))))
-      ((or (cl::ratiop number) (cl::ratiop divisor))
+      ((or (ratiop number) (ratiop divisor))
        (setq quotient (integer-truncate
 		       (binary* (NUMERATOR number) (DENOMINATOR divisor))
 		       (binary* (DENOMINATOR number) (NUMERATOR divisor)))))
@@ -311,8 +311,8 @@
 	      (< y multiplication-limit)
 	      (> y (- multiplication-limit)))
 	 (* x y)
-	 (bignum* (vector 'bignum x (if (minusp x) -1 0))
-		  (vector 'bignum y (if (minusp y) -1 0)))))
+	 (bignum* (vector 'BIGNUM x (if (minusp x) -1 0))
+		  (vector 'BIGNUM y (if (minusp y) -1 0)))))
     ((or (COMPLEXP x) (COMPLEXP y))
      (COMPLEX (binary- (binary* (REALPART x) (REALPART y))
 		       (binary* (IMAGPART x) (IMAGPART y)))
@@ -322,27 +322,27 @@
      (* x (FLOAT y)))
     ((floatp y)
      (* (FLOAT x) y))
-    ((or (cl::ratiop x) (cl::ratiop y))
+    ((or (ratiop x) (ratiop y))
      (if (ZEROP y)
 	 (error)
-	 (cl::ratio (binary* (NUMERATOR x) (NUMERATOR y))
-		    (binary* (DENOMINATOR x) (DENOMINATOR y)))))
+	 (make-ratio (binary* (NUMERATOR x) (NUMERATOR y))
+		     (binary* (DENOMINATOR x) (DENOMINATOR y)))))
     ((or (INTEGERP x) (INTEGERP y))
      (when (integerp x)
-       (setq x (vector 'bignum x (if (minusp x) -1 0))))
+       (setq x (vector 'BIGNUM x (if (minusp x) -1 0))))
      (when (integerp y)
-       (setq y (vector 'bignum y (if (minusp y) -1 0))))
+       (setq y (vector 'BIGNUM y (if (minusp y) -1 0))))
      (bignum* x y))
     (t
      (error "type error"))))
 
 (defun bignum* (x y)
   (cond
-    ((equal x [bignum 1 0])
+    ((equal x [BIGNUM 1 0])
      (canonical-bignum y))
-    ((equal x [bignum -1 -1])
+    ((equal x [BIGNUM -1 -1])
      (cl:- (canonical-bignum y)))
-    ((equal y [bignum 10 0])
+    ((equal y [BIGNUM 10 0])
      (setq x (canonical-bignum x))
 ;    (print (format "(bignum* %s %s)" x y))
      (let* ((2x (binary+ x x))
@@ -375,9 +375,9 @@
      (let ((sum (+ x y)))
        (cond
 	 ((and (>= x 0) (>= y 0) (minusp sum))
-	  (vector 'bignum sum 0))
+	  (vector 'BIGNUM sum 0))
 	 ((and (minusp x) (minusp y) (>= sum 0))
-	  (vector 'bignum sum -1))
+	  (vector 'BIGNUM sum -1))
 	 (t
 	  sum))))
     ((or (COMPLEXP x) (COMPLEXP y))
@@ -387,11 +387,11 @@
      (+ x (FLOAT y)))
     ((floatp y)
      (+ (FLOAT x) y))
-    ((or (cl::ratiop x) (cl::ratiop y))
-     (cl::ratio (binary+ (binary* (NUMERATOR x) (DENOMINATOR y))
-			 (binary* (DENOMINATOR x) (NUMERATOR y)))
-		(binary* (DENOMINATOR x) (DENOMINATOR y))))
-    ((or (cl::bignump x) (cl::bignump y))
+    ((or (ratiop x) (ratiop y))
+     (make-ratio (binary+ (binary* (NUMERATOR x) (DENOMINATOR y))
+			  (binary* (DENOMINATOR x) (NUMERATOR y)))
+		 (binary* (DENOMINATOR x) (DENOMINATOR y))))
+    ((or (bignump x) (bignump y))
 ;    (print (format "%s %s" x y))
      (cond
        ((integerp x)	(bignum+fixnum y x))
@@ -411,10 +411,10 @@
     (cond
       ;; negative + positive -> positive: carry
       ((and (minusp x0) (>= y 0) (>= sum 0))
-       (bignum+bignum new [bignum 0 1]))
+       (bignum+bignum new [BIGNUM 0 1]))
       ;; positive + negative -> negative: borrow
       ((and (>= x0 0) (minusp y) (minusp sum))
-       (bignum+bignum new [bignum 0 -1]))
+       (bignum+bignum new [BIGNUM 0 -1]))
       ;; positive + positive -> negative: no overflow
       ;; negative + negative -> positive: no overflow
       (t
@@ -430,13 +430,13 @@
 
 (defun canonical-bignum (object)
   (cond
-    ((cl::bignump object)
+    ((bignump object)
      (canonical-bignum (bignum-list object)))
     ((listp object)
      (setq object (truncate-sign-extension object))
      (if (eql (length object) 1)
 	 (first object)
-	 (let ((bignum (make-vector (1+ (length object)) 'bignum))
+	 (let ((bignum (make-vector (1+ (length object)) 'BIGNUM))
 	       (i 0))
 	   (dolist (n object)
 	     (aset bignum (incf i) n))
@@ -495,13 +495,13 @@
       (cond
 	((or (integerp number) (floatp number))
 	 (if (eql number MOST-NEGATIVE-FIXNUM)
-	     (vector 'bignum number 0)
+	     (vector 'BIGNUM number 0)
 	     (- number)))
-	((cl::ratiop number)
-	 (vector 'ratio (cl:- (NUMERATOR number)) (DENOMINATOR number)))
+	((ratiop number)
+	 (vector 'RATIO (cl:- (NUMERATOR number)) (DENOMINATOR number)))
 	((COMPLEXP number)
-	 (vector 'complex (cl:- (REALPART number)) (cl:- (IMAGPART number))))
-	((cl::bignump number)
+	 (vector 'COMPLEX (cl:- (REALPART number)) (cl:- (IMAGPART number))))
+	((bignump number)
 	 (bignum+fixnum (LOGNOT number) 1))
 	(t
 	 (error)))
@@ -515,13 +515,13 @@
   (if (null numbers)
       (cond
 	((integerp number)
-	 (vector 'ratio 1 number))
+	 (vector 'RATIO 1 number))
 	((floatp number)
 	 (/ 1.0 number))
-	((cl::bignump number)
-	 (vector 'ratio 1 number))
-	((cl::ratiop number)
-	 (cl::ratio (DENOMINATOR number) (NUMERATOR number)))
+	((bignump number)
+	 (vector 'RATIO 1 number))
+	((ratiop number)
+	 (make-ratio (DENOMINATOR number) (NUMERATOR number)))
 	((COMPLEXP number)
 	 (let* ((r (REALPART number))
 		(i (IMAGPART number))
@@ -535,7 +535,7 @@
 (defun binary/ (x y)
   (cond
     ((and (INTEGERP x) (INTEGERP y))
-     (cl::ratio x y))
+     (make-ratio x y))
     ((or (COMPLEXP x) (COMPLEXP y))
      (let* ((rx (REALPART x))
 	    (ry (REALPART y))
@@ -549,8 +549,8 @@
     ((floatp y)
      (/ (FLOAT x) y))
     ((or (RATIONALP x) (RATIONALP y))
-     (cl::ratio (binary* (NUMERATOR x) (DENOMINATOR y))
-		(binary* (DENOMINATOR x) (NUMERATOR y))))
+     (make-ratio (binary* (NUMERATOR x) (DENOMINATOR y))
+		 (binary* (DENOMINATOR x) (NUMERATOR y))))
     (t
      (error "type error"))))
   
@@ -564,17 +564,17 @@
   (cond
     ((integerp number)
      (if (eql number MOST-NEGATIVE-FIXNUM)
-	 (vector 'bignum number 0)
+	 (vector 'BIGNUM number 0)
 	 (abs number)))
     ((floatp number)
      (abs number))
-    ((cl::ratiop number)
-     (vector 'ratio (ABS (NUMERATOR number)) (DENOMINATOR number)))
+    ((ratiop number)
+     (vector 'RATIO (ABS (NUMERATOR number)) (DENOMINATOR number)))
     ((COMPLEXP number)
      (let ((r (FLOAT (REALPART number)))
 	   (i (FLOAT (IMAGPART number))))
        (sqrt (+ (* r r) (* i i)))))
-    ((cl::bignump number)
+    ((bignump number)
      (if (MINUSP number)
 	 (cl:- number)
 	 number))
@@ -613,7 +613,7 @@
     ((ZEROP power)
      1)
     ((MINUSP power)
-     (cl::ratio 1 (exact-expt base (cl:- power))))
+     (make-ratio 1 (exact-expt base (cl:- power))))
     (t
      (let ((result 1))
        (while (PLUSP power)
@@ -721,7 +721,7 @@
      (random limit))
     ((floatp limit)
      (/ (* limit (random MOST-POSITIVE-FIXNUM)) MOST-POSITIVE-FIXNUM))
-    ((cl::bignump limit)
+    ((bignump limit)
      ;; TODO
      0)))
 
@@ -733,9 +733,9 @@
   (or (numberp object)
       (and (vectorp object)
 	   (let ((type (aref object 0)))
-	     (or (eq type 'bignum)
-		 (eq type 'ratio)
-		 (eq type 'complex))))))
+	     (or (eq type 'BIGNUM)
+		 (eq type 'RATIO)
+		 (eq type 'COMPLEX))))))
 
 ;;; TODO: CIS
 
@@ -747,13 +747,13 @@
      (setq realpart (float realpart))))
   (if (eq imagpart 0)
       realpart
-      (vector 'complex realpart imagpart)))
+      (vector 'COMPLEX realpart imagpart)))
 
 (defun COMPLEXP (object)
-  (vector-and-typep object 'complex))
+  (vector-and-typep object 'COMPLEX))
 
 (defun CONJUGAGE (num)
-  (COMPLEX (REALPART num) (cl:- (IMAGPART num))))
+  (vector 'COMPLEX (REALPART num) (cl:- (IMAGPART num))))
 
 (defun PHASE (num)
   (ATAN (IMAGPART num) (REALPART num)))
@@ -774,11 +774,11 @@
 (defun REALP (num)
   (or (RATIONALP num) (FLOATP num)))
 
-(defun cl::ratio (num den)
+(defun make-ratio (num den)
   (unless (and (INTEGERP num) (INTEGERP den))
     (error "type error"))
   (if (and (eq num MOST-NEGATIVE-FIXNUM) (eq den -1))
-      (vector 'bignum MOST-NEGATIVE-FIXNUM 0)
+      (vector 'BIGNUM MOST-NEGATIVE-FIXNUM 0)
       (let* ((gcd (GCD num den))
 	     (num (integer-truncate num gcd))
 	     (den (integer-truncate den gcd)))
@@ -787,20 +787,20 @@
 	   ((eq den 1)
 	    num)
 	   ((MINUSP den)
-	    (vector 'ratio (cl:- num) (cl:- den)))
+	    (vector 'RATIO (cl:- num) (cl:- den)))
 	   (t
-	    (vector 'ratio num den)))))))
+	    (vector 'RATIO num den)))))))
 
-(defun cl::ratiop (num)
-  (vector-and-typep num 'ratio))
+(defun ratiop (num)
+  (vector-and-typep num 'RATIO))
 
 (defun NUMERATOR (num)
-  (if (cl::ratiop num)
+  (if (ratiop num)
       (aref num 1)
       num))
 
 (defun DENOMINATOR (num)
-  (if (cl::ratiop num)
+  (if (ratiop num)
       (aref num 2)
       1))
 
@@ -809,7 +809,7 @@
 ;;; TODO: rationalize
 
 (defun RATIONALP (num)
-  (or (INTEGERP num) (cl::ratiop num)))
+  (or (INTEGERP num) (ratiop num)))
 
 (defun ASH (num shift)
   (cond
@@ -819,7 +819,7 @@
      (cond
        ((integerp num)
 	(ash num shift))
-       ((cl::bignump num)
+       ((bignump num)
 	(let ((new (copy-sequence num)))
 	  (while (MINUSP shift)
 	    (shift-right new)
@@ -852,7 +852,7 @@
   (cond
     ((eq num 0)		0)
     ((integerp num)	(1+ (logb num)))
-    ((cl::bignump num)	(let* ((len (length num))
+    ((bignump num)	(let* ((len (length num))
 			       (last (aref num (1- len))))
 			  (+ (* 28 (- len 2))
 			     (if (zerop last)
@@ -860,11 +860,11 @@
 				 (1+ (logb last))))))
     (t			(error "type error"))))
 
-(defun cl::bignump (num)
-  (vector-and-typep num 'bignum))
+(defun bignump (num)
+  (vector-and-typep num 'BIGNUM))
 
 (defun INTEGERP (num)
-  (or (integerp num) (cl::bignump num)))
+  (or (integerp num) (bignump num)))
 
 (defun* PARSE-INTEGER (string &key (start 0) (end (length string))
 			      (radix 10) junk-allowed)
@@ -948,9 +948,9 @@
   (cond
     ((integerp num)
      (lognot num))
-    ((cl::bignump num)
+    ((bignump num)
      ;; TODO: may need one more element in result.
-     (let ((new (make-vector (length num) 'bignum)))
+     (let ((new (make-vector (length num) 'BIGNUM)))
        (dotimes (i (1- (length num)))
 	 (aset new (1+ i) (lognot (aref num (1+ i)))))
        new))
@@ -964,19 +964,19 @@
   (cond
     ((and (integerp x) (integerp y))
      (logand x y))
-    ((and (cl::bignump x) (integerp y))
+    ((and (bignump x) (integerp y))
      (if (minusp y)
 	 (let ((new (copy-sequence x)))
 	   (aset new 1 (logand (aref x 1) y))
 	   new)
 	 (logand (aref x 1) y)))
-    ((and (cl::bignump y) (integerp x))
+    ((and (bignump y) (integerp x))
      (if (minusp x)
 	 (let ((new (copy-sequence y)))
 	   (aset new 1 (logand (aref y 1) x))
 	   new)
 	 (logand (aref y 1) x)))
-    ((and (cl::bignump x) (cl::bignump y))
+    ((and (bignump x) (bignump y))
      0)))
 
 (defun LOGIOR (&rest numbers)
@@ -986,19 +986,19 @@
   (cond
     ((and (integerp x) (integerp y))
      (logior x y))
-    ((and (cl::bignump x) (integerp y))
+    ((and (bignump x) (integerp y))
      (if (minusp y)
 	 (logior (aref x 1) y)
 	 (let ((new (copy-sequence x)))
 	   (aset new 1 (logior (aref x 1) y))
 	   new)))
-    ((and (cl::bignump y) (integerp x))
+    ((and (bignump y) (integerp x))
      (if (minusp x)
 	 (logior (aref y 1) x)
 	 (let ((new (copy-sequence y)))
 	   (aset new 1 (logior (aref y 1) x))
 	   new)))
-    ((and (cl::bignump x) (cl::bignump y))
+    ((and (bignump x) (bignump y))
      0)))
 
 (defun LOGNAND (x y)
@@ -1029,21 +1029,21 @@
   (cond
     ((and (integerp x) (integerp y))
      (logxor x y))
-    ((and (cl::bignump x) (integerp y))
+    ((and (bignump x) (integerp y))
      (let ((new (copy-sequence x)))
        (aset new 1 (logxor (aref x 1) y))
        (when (minusp y)
 	 (dotimes (i (- (length x) 2))
 	   (aset new (+ i 2) (lognot (aref new (+ i 2))))))
        new))
-    ((and (cl::bignump y) (integerp x))
+    ((and (bignump y) (integerp x))
      (let ((new (copy-sequence y)))
        (aset new 1 (logior (aref y 1) x))
        (when (minusp x)
 	 (dotimes (i (- (length y) 2))
 	   (aset new (+ i 2) (lognot (aref new (+ i 2))))))
        new))
-    ((and (cl::bignump x) (cl::bignump y))
+    ((and (bignump x) (bignump y))
      0)))
 
 (defun LOGBITP (index integer)
@@ -1056,7 +1056,7 @@
      (if (>= index 28)
 	 (minusp integer)
 	 (not (zerop (logand integer (ash 1 index))))))
-    ((cl::bignump integer)
+    ((bignump integer)
      (if (>= index (* 28 (1- (length integer))))
 	 (MINUSP integer)
 	 (let ((i (1+ (/ index 28)))
@@ -1206,9 +1206,9 @@
      (float num))
     ((floatp num)
      num)
-    ((cl::ratiop num)
+    ((ratiop num)
      (/ (FLOAT (NUMERATOR num)) (FLOAT (DENOMINATOR num))))
-    ((cl::bignump num)
+    ((bignump num)
      (bignum-float num))
     (t
      (error "type error"))))

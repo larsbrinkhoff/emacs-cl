@@ -275,10 +275,10 @@
       (cond
 	((and (CHARACTERP x) (CHARACTERP y))
 	 (eq (CHAR-CODE x) (CHAR-CODE y)))
-	((and (cl::bignump x) (cl::bignump y))
+	((and (bignump x) (bignump y))
 	 (and (eq (length x) (length y))
 	      (every #'eq x y)))
-	((and (cl::ratiop x) (cl::ratiop y))
+	((and (ratiop x) (ratiop y))
 	 (and (EQL (NUMERATOR x) (NUMERATOR y))
 	      (EQL (DENOMINATOR x) (DENOMINATOR y))))
 	((and (COMPLEXP x) (COMPLEXP y))

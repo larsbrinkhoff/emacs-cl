@@ -16,7 +16,7 @@
 	;; Should really be an uninterned keyword.
 	(keyword "reallyunlikelysymbolname")
 	;; This guarantees a unique character object.
-	(vector 'character 0)))
+	(vector 'CHARACTER 0)))
 
 (defvar *type-val* (make-hash-table :test 'equal))
 
@@ -96,7 +96,7 @@
     ((eq y '*) nil)
     ((consp x)
      (if (consp y)
-	 (if (and (cl::ratiop x) (cl::ratiop y))
+	 (if (and (ratiop x) (ratiop y))
 	     (> (first x) (first y))
 	     (>= (first x) (first y)))
 	 (> (first x) y)))

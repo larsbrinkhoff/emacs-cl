@@ -28,16 +28,18 @@
 	 (high-exclusive (consp high))
 	 (high (if high-exclusive (car high) high)))
     (and (cond
-	   ((eq low '*) t)
+	   ((eq low star) t)
 	   (low-exclusive (cl:< low num))
 	   (t (cl:<= low num)))
 	 (cond
-	   ((eq high '*) t)
+	   ((eq high star) t)
 	   (high-exclusive (cl:< num high))
 	   (t (cl:<= num high))))))
 
+(defvar star '*)
+
 (defmacro star-or (type &rest forms)
-  `(or (eq ,type '*) ,@forms))
+  `(or (eq ,type star) ,@forms))
 
 
 ;;; Definitions for all type specifiers recognized by TYPEP follows.
@@ -61,12 +63,12 @@
   (TYPEP object 'STRING env))
 
 (define-typep (object BIGNUM env)
-  (cl::bignump object))
+  (bignump object))
 
 (define-typep (object BIT env)
   (or (eq object 0) (eq object 1)))
 
-(define-typep (object (BIT-VECTOR &optional (size '*)) env)
+(define-typep (object (BIT-VECTOR &optional (size star)) env)
   (and (BIT-VECTOR-P object)
        (star-or size (eql size (length object)))))
 
@@ -85,7 +87,7 @@
 (define-typep (object COMPILED-FUNCTION env)
   (COMPILED-FUNCTION-P object))
 
-(define-typep (object (COMPLEX &optional (type '*)) env)
+(define-typep (object (COMPLEX &optional (type star)) env)
   (and (COMPLEXP object)
        (star-or type
 		(unless (SUBTYPEP type 'real)
@@ -94,7 +96,7 @@
 ;;; concatenated-stream (atomic only)
 ;;; condition (atomic only)
 
-(define-typep (object (CONS &optional (car-type '*) (cdr-type '*)) env)
+(define-typep (object (CONS &optional (car-type star) (cdr-type star)) env)
   (and (consp object)
        (star-or car-type (TYPEP (car object) car-type env))
        (star-or cdr-type (TYPEP (car object) cdr-type env))))
@@ -102,7 +104,7 @@
 ;;; control-error (atomic only)
 ;;; division-by-zero (atomic only)
 
-(define-typep (object (DOUBLE-FLOAT &optional (low '*) (high '*)) env)
+(define-typep (object (DOUBLE-FLOAT &optional (low star) (high star)) env)
   (TYPEP object `(SINGLE-FLOAT ,low ,high)))
 
 ;;; echo-stream (atomic only)
@@ -122,7 +124,7 @@
 (define-typep (object FIXNUM env)
   (integerp object))
 
-(define-typep (object (FLOAT &optional (low '*) (high '*)) env)
+(define-typep (object (FLOAT &optional (low star) (high star)) env)
   (TYPEP object `(SINGLE-FLOAT ,low ,high)))
 
 ;;; floating-point-inexact (atomic only)
@@ -139,7 +141,7 @@
 ;;; generic-function (atomic only)
 ;;; hash-table (atomic only)
 
-(define-typep (object (INTEGER &optional (low '*) (high '*)) env)
+(define-typep (object (INTEGER &optional (low star) (high star)) env)
   (and (INTEGERP object) (in-range object low high)))
 
 (define-typep (object INTERPRETED-FUNCTION env)
@@ -153,7 +155,7 @@
 
 ;;; logical-pathname (atomic only)
 
-(define-typep (object (LONG-FLOAT &optional (low '*) (high '*)) env)
+(define-typep (object (LONG-FLOAT &optional (low star) (high star)) env)
   (TYPEP object `(SINGLE-FLOAT ,low ,high)))
 
 (define-typep (object (MEMBER &rest objects) env :compound-only)
@@ -191,9 +193,9 @@
 ;;; random-state (atomic only)
 
 (define-typep (object RATIO env)
-  (cl::ratiop object))
+  (ratiop object))
 
-(define-typep (object (RATIONAL &optional (low '*) (high '*)) env)
+(define-typep (object (RATIONAL &optional (low star) (high star)) env)
   (and (RATIONALP object) (in-range object low high)))
 
 ;;; reader-error (atomic only)
@@ -202,7 +204,7 @@
 ; (define-typep (object READTABLE env)
 ;  (READTABLEP object))
 
-(define-typep (object (REAL &optional (low '*) (high '*)) env)
+(define-typep (object (REAL &optional (low star) (high star)) env)
   (and (REALP object) (in-range object low high)))
 
 ;;; restart (atomic only)
@@ -215,7 +217,7 @@
 
 ;;; serious-condition (atomic only)
 
-(define-typep (object (SHORT-FLOAT &optional (low '*) (high '*)) env)
+(define-typep (object (SHORT-FLOAT &optional (low star) (high star)) env)
   (TYPEP object `(SINGLE-FLOAT ,low ,high)))
 
 (define-typep (object (SIGNED-BYTE &optional n) env)
@@ -226,20 +228,27 @@
       (INTEGERP object)))
 
 ;;; simple-array
-;;; simple-base-string
-;;; simple-bit-vector
-;;; simple-condition (atomic only)
-;;; simple-error (atomic only)
-;;; simple-string
-;;; simple-type-error (atomic only)
-;;; simple-vector
-;;; simple-warning (atomic only)
 
-(define-typep (object (SINGLE-FLOAT &optional (low '*) (high '*)) env)
+(define-typep (object (SIMPLE-BASE-STRING &optional (size star)) env)
+  (TYPEP object `(SIMPLE-STRING ,size)))
+
+(define-typep (object (SIMPLE-BIT-VECTOR &optional (size star)) env)
+  (and (bool-vector-p object)
+       (star-or size (eq size (LENGTH object)))))
+
+(define-typep (object (SIMPLE-STRING &optional (size star)) env)
+  (and (stringp object)
+       (star-or size (eq size (LENGTH object)))))
+
+(define-typep (object (SIMPLE-VECTOR &optional (size star)) env)
+  (and (SIMPLE-VECTOR-P object)
+       (star-or size (eq size (LENGTH object)))))
+
+(define-typep (object (SINGLE-FLOAT &optional (low star) (high star)) env)
   (and (floatp object) (in-range object low high)))
 
 (define-typep (object STANDARD-CHAR env)
-  (find object "\n abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$\"'(),_-./:;?+<=>#%&*@[\]{|}`^~"))
+  (find object "\n abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$\"'(),_-./:;?+<=>#%&*@[\\]{|}`^~"))
 
 ;;; standard-class (atomic only)
 ;;; standard-generic-function (atomic only)
@@ -249,8 +258,9 @@
 ;;; stream (atomic only)
 ;;; stream-error (atomic only)
 
-(define-typep (object (STRING &optional (size '*)) env)
-  (vector-and-typep object 'string))
+(define-typep (object (STRING &optional (size star)) env)
+  (and (STRINGP object)
+       (star-or size (eq size (LENGTH object)))))
 
 ;;; string-stream (atomic only)
 ;;; structure-class (atomic only)
@@ -272,7 +282,7 @@
 ;;; undefined-function (atomic only)
 
 (define-typep (object (UNSIGNED-BYTE &optional n) env)
-  (TYPEP object `(INTEGER 0 ,(if n (1- (expt 2 n)) '*) env)))
+  (TYPEP object `(INTEGER 0 ,(if n (1- (expt 2 n)) star) env)))
 
 (define-typep (object (VALUES &rest args) env :compound-only)
   (error "values not allowed"))
@@ -282,9 +292,6 @@
        ;; TODO: SUBTYPEP upgraded type ...
        (star-or T)
        (star-or (eql size (LENGTH object)))))
-
-;;; vector
-;;; warning (atomic only)
 
 
 

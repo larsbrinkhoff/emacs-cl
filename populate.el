@@ -130,6 +130,8 @@ WRITE-LINE WRITE-STRING ZEROP))
 	    (set to (symbol-value from)))
 	(fset to (symbol-function from))))
 
+    (setq star (INTERN "*" "EMACS-CL"))
+
     (dolist (sym '(** *** ++ +++ // ///))
       (setf (gethash (symbol-name sym) emacs-cl-table) sym)
       (setf (SYMBOL-PACKAGE sym) *emacs-cl-package*)

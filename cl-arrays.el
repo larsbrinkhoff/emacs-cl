@@ -23,7 +23,7 @@
 						      ((0 nil) nil) (1 t))))))
 	 (cond
 	   (simplep	bit-vector)
-	   (vectorp	(vector 'bit-vector fill-pointer bit-vector
+	   (vectorp	(vector 'BIT-VECTOR fill-pointer bit-vector
 				displaced-index-offset))
 	   (t		(vector 'bit-array dimensions bit-vector
 				displaced-index-offset)))))
@@ -35,7 +35,7 @@
 					  0)))))
 	 (cond
 	   (simplep	string)
-	   (vectorp	(vector 'string fill-pointer string
+	   (vectorp	(vector 'STRING fill-pointer string
 				displaced-index-offset))
 	   (t		(vector 'char-array dimensions string
 				displaced-index-offset)))))
@@ -44,10 +44,10 @@
 	 (incf size))
        (let ((array (or displaced-to (make-vector size initial-element))))
 	 (cond
-	   (simplep	(aset array 0 'simple-vector) array)
-	   (vectorp	(vector 'vector fill-pointer array
+	   (simplep	(aset array 0 'SIMPLE-VECTOR) array)
+	   (vectorp	(vector 'VECTOR fill-pointer array
 				displaced-index-offset))
-	   (t		(vector 'array dimensions array
+	   (t		(vector 'ARRAY dimensions array
 				displaced-index-offset))))))))
 
 (defun ADJUST-ARRAY (array new-dimensions
@@ -66,7 +66,7 @@
 (defun ADJUSTABLE-ARRAY-P (array)
   (and (vectorp array)
        (case (aref array 0)
-	 ((bit-vector bit-array string char-array vector array) T))))
+	 ((BIT-VECTOR bit-array STRING char-array VECTOR ARRAY) T))))
 
 (defun AREF (array &rest subscripts)
   (cond
@@ -74,11 +74,11 @@
      (BIT array (just-one subscripts)))
     ((STRINGP array)
      (CHAR array (just-one subscripts)))
-    ((vector-and-typep array 'simple-vector)
+    ((vector-and-typep array 'SIMPLE-VECTOR)
      (SVREF array (just-one subscripts)))
-    ((vector-and-typep array 'vector)
+    ((vector-and-typep array 'VECTOR)
      (aref (aref array 2) (just-one subscripts)))
-    ((vector-and-typep array 'array)
+    ((vector-and-typep array 'ARRAY)
      (aref (aref array 2) (apply #'ARRAY-ROW-MAJOR-INDEX subscripts)))
     (t
      (error))))
@@ -89,11 +89,11 @@
       (setf (BIT ,array (just-one ',subscripts))) ,obj)
      ((STRINGP ,array)
       (setf (CHAR ,array (just-one ',subscripts))) ,obj)
-     ((vector-and-typep ,array 'simple-vector)
+     ((vector-and-typep ,array 'SIMPLE-VECTOR)
       (setf (SVREF ,array ,(first subscripts)) ,obj))
-     ((vector-and-typep ,array 'vector)
+     ((vector-and-typep ,array 'VECTOR)
       (setf (aref (aref ,array 2) (just-one ',subscripts)) ,obj))
-     ((vector-and-typep ,array 'array)
+     ((vector-and-typep ,array 'ARRAY)
       (setf (aref (aref ,array 2) (ARRAY-ROW-MAJOR-INDEX ,@subscripts)) ,obj))
      (t
       (error))))
@@ -112,13 +112,13 @@
 
 (defun ARRAY-ELEMENT-TYPE (array)
   (cond
-    ((BIT-VECTOR-P array)		'bit)
-    ((STRINGP array)			'character)
+    ((BIT-VECTOR-P array)		'BIT)
+    ((STRINGP array)			'CHARACTER)
     ((ARRAYP array)
      (ecase (aref array 0)
-       (bit-array			'bit)
-       (char-array			'character)
-       ((simple-vector vector array)	t)))
+       (bit-array			'BIT)
+       (char-array			'CHARACTER)
+       ((simple-vector vector array)	T)))
     (t					(error))))
 
 (defun ARRAY-HAS-FILL-POINTER-P (array)
@@ -153,7 +153,7 @@
   (cond
     ((VECTORP array)
      (AREF array index))
-    ((vector-and-typep array 'array)
+    ((vector-and-typep array 'ARRAY)
      (aref (aref array 2) index))
     (t
      (error))))
@@ -164,7 +164,7 @@
      (setf (AREF ,array ,index) ,new))
     ((and (vectorp ,array)
           (case (aref ,array 0)
-	    ((array bit-array char-array))))
+	    ((ARRAY bit-array char-array))))
      (aset (aref ,array 2) ,index ,new))
     (t
      (error "type error"))))
@@ -176,9 +176,9 @@
     (t					T)))
 
 (defun SIMPLE-VECTOR-P (object)
-  (or (SIMPLE-BIT-VECTOR-P object)
-      (SIMPLE-STRING-P object)
-      (vector-and-typep object 'simple-vector)))
+  (or (stringp object)
+      (bool-vector-p object)
+      (vector-and-typep object 'SIMPLE-VECTOR)))
 
 (defun SVREF (vector index)
   (aref vector (1+ index)))
@@ -187,9 +187,8 @@
   `(setf (aref ,vector (1+ ,index)) ,obj))
 
 (defun VECTOR (&rest objects)
-  (let ((vector (make-vector (1+ (length objects)) nil))
+  (let ((vector (make-vector (1+ (length objects)) 'SIMPLE-VECTOR))
 	(i 0))
-    (aset vector 0 'simple-vector)
     (dolist (obj objects vector)
       (aset vector (incf i) obj))))
 
@@ -225,10 +224,11 @@
     (aset vector 1 (1+ ptr))))
 
 (defun VECTORP (object)
-  (or (SIMPLE-VECTOR-P object)
+  (or (stringp object)
+      (bool-vector-p object)
       (and (vectorp object)
 	   (case (aref object 0)
-	     ((string bit-vector vector) T)))))
+	     ((STRING BIT-VECTOR VECTOR SIMPLE-VECTOR) T)))))
 
 (defun BIT (array &rest subscripts)
   (cond
@@ -245,8 +245,8 @@
   (aref array index))
 
 (defun BIT-VECTOR-P (object)
-  (or (SIMPLE-BIT-VECTOR-P object)
-      (vector-and-typep object 'bit-vector)))
+  (or (bool-vector-p object)
+      (vector-and-typep object 'BIT-VECTOR)))
 
 (defun SIMPLE-BIT-VECTOR-P (object)
   (bool-vector-p object))

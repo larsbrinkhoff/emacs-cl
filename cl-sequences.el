@@ -11,12 +11,11 @@
      (copy-list sequence))
     ((SIMPLE-VECTOR-P sequence)
      (copy-sequence sequence))
-    ((vector-and-typep sequence 'vector)
+    ((vector-and-typep sequence 'VECTOR)
      (let ((storage (aref sequence 2))
-	   (vector
-	    (make-vector
-	     (1+ (or (FILL-POINTER sequence) (LENGTH sequence))) nil)))
-       (aset vector 0 'simple-vector)
+	   (vector (make-vector
+		    (1+ (or (FILL-POINTER sequence) (LENGTH sequence)))
+		    'SIMPLE-VECTOR)))
        (do ((i 1 (1+ i)))
 	   ((= i (length vector)))
 	 (aset vector i (aref storage (1- i))))
@@ -48,15 +47,15 @@
 
 (defun* make-sequence (type size &key initial-element)
   (cond
-    ((SUBTYPEP type 'list)
+    ((SUBTYPEP type 'LIST)
      (make-list size initial-element))
-    ((SUBTYPEP type 'bit-vector)
+    ((SUBTYPEP type 'BIT-VECTOR)
      (make-bool-vector size (ecase initial-element ((0 nil) nil) (1 t))))
-    ((SUBTYPEP type 'string)
+    ((SUBTYPEP type 'STRING)
      (make-string size (if initial-element (CHAR-CODE initial-element) 0)))
-    ((SUBTYPEP type 'vector)
+    ((SUBTYPEP type 'VECTOR)
      (let ((vector (make-vector (1+ size) initial-element)))
-       (aset vector 0 'simple-vector)
+       (aset vector 0 'SIMPLE-VECTOR)
        vector))
     (t
      (error))))
@@ -138,7 +137,7 @@
   (ecase type
     (VECTOR
      (let ((vector (make-vector (1+ (reduce #'+ (mapcar #'LENGTH sequences)))
-				'simple-vector))
+				'SIMPLE-VECTOR))
 	   (i 0))
        (dolist (seq sequences)
 	 (dosequence (x seq)

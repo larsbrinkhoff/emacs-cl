@@ -140,8 +140,8 @@
 ;;; STRING-GREATERP, STRING-NOT-GREATERP, STRING-NOT-LESSP
 
 (defun STRINGP (object)
-  (or (SIMPLE-STRING-P object)
-      (vector-and-typep object 'string)))
+  (or (stringp object)
+      (vector-and-typep object 'STRING)))
 
 (defun* MAKE-STRING (size &key initial-element element-type)
   (make-string size (if initial-element (CHAR-CODE initial-element) 0)))

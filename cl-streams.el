@@ -108,7 +108,7 @@
 (defun FILE-POSITION (stream)
   (STREAM-index stream))
 
-(defun* OPEN (filespec &key (direction :input) (element-type 'character)
+(defun* OPEN (filespec &key (direction :input) (element-type 'CHARACTER)
 		            if-exists if-does-not-exist
 			    (external-format :default))
   (MAKE-STREAM :filename (when (eq direction :output) filespec)

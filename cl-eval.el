@@ -323,10 +323,10 @@
 (defun enclose (lambda-exp &optional env)
   (unless env
     (setq env *global-environment*))
-  (vector 'interpreted-function lambda-exp env))
+  (vector 'INTERPRETED-FUNCTION lambda-exp env))
 
 (defun INTERPRETED-FUNCTION-P (object)
-  (vector-and-typep object 'interpreted-function))
+  (vector-and-typep object 'INTERPRETED-FUNCTION))
 
 
 
