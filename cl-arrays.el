@@ -118,7 +118,7 @@
        (aref array 1)))
 
 (defun array-in-bounds-p (array &rest subscripts)
-  (and (not (some #'cl:minusp subscripts))
+  (and (not (some #'MINUSP subscripts))
        (every #'cl:< subscripts (ARRAY-DIMENSIONS array))))
 
 (defun array-rank (array)

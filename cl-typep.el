@@ -141,7 +141,7 @@
 ;;; hash-table (atomic only)
 
 (define-typep (object (integer &optional (low '*) (high '*)) env)
-  (and (cl:integerp object) (in-range object low high)))
+  (and (INTEGERP object) (in-range object low high)))
 
 (define-typep (object keyword env)
   (keywordp object))

@@ -8,7 +8,7 @@
   (princ "\n"))
 
 ;;; Ad-hoc unexensible.
-(defun cl:print (object &optional stream-designator)
+(defun PRINT (object &optional stream-designator)
   (let ((stream (resolve-output-stream-designator stream-designator)))
     (cond
       ((or (integerp object)
@@ -21,7 +21,7 @@
        (princ (or (char-name object)
 		  (string (char-code object)))))
       ((cl::bignump object)
-       (when (cl:minusp object)
+       (when (MINUSP object)
 	 (princ "-")
 	 (setq object (cl:- object)))
        (princ "#x")
@@ -42,7 +42,7 @@
       ((VECTORP object)
        (princ "#(")
        (dotimes (i (LENGTH object))
-	 (cl:print (AREF object i))
+	 (PRINT (AREF object i))
 	 (when (< (1+ i) (LENGTH object))
 	   (princ " ")))
        (princ ")"))
