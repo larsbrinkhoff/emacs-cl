@@ -200,6 +200,14 @@
 			 (concat (STREAM-content stream)
 				 (list (CHAR-CODE char)))))))
 
+(defun make-buffer-output-stream (buffer)
+  (MAKE-STREAM :content buffer
+	       :index 0
+	       :read-fn (lambda (s) (error "read from output stream"))
+	       :write-fn
+	         (lambda (char stream)
+		   (insert (string char)))))
+
 (defmacro* WITH-INPUT-FROM-STRING ((var string &key index (start 0) end)
 				   &body body)
   `(WITH-OPEN-STREAM (,var (MAKE-STRING-INPUT-STREAM ,string ,start ,end))

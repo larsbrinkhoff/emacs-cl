@@ -1,8 +1,7 @@
 ;;;; -*- emacs-lisp -*-
-;;;;
-;;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;;
-;;;; This file implements operators in chapter 14, Conses.
+;;;
+;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; This file implements operators in chapter 14, Conses.
 
 (defun TERPRI ()
   (princ "\n"))
@@ -18,15 +17,30 @@
 	  (princ "identity")))
     (princ ">")))
 
+(defun write-char-to-*current-stream* (char)
+  (WRITE-CHAR char *current-stream*))
+
 ;;; Ad-hoc unexensible.
 (defun PRINT (object &optional stream-designator)
-  (let ((stream (resolve-output-stream-designator stream-designator)))
+  (let* ((stream (resolve-output-stream-designator stream-designator))
+	 (*current-stream* stream)
+	 (standard-output #'write-char-to-*current-stream*))
     (cond
       ((or (integerp object)
 	   (floatp object)
-	   (symbolp object)
 	   (stringp object))
        (princ object))
+      ((symbolp object)
+       (cond
+	 ((eq (SYMBOL-PACKAGE object) *PACKAGE*)
+	  (princ (SYMBOL-NAME object)))
+	 ((null (SYMBOL-PACKAGE object))
+	  (princ "#:")
+	  (princ (SYMBOL-NAME object)))
+	 (t
+	  (princ (PACKAGE-NAME (SYMBOL-PACKAGE object)))
+	  (princ ":")
+	  (princ (SYMBOL-NAME object)))))
       ((CHARACTERP object)
        (princ "#\\")
        (princ (or (CHAR-NAME object)
@@ -53,6 +67,13 @@
        (PRINT (REALPART object))
        (princ " ")
        (PRINT (IMAGPART object))
+       (princ ")"))
+      ((consp object)
+       (princ "(")
+       (PRINT (car object))
+       (dolist (obj (cdr object))
+	 (princ " ")
+	 (PRINT obj))
        (princ ")"))
       ((BIT-VECTOR-P object)
        (princ "#*")
