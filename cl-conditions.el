@@ -59,14 +59,14 @@
     (SIGNAL condition)
     (INVOKE-DEBUGGER condition)))
 
-(defmacro* restart-bind (bindings &body forms)
+(defmacro* restart-bind (bindings &body body)
   `(let ((*restart-alist*
 	  (append (list ,@(mapcar (lambda (binding)
 				    `(CONS ',(first binding)
 				           ,(second binding)))
 				  bindings))
 		  *restart-alist*)))
-     ,@forms))
+     ,@body))
 
 (defun* CERROR (format datum &rest args)
   (restart-bind ((CONTINUE (lambda () (return-from CERROR))))
@@ -116,10 +116,17 @@
     ((TYPEP condition 'SIMPLE-TYPE-ERROR) (SIMPLE-TYPE-ERROR-args condition))
     (t					  (error "this sucks"))))
 
-(defun WARN (datum &rest args)
+(defun* WARN (datum &rest args)
   (let ((condition (condition datum args 'SIMPLE-WARNING)))
-    (SIGNAL condition)
-    (PRINT condition *ERROR-OUTPUT*)
+    (restart-bind ((MUFFLE-WARNING (lambda () (return-from WARN))))
+      (SIGNAL condition))
+    (if (TYPEP condition 'SIMPLE-WARNING)
+	(progn
+	  (FORMAT *ERROR-OUTPUT* "~&WARNING: ")
+	  (apply #'FORMAT *ERROR-OUTPUT*
+		 (SIMPLE-CONDITION-FORMAT-CONTROL condition)
+		 (SIMPLE-CONDITION-FORMAT-ARGUMENTS condition)))
+	(PRINT condition *ERROR-OUTPUT*))
     nil))
 
 ;; TODO: inherit from SIMPLE-CONDITION
