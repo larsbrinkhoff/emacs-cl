@@ -34,6 +34,7 @@
   "cl-reader"
   "cl-printer"
   "cl-environment"
+  "cl-filenames"
   "cl-system"
   "cl-files"
   "interaction"
@@ -47,7 +48,7 @@
 
 (defun load-cl ()
   (interactive)
-  (let ((load-path (cons "~/src/emacs-cl" load-path))
+  (let ((load-path (cons default-directory load-path))
 	(debug-on-error t)
 	(byte-compile-warnings nil))
     (mapc #'load *cl-files*)
