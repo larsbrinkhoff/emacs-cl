@@ -5,6 +5,6 @@
 
 (IN-PACKAGE "EMACS-CL")
 
-(defvar *FEATURES* (list (kw "COMMON-LISP")
-; not yet	         (kw "ANSI-CL")
-			 (kw "EMACS-CL")))
+(defvar *FEATURES* (list (kw COMMON-LISP)
+; not yet	         (kw ANSI-CL)
+			 (kw EMACS-CL)))

@@ -165,7 +165,7 @@
 ;;; method-combination (atomic only)
 
 (define-typep (object (MOD n) env :compound-only)
-  (TYPEP object `(INTEGER 0 ,(1- (second type))) env))
+  (TYPEP object `(INTEGER 0 ,(1- n)) env))
 
 (define-typep (object nil env)
   nil)

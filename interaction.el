@@ -12,7 +12,10 @@
   (make-variable-buffer-local 'emacs-cl-prompt-marker)
   (switch-to-buffer (generate-new-buffer "*Emacs CL*"))
   (emacs-cl-mode)
-  (setq *STANDARD-OUTPUT* (make-buffer-output-stream (current-buffer)))
+  (setq *STANDARD-OUTPUT* (make-buffer-output-stream (current-buffer))
+	*ERROR-OUTPUT* *STANDARD-OUTPUT*)
+  (setq *STANDARD-INPUT* (make-read-char-exclusive-input-stream))
+  (setq *TERMINAL-IO* (MAKE-TWO-WAY-STREAM *STANDARD-INPUT* *STANDARD-OUTPUT*))
   (insert "Emacs CL> ")
   (setq emacs-cl-prompt-marker (point-marker)))
 

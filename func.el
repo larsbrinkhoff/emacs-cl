@@ -146,7 +146,7 @@
       `((while ,rest-sym
 	  (let ((,temp (position (pop ,rest-sym) ',keys)))
 	    ,@(unless allow-other-keys
-	       `((unless ,temp (error))))
+	       `((unless ,temp (error "unknown keyword"))))
 	    (set (nth ,temp ',vars) (pop ,rest-sym))))
 	,@(mappend (lambda (var default)
 		     `((when (eq ,var ',unbound)

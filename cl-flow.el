@@ -22,9 +22,7 @@
      (apply #'APPLY (FDEFINITION fn) args))))
 
 (cl:defmacro DEFUN (name lambda-list &body body)
-  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
-	       ,(kw "LOAD-TOPLEVEL")
-	       ,(kw "EXECUTE"))
+  `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
      (SETF (FDEFINITION (QUOTE ,name))
            (FUNCTION (LAMBDA ,lambda-list (BLOCK ,name ,@body))))
      (QUOTE ,name)))
@@ -122,18 +120,14 @@
     ',name))
 
 (cl:defmacro DEFCONSTANT (name initial-value &optional documentation)
-  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
-	       ,(kw "LOAD-TOPLEVEL")
-	       ,(kw "EXECUTE"))
+  `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
      (DEFVAR ,name ,initial-value)
      (PUSHNEW (QUOTE ,name) *constants*)
      (QUOTE ,name)))
 
 (cl:defmacro DEFVAR (name &optional (initial-value nil valuep) documentation)
   (with-gensyms (val)
-    `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
-		 ,(kw "LOAD-TOPLEVEL")
-		 ,(kw "EXECUTE"))
+    `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
        ,@(when valuep
 	   `((LET ((,val ,initial-value))
 	       (UNLESS (BOUNDP (QUOTE ,name))
@@ -141,9 +135,7 @@
        (QUOTE ,name))))
 
 (cl:defmacro DEFPARAMETER (name initial-value &optional documentation)
-  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
-	       ,(kw "LOAD-TOPLEVEL")
-	       ,(kw "EXECUTE"))
+  `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
      (SETQ ,name ,initial-value)
      (QUOTE ,name)))
 
@@ -533,9 +525,7 @@
 (cl:defmacro DEFINE-SETF-EXPANDER (access-fn lambda-list &body body)
   (setq lambda-list (copy-list lambda-list))
   (remf lambda-list '&environment)
-  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
-	       ,(kw "LOAD-TOPLEVEL")
-	       ,(kw "EXECUTE"))
+  `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
      (SETF (GETHASH ',access-fn *setf-expanders*)
            (LAMBDA ,lambda-list ,@body))
      (QUOTE ,access-fn)))

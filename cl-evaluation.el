@@ -45,7 +45,7 @@
     ',name))
 
 (cl:defmacro DEFMACRO (name lambda-list &body body)
-  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL") ,(kw "LOAD-TOPLEVEL") ,(kw "EXECUTE"))
+  `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
       (SETF (MACRO-FUNCTION (QUOTE ,name))
 	    (LAMBDA (form env)
 	      (DESTRUCTURING-BIND ,lambda-list (CDR form)
@@ -86,9 +86,7 @@
      ',symbol))
 
 (cl:defmacro DEFINE-SYMBOL-MACRO (symbol expansion)
-  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
-	       ,(kw "LOAD-TOPLEVEL")
-	       ,(kw "EXECUTE"))
+  `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
      (puthash (QUOTE ,symbol) (LAMBDA (form env) (QUOTE ,expansion))
               *symbol-macro-functions*)
      (QUOTE ,symbol)))
@@ -101,9 +99,7 @@
   nil)
 
 (cl:defmacro DECLAIM (&rest declarations)
-  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
-	       ,(kw "LOAD-TOPLEVEL")
-	       ,(kw "EXECUTE"))
+  `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
      (PROCLAIM ',declarations)))
 
 (defun SPECIAL-OPERATOR-P (symbol)

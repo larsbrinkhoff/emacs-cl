@@ -187,7 +187,7 @@
     (t
      (error "type error"))))
 
-(defun* FLOOR (number &optional (divisor 1))
+(cl:defun FLOOR (number &optional (divisor 1))
   (let (quotient remainder)
     (cond
       ((or (floatp number) (floatp divisor))
@@ -207,11 +207,11 @@
       (setq quotient (binary- quotient 1)))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
 
-(defun* FFLOOR (number &optional (divisor 1))
+(cl:defun FFLOOR (number &optional (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (FLOOR number divisor)
     (VALUES (FLOAT quotient remainder))))
 
-(defun* CEILING (number &optional (divisor 1))
+(cl:defun CEILING (number &optional (divisor 1))
   (let (quotient remainder)
     (cond
       ((or (floatp number) (floatp divisor))
@@ -231,11 +231,11 @@
       (setq quotient (binary+ quotient 1)))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
 
-(defun* FCEILING (number &optional (divisor 1))
+(cl:defun FCEILING (number &optional (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (CEILING number divisor)
     (VALUES (FLOAT quotient remainder))))
 
-(defun* TRUNCATE (number &optional (divisor 1))
+(cl:defun TRUNCATE (number &optional (divisor 1))
   (let (quotient)
     (cond
       ((or (floatp number) (floatp divisor))
@@ -251,7 +251,7 @@
        (error "type error")))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
 
-(defun* FTRUNCATE (number &optional (divisor 1))
+(cl:defun FTRUNCATE (number &optional (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (TRUNCATE number divisor)
     (VALUES (FLOAT quotient remainder))))
 
@@ -287,7 +287,7 @@
     ((COMPLEXP x)	(error "TODO"))
     (t			(error "type error"))))
 
-(defun* ATAN (x &optional y)
+(defun ATAN (x &optional y)
   (when y (error "TODO"))
   (cond
     ((REALP x)		(atan (FLOAT x)))
@@ -423,7 +423,7 @@
 (defun bignum+bignum (x y)
   (canonical-bignum (bignum+ (bignum-list x) (bignum-list y))))
 
-(defun* bignum-list (num &optional (index 1))
+(cl:defun bignum-list (num &optional (index 1))
   (if (= index (length num))
       nil
       (cons (aref num index) (bignum-list num (1+ index)))))
@@ -460,7 +460,7 @@
 		 list)))
 	    list))))
 
-(defun* bignum+ (x y &optional (carry 0))
+(cl:defun bignum+ (x y &optional (carry 0))
 ; (print (format "(bignum+ %s %s %s)" x y carry))
   (cond
     ((null x)
@@ -677,7 +677,7 @@
       0
       (integer-truncate (ABS (binary* x y)) (GCD x y))))
 
-(defun* LOG (number &optional (base (exp 1)))
+(cl:defun LOG (number &optional (base (exp 1)))
   (cond
     ((and (REALP number) (REALP base))
      (log (FLOAT number) (FLOAT base)))
@@ -739,7 +739,7 @@
 
 ;;; TODO: CIS
 
-(defun* COMPLEX (realpart &optional (imagpart 0))
+(cl:defun COMPLEX (realpart &optional (imagpart 0))
   (cond
     ((floatp realpart)
      (setq imagpart (float imagpart)))
@@ -866,47 +866,48 @@
 (defun INTEGERP (num)
   (or (integerp num) (bignump num)))
 
-(defun* PARSE-INTEGER (string &key (start 0) (end (length string))
-			      (radix 10) junk-allowed)
+(cl:defun PARSE-INTEGER (string &key (start 0) (end (LENGTH string))
+			             (radix 10) junk-allowed)
   (let ((sign 1)
 	(integer 0)
 	(i start)
 	char digit)
-    (while (whitespacep (CHAR string i))
-      (incf i)
-      (when (= i end)
-	(if junk-allowed
-	    (return-from PARSE-INTEGER (VALUES nil i))
-	    (error))))
-    (setq char (CHAR string i))
-    (when (find (CHAR-CODE char) "+-")
-      (when (CHAR= char (CODE-CHAR 45))
-	(setq sign -1))
-      (incf i)
-      (when (= i end)
-	(if junk-allowed
-	    (return-from PARSE-INTEGER (VALUES nil i))
-	    (error)))
-      (setq char (CHAR string i)))
-    (while (setq digit (DIGIT-CHAR-P char radix))
-;     (print (format "before: %s %s" (cl:* integer 10) digit))
-      (setq integer (cl:+ (cl:* integer radix) digit))
-;     (PRINT integer)
-;     (print (format "after: %s" integer))
-      (incf i)
-      (when (= i end)
-;	(print (format "int: %s" integer))
-	(return-from PARSE-INTEGER (VALUES (cl:* sign integer) i)))
-      (setq char (CHAR string i)))
-    (cond
-      (junk-allowed
-       (VALUES (cl:* sign integer) i))
-      (t
-       (do ((j i (1+ j)))
-	   ((= j end)
-	    (VALUES (cl:* sign integer) i))
-	 (unless (whitespacep (CHAR string j))
-	   (error)))))))
+    (catch 'PARSE-INTEGER
+      (while (whitespacep (CHAR string i))
+	(incf i)
+	(when (= i end)
+	  (if junk-allowed
+	      (throw 'PARSE-INTEGER (VALUES nil i))
+	      (error))))
+      (setq char (CHAR string i))
+      (when (find (CHAR-CODE char) "+-")
+	(when (CHAR= char (CODE-CHAR 45))
+	  (setq sign -1))
+	(incf i)
+	(when (= i end)
+	  (if junk-allowed
+	      (throw 'PARSE-INTEGER (VALUES nil i))
+	      (error)))
+	(setq char (CHAR string i)))
+      (while (setq digit (DIGIT-CHAR-P char radix))
+;       (print (format "before: %s %s" (cl:* integer 10) digit))
+	(setq integer (cl:+ (cl:* integer radix) digit))
+;     	(PRINT integer)
+;     	(print (format "after: %s" integer))
+	(incf i)
+	(when (= i end)
+;	  (print (format "int: %s" integer))
+	  (throw 'PARSE-INTEGER (VALUES (cl:* sign integer) i)))
+	(setq char (CHAR string i)))
+      (cond
+	(junk-allowed
+	 (VALUES (cl:* sign integer) i))
+	(t
+	 (do ((j i (1+ j)))
+	     ((= j end)
+	      (VALUES (cl:* sign integer) i))
+	   (unless (whitespacep (CHAR string j))
+	     (error))))))))
 
 (DEFCONSTANT BOOLE-1		 1)
 (DEFCONSTANT BOOLE-2		 2)
@@ -1106,9 +1107,10 @@
   (LOGAND (ASH integer (cl:- (BYTE-POSITION bytespec)))
 	  (cl:1- (ASH 1 (BYTE-SIZE bytespec)))))
 
-(DEFINE-SETF-EXPANDER LDB (bytespec integer &environment env)
+;;; TODO: &environment
+(DEFINE-SETF-EXPANDER LDB (bytespec integer)
   (multiple-value-bind (temps values variables setter getter)
-      (get-setf-method integer env)
+      (get-setf-method integer nil)
     (let ((byte (gensym))
 	  (value (gensym)))
       (values (cons byte temps)
@@ -1129,9 +1131,10 @@
 
 (DEFCONSTANT MOST-NEGATIVE-FIXNUM -134217728)
 
-(define-setf-method MASK-FIELD (bytespec integer &environment env)
+;;; TODO: &environment
+(define-setf-method MASK-FIELD (bytespec integer)
   (multiple-value-bind (temps values variables setter getter)
-      (get-setf-method integer env)
+      (get-setf-method integer nil)
     (let ((byte (gensym))
 	  (value (gensym)))
     (values (cons byte temps)

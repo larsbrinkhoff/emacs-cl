@@ -196,9 +196,7 @@
     (setq *PACKAGE* (FIND-PACKAGE ,package))))
 
 (cl:defmacro IN-PACKAGE (package)
-  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
-	       ,(kw "LOAD-TOPLEVEL")
-	       ,(kw "EXECUTE"))
+  `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
      (SETQ *PACKAGE* (FIND-PACKAGE ,package))))
 
 (defun* UNUSE-PACKAGE (packages-to-unuse &optional (package *PACKAGE*))
@@ -281,9 +279,9 @@
 	      (pushnew symbol (aref package 7)))
 	    (VALUES symbol nil))))))
 
-(defconst *:internal* (kw "INTERNAL"))
-(defconst *:external* (kw "EXTERNAL"))
-(defconst *:inherited* (kw "INHERITED"))
+(defconst *:internal* (kw INTERNAL))
+(defconst *:external* (kw EXTERNAL))
+(defconst *:inherited* (kw INHERITED))
 
 (defvar *PACKAGE* (FIND-PACKAGE "CL-USER"))
 
@@ -293,12 +291,12 @@
 
 
 
-;;; Bootstrap magic: take the list of symbols created by the old kw
-;;; macro, and import them into the KEYWORD package.
+;;; Bootstrap magic: take the list of symbols created by the old
+;;; keyword function, and import them into the KEYWORD package.
 (dolist (sym *initial-keywords*)
   (IMPORT sym *keyword-package*)
   (EXPORT sym *keyword-package*))
 
-;;; Redefine the kw macro (initially defined in utils.el).
-(defmacro kw (string)
-  (NTH-VALUE 0 (INTERN (upcase string) *keyword-package*)))
+;;; Redefine the keyword function (initially defined in utils.el).
+(defun keyword (name)
+  (NTH-VALUE 0 (INTERN (upcase name) *keyword-package*)))

@@ -46,7 +46,7 @@
     ((symbolp datum)
      (apply #'MAKE-CONDITION datum args))
     ((STRINGP datum)
-     ;; TODO: (kw "FORMAT-CONTROL") and (kw "FORMAT-ARGUMENTS")
+     ;; TODO: (kw FORMAT-CONTROL) and (kw FORMAT-ARGUMENTS)
      (MAKE-CONDITION default-type :format datum :args args))
     (t
      (error "invalid condition designator"))))
@@ -61,9 +61,9 @@
   (apply #'ERROR datum args))
 
 (cl:defmacro CHECK-TYPE (place type &optional string)
-  (UNLESS (TYPEP ,place ',type)
-    ;; TODO...
-    (ERROR 'TYPE-ERROR)))
+  `(UNLESS (TYPEP ,place ',type)
+     ;; TODO...
+     (ERROR 'TYPE-ERROR)))
 
 ;; TODO: inherit from SIMPLE-CONDITION
 (DEFINE-CONDITION SIMPLE-ERROR (ERROR) (format args))
@@ -95,7 +95,7 @@
     ((TYPEP condition 'SIMPLE-WARNING)   (SIMPLE-WARNING-args condition))
     (t					 (error "this sucks"))))
 
-(defun WARN (datum &rest arguments)
+(defun WARN (datum &rest args)
   (let ((condition (condition datum args 'SIMPLE-WARNING)))
     (SIGNAL condition)
     (PRINT condition *ERROR-OUTPUT*)

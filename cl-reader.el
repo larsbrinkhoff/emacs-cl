@@ -237,11 +237,11 @@
      (member expr *FEATURES*))
     ((atom expr)
      (error "syntax error"))
-    ((eq (first expr) (kw "NOT"))
+    ((eq (first expr) (kw NOT))
      (not (eval-feature-test (second expr))))
-    ((eq (first expr) (kw "AND"))
+    ((eq (first expr) (kw AND))
      (every #'eval-feature-test (rest expr)))
-    ((eq (first expr) (kw "OR"))
+    ((eq (first expr) (kw OR))
      (some #'eval-feature-test (rest expr)))
     (t
      (error "syntax error"))))
@@ -482,7 +482,7 @@
 (defun* parse-number (string)
   (when (potential-number-p string)
     (MULTIPLE-VALUE-BIND (integer end)
-	(PARSE-INTEGER string :radix *READ-BASE* :junk-allowed T)
+	(PARSE-INTEGER string (kw RADIX) *READ-BASE* (kw JUNK-ALLOWED) T)
       (unless integer
 	(return-from parse-integer (VALUES nil)))
       (cond

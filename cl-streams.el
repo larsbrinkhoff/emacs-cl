@@ -9,7 +9,9 @@
 
 (defvar *STANDARD-OUTPUT* nil)
 
-(defvar *TERMINAL-IO*)
+(defvar *ERROR-OUTPUT* nil)
+
+(defvar *TERMINAL-IO* nil)
 
 (DEFSTRUCT (STREAM (:predicate STREAMP) (:copier nil))
   filename
@@ -31,13 +33,13 @@
 	(UNREAD-CHAR char stream)
 	(return-from PEEK-CHAR char))))))
 
-(defun resolve-input-stream-designator (designator)
+(defun input-stream (designator)
   (case designator
     ((nil)	*STANDARD-INPUT*)
     ((t)	*TERMINAL-IO*)
     (t		designator)))
 
-(defun resolve-output-stream-designator (designator)
+(defun output-stream (designator)
   (case designator
     ((nil)	*STANDARD-OUTPUT*)
     ((t)	*TERMINAL-IO*)
@@ -45,7 +47,7 @@
 
 (defun* READ-CHAR (&optional stream-designator (eof-error-p T)
 			     eof-value recursive-p)
-  (let* ((stream (resolve-input-stream-designator stream-designator))
+  (let* ((stream (input-stream stream-designator))
 	 (ch (funcall (STREAM-read-fn stream) stream)))
     (if (eq ch :eof)
 	(if eof-error-p
@@ -56,7 +58,7 @@
 ;;; TODO: READ-CHAR-NO-HANG
 
 (defun TERPRI (&optional stream-designator)
-  (let ((stream (resolve-output-stream-designator stream-designator)))
+  (let ((stream (output-stream stream-designator)))
     (WRITE-CHAR (CODE-CHAR 10) stream))
   (sit-for 0)
   nil)
@@ -64,18 +66,18 @@
 ;;; TODO: FRESH-LINE
 
 (defun UNREAD-CHAR (char &optional stream-designator)
-  (let ((stream (resolve-input-stream-designator stream-designator)))
+  (let ((stream (input-stream stream-designator)))
     (when (> (STREAM-index stream) 0)
       (decf (STREAM-index stream)))))
 
 (defun WRITE-CHAR (char &optional stream-designator)
-  (let ((stream (resolve-output-stream-designator stream-designator)))
+  (let ((stream (output-stream stream-designator)))
     (funcall (STREAM-write-fn stream) (CHAR-CODE char) stream)
     char))
 
 (defun* READ-LINE (&optional stream-designator (eof-error-p T)
 			     eof-value recursive-p)
-  (let ((stream (resolve-input-stream-designator stream-designator))
+  (let ((stream (input-stream stream-designator))
 	(line ""))
     (loop
      (let ((char (READ-CHAR stream eof-error-p eof-value recursive-p)))
@@ -83,18 +85,18 @@
 	 ((eq char eof-value)
 	  (return-from READ-LINE
 	    (VALUES (if (= (length line) 0) eof-value line) t)))
-	 ((= char (CODE-CHAR 10))
+	 ((eq (CHAR-CODE char) 10)
 	  (return-from READ-LINE (VALUES line nil))))
        (setq line (concat line (list (CHAR-CODE char))))))))
 
 (defun* WRITE-STRING (string &optional stream-designator &key (start 0) end)
-  (do ((stream (resolve-output-stream-designator stream-designator))
+  (do ((stream (output-stream stream-designator))
        (i 0 (1+ i)))
       ((= i (LENGTH string)) string)
     (WRITE-CHAR (CHAR string i) stream)))
 
 (defun* WRITE-LINE (string &optional stream-designator &key (start 0) end)
-  (let ((stream (resolve-output-stream-designator stream-designator)))
+  (let ((stream (output-stream stream-designator)))
     (WRITE-STRING string stream :start start :end end)
     (WRITE-CHAR 10 stream)
     string))
@@ -178,9 +180,19 @@
 
 ;;; TODO: make-broadcast-stream
 
-;;; TODO: make-two-way-stream
+(defun MAKE-TWO-WAY-STREAM (input output)
+  (MAKE-STREAM :content (cons input output)
+	       :index 0
+	       :read-fn (lambda (stream)
+			  (READ-CHAR (car (STREAM-content stream))))
+	       :write-fn (lambda (char stream)
+			   (WRITE-CHAR char (cdr (STREAM-content stream))))))
 
-;;; TODO: two-way-stream-input-stream, two-way-stream-output-stream
+(defun TWO-WAY-STREAM-INPUT-STREAM (stream)
+  (car (STREAM-content stream)))
+
+(defun TWO-WAY-STREAM-OUTPUT-STREAM (stream)
+  (cdr (STREAM-content stream)))
 
 ;;; TODO: echo-stream-input-stream, echo-stream-output-stream
 
@@ -221,14 +233,6 @@
 			 (concat (STREAM-content stream)
 				 (list char))))))
 
-(defun make-buffer-output-stream (buffer)
-  (MAKE-STREAM :content buffer
-	       :index 0
-	       :read-fn (lambda (s) (error "read from output stream"))
-	       :write-fn
-	         (lambda (char stream)
-		   (insert char))))
-
 (defmacro* WITH-INPUT-FROM-STRING ((var string &key index (start 0) end)
 				   &body body)
   `(WITH-OPEN-STREAM (,var (MAKE-STRING-INPUT-STREAM ,string ,start ,end))
@@ -238,3 +242,18 @@
 ;;; (which we now have)
 
 ;;; TODO: stream-error-stream
+
+
+(defun make-buffer-output-stream (buffer)
+  (MAKE-STREAM :content buffer
+	       :index 0
+	       :read-fn (lambda (s) (error "read from output stream"))
+	       :write-fn
+	         (lambda (char stream)
+		   (insert char))))
+
+(defun make-read-char-exclusive-input-stream ()
+  (MAKE-STREAM :content nil
+	       :index 0
+	       :read-fn (lambda (s) (read-char-exclusive))
+	       :write-fn (lambda (c s) (error "write to input stream"))))

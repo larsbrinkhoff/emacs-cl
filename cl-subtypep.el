@@ -14,7 +14,7 @@
 (defvar *objects*
   (list (COMPLEX 0 1) 0 nil T (make-symbol "") (cons nil nil)
 	;; Should really be an uninterned keyword.
-	(kw "really-unlikely-keyword-name")
+	(kw really-unlikely-keyword-name)
 	;; This guarantees a unique character object.
 	(vector 'CHARACTER 0)))
 

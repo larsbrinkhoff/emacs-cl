@@ -75,4 +75,4 @@
 	  sym))))
 
 (defmacro kw (name)
-  (keyword name))
+  (keyword (symbol-name name)))

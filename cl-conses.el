@@ -35,12 +35,12 @@
   (case (aref string index)
     (65		`(CAR ,(build-cxr string (1+ index))))
     (68		`(CDR ,(build-cxr string (1+ index))))
-    (t		'object)))
+    (t		'cons)))
 
 (macrolet ((def (sym)
 	     (let ((name (symbol-name sym)))
 	       `(progn
-		 (defun ,sym (object)
+		 (defun ,sym (cons)
 		   ,(build-cxr name 1))
 		 (defsetf ,sym (cons) (obj)
 		   (list ',(if (eq (aref name 1) 65) 'setcar 'setcdr)

@@ -92,9 +92,9 @@
      ((vector-and-typep ,array 'SIMPLE-VECTOR)
       (setf (SVREF ,array ,(first subscripts)) ,obj))
      ((vector-and-typep ,array 'VECTOR)
-      (setf (aref (aref ,array 2) (just-one ',subscripts)) ,obj))
+      (aset (aref ,array 2) (just-one ',subscripts) ,obj))
      ((vector-and-typep ,array 'ARRAY)
-      (setf (aref (aref ,array 2) (ARRAY-ROW-MAJOR-INDEX ,@subscripts)) ,obj))
+      (aset (aref ,array 2) (ARRAY-ROW-MAJOR-INDEX ,@subscripts) ,obj))
      (t
       (error))))
 
@@ -231,18 +231,34 @@
 	     ((STRING BIT-VECTOR VECTOR SIMPLE-VECTOR) T)))))
 
 (defun BIT (array &rest subscripts)
-  (cond
-    ((SIMPLE-BIT-VECTOR-P array)
-     (if (aref array (just-one subscripts)) 1 0))
-    ((BIT-VECTOR-P array)
-     (if (aref (aref array 2) (just-one subscripts)) 1 0))
-    ((vector-and-typep array 'bit-array)
-     (error "TODO"))
-    (t
-     (error))))
+  (if (cond
+	((SIMPLE-BIT-VECTOR-P array)
+	 (aref array (just-one subscripts)))
+	((BIT-VECTOR-P array)
+	 (aref (aref array 2) (just-one subscripts)))
+	((vector-and-typep array 'bit-array)
+	 (aref (aref array 2) (apply #'ARRAY-ROW-MAJOR-INDEX subscripts)))
+	(t
+	 (error)))
+      1 0))
+
+(defsetf BIT (array &rest subscripts) (bit)
+  `(let ((bool (not (zerop ,bit))))
+     (cond
+       ((SIMPLE-BIT-VECTOR-P ,array)
+	(aset ,array (just-one ',subscripts) bool))
+       ((BIT-VECTOR-P ,array)
+	(aset (aref ,array 2) (just-one ',subscripts) bool))
+       ((vector-and-typep ,array 'bit-array)
+	(aset (aref ,array 2) (ARRAY-ROW-MAJOR-INDEX ,@subscripts) bool))
+       (t
+	(error)))))
 
 (defun SBIT (array index)
-  (aref array index))
+  (if (aref array index) 1 0))
+
+(defsetf SBIT (array index) (bit)
+  `(aset ,array ,index (not (zerop ,bit))))
 
 (defun BIT-VECTOR-P (object)
   (or (bool-vector-p object)
