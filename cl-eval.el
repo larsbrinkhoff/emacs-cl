@@ -16,7 +16,11 @@
 
 ;;; Definitions for all special operators follows.
 
-;;; TODO: BLOCK
+(define-special-operator BLOCK (tag &rest forms) env
+  ;; TODO: proper implementation
+  (let (lastval)
+    (dolist (form forms lastval)
+      (setq lastval (eval-with-env form env)))))
 
 (define-special-operator CATCH (tag &rest forms) env
   (catch (eval-with-env tag env)
