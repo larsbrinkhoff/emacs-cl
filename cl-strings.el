@@ -39,10 +39,31 @@
     ((CHARACTERP x)	(MAKE-STRING 1 :initial-element x))
     (t			(error))))
 
-;;; TODO: string-upcase, string-downcase, string-capitalize,
-;;; nstring-upcase, nstring-downcase, nstring-capitalize
+(defun* STRING-UPCASE (string &key (start 0) end)
+  (NSTRING-UPCASE (COPY-SEQ string) :start start :end end))
 
-;;; TODO: string-trim, string-left-trim, string-right-trim
+(defun* STRING-DOWNCASE (string &key (start 0) end)
+  (NSTRING-DOWNCASE (COPY-SEQ string) :start start :end end))
+
+;;; TODO: STRING-CAPITALIZE
+
+(defun* NSTRING-UPCASE (string &key (start 0) end)
+  (unless end
+    (setq end (LENGTH string)))
+  (do ((i start (1+ i)))
+      ((eq i end) string)
+    (setf (CHAR string i) (CHAR-UPCASE (CHAR string i)))))
+
+(defun* NSTRING-DOWNCASE (string &key (start 0) end)
+  (unless end
+    (setq end (LENGTH string)))
+  (do ((i start (1+ i)))
+      ((eq i end) string)
+    (setf (CHAR string i) (CHAR-DOWNCASE (CHAR string i)))))
+
+;;; TODO: NSTRING-CAPITALIZE
+
+;;; TODO: STRING-TRIM, STRING-LEFT-TRIM, STRING-RIGHT-TRIM
 
 (defun* STRING= (string1 string2 &key (start1 0) end1 (start2 0) end2)
   (string= (substring string1 start1 end1)
@@ -90,8 +111,8 @@
   (STRING< string2 string1 :start1 start2 :end1 end2
 			   :start2 start1 :end2 end1))
 
-;;; TODO: string-equal, string-not-equal, string-lessp,
-;;; string-greaterp, string-not-greaterp, string-not-lessp
+;;; TODO: STRING-EQUAL, STRING-NOT-EQUAL, STRING-LESSP,
+;;; STRING-GREATERP, STRING-NOT-GREATERP, STRING-NOT-LESSP
 
 (defun STRINGP (object)
   (or (SIMPLE-STRING-P object)
