@@ -242,15 +242,16 @@
   `(LET () ,form))
 
 (cl:defmacro TIME (form)
-  (with-gensyms (start val end)
+  (with-gensyms (start val end time)
     `(LET* ((,start (GET-INTERNAL-REAL-TIME))
 	    (,val (MULTIPLE-VALUE-LIST ,form))
-	    (,end (GET-INTERNAL-REAL-TIME)))
-       (PRINC "\nElapsed real time: ")
-       (PRIN1 (,(INTERN "*" "CL")
-	       (,(INTERN "-" "CL") ,end ,start)
-	       ,(/ 1.0 INTERNAL-TIME-UNITS-PER-SECOND)))
-       (PRINC " seconds")
+	    (,end (GET-INTERNAL-REAL-TIME))
+	    (,time (,(INTERN "-" "CL") ,end ,start)))
+       (FORMAT *TRACE-OUTPUT* "~&Elapsed real time: ~A seconds"
+	       (,(INTERN "*" "CL")
+		(ROUND (,(INTERN "*" "CL") ,time
+			 ,(/ 1000.0 INTERNAL-TIME-UNITS-PER-SECOND)))
+		0.001))
        (VALUES-LIST ,val))))
 
 (DEFCONSTANT INTERNAL-TIME-UNITS-PER-SECOND 1000000)
