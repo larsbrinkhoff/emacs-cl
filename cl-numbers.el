@@ -595,12 +595,29 @@
 
 (defun EXPT (base power)
   (cond
+    ((and (RATIONALP base) (INTEGERP power))
+     (exact-expt base power))
     ((and (REALP base) (REALP power))
      (expt (FLOAT base) (FLOAT power)))
     ((or (NUMBERP base) (NUMBERP power))
      (error "TODO"))
     (t
      (error "type error"))))
+
+(defun exact-expt (base power)
+  (cond
+    ((ZEROP power)
+     1)
+    ((MINUSP power)
+     (cl::ratio 1 (exact-expt base (cl:- power))))
+    (t
+     (let ((result 1))
+       (while (PLUSP power)
+	 (when (LOGBITP 0 power)
+	   (setq result (binary* result base)))
+	 (setq base (binary* base base))
+	 (setq power (ASH power -1)))
+       result))))
 
 (defun GCD (&rest numbers)
   (reduce #'binary-gcd numbers :initial-value 0))
