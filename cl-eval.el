@@ -198,7 +198,7 @@
 
 
 
-(defun eval-lambda-form (form env)
+(defun eval-lambda-form (form env &optional eval-args)
   (let ((new-env
 	 (augment-environment env
 	  :variable (mappend (lambda (var)
@@ -211,7 +211,9 @@
     (dolist (var (cadar form))
       (unless (member var LAMBDA-LIST-KEYWORDS)
 	(setf (lexical-value var new-env)
-	      (eval-with-env (pop args) env))))
+	      (if eval-args
+		  (eval-with-env (pop args) env)
+		  (pop args)))))
     (dolist (form body lastval)
       (setq lastval (eval-with-env form new-env)))))
 
@@ -232,7 +234,7 @@
     (t
      (if (consp (car form))
 	 (if (eq (caar form) 'LAMBDA)
-	     (eval-lambda-form form env)
+	     (eval-lambda-form form env t)
 	     (error "syntax error"))
 	 (let ((fn (gethash (first form) *special-operator-evaluators*)))
 	   (if fn

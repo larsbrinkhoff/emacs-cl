@@ -11,8 +11,8 @@
   (cond
     ((INTERPRETED-FUNCTION-P fn)
      (eval-with-env (append (list (aref fn 1))
-			    (mapcar (lambda (x) (list 'QUOTE x)) (butlast args))
-			    (mapcar (lambda (x) (list 'QUOTE x)) (car (last args))))
+			    (butlast args)
+			    (car (last args)))
 		    (aref fn 2)))
     ((FUNCTIONP fn)
      (apply #'apply fn args))
