@@ -152,14 +152,42 @@
     (TERPRI stream)
     string))
 
-;;; TODO: READ-SEQUENCE
+(cl:defun READ-SEQUENCE (seq stream &key (START 0) END)
+  (unless END
+    (setq END (LENGTH seq)))
+  (catch 'READ-SEQUENCE
+    (do ((i START (1+ i)))
+	((eq i END)
+	 i)
+      (let ((char (READ-CHAR stream nil)))
+	(if (null char)
+	    (throw 'READ-SEQUENCE i)
+	    (setf (ELT seq i) char))))))
 
-;;; TODO: WRITE-SEQUENCE
+(cl:defun WRITE-SEQUENCE (seq stream &key (START 0) END)
+  (unless END
+    (setq END (LENGTH seq)))
+  (do ((i START (1+ i)))
+      ((eq i END)
+       seq)
+    (WRITE-CHAR (ELT seq i) stream)))
 
-;;; TODO: FILE-LENGTH
+(defun FILE-LENGTH (stream)
+  (let ((len (file-attributes (STREAM-filename stream))))
+    (cond
+      ((integerp len)	len)
+      ((null len)	nil)
+      ;; TODO: return integer
+      ((floatp len)	len)
+      (t		(error "?")))))
 
-(defun FILE-POSITION (stream)
-  (STREAM-index stream))
+(defun FILE-POSITION (stream &optional position)
+  (if position
+      ;; TODO: implement setting position
+      (progn
+	(setf (STREAM-index stream))
+	T)
+      (STREAM-index stream)))
 
 (defun FILE-STRING-LENGTH (stream object)
   (LENGTH (let ((s (MAKE-STRING-OUTPUT-STREAM)))
