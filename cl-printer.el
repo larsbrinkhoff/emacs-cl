@@ -461,12 +461,12 @@
 
 (defvar *initial-pprint-dispatch*
   (let ((table (make-hash-table :test #'equal)))
-    (SET-PPRINT-DISPATCH `(CONS (EQL QUOTE) (CONS ,star NULL))
+    (SET-PPRINT-DISPATCH '(CONS (EQL QUOTE) (CONS T NULL))
 			 (lambda (stream object)
 			   (WRITE-CHAR (ch 39) stream)
 			   (write-object (second object) stream))
 			 100 table)
-    (SET-PPRINT-DISPATCH `(CONS (EQL FUNCTION) (CONS ,star NULL))
+    (SET-PPRINT-DISPATCH '(CONS (EQL FUNCTION) (CONS T NULL))
 			 (lambda (stream object)
 			   (WRITE-STRING "#'" stream)
 			   (write-object (second object) stream))
