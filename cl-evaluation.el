@@ -104,12 +104,24 @@
 
 (defvar *MACROEXPAND-HOOK* 'FUNCALL)
 
-(defun PROCLAIM (&rest declarations)
+(defvar *declarations* '(IGNORE IGNORABLE DYNAMIC-EXTENT TYPE INLINE
+			 NOTINLINE FTYPE DECLARATION OPTIMIZE SPECIAL))
+
+(defun PROCLAIM (declaration)
+  (unless (and (consp declaration)
+	       (memq (car declaration) *declarations*))
+    (type-error declaration `(CONS (MEMBER ,@*declarations*) LIST)))
+  (case (car declaration)
+    (SPECIAL)
+    (DECLARATION
+     (dolist (d (rest declaration))
+       (pushnew d *declarations*))))
   nil)
 
 (cl:defmacro DECLAIM (&rest declarations)
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
-     (PROCLAIM ',declarations)))
+     ,@(mapcar (lambda (decl) `(PROCLAIM (QUOTE ,decl)))
+	       declarations)))
 
 (defun SPECIAL-OPERATOR-P (symbol)
   (member symbol
