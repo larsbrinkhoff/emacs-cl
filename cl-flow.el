@@ -622,7 +622,7 @@
     ((SYMBOLP ,name)
      (SETF (SYMBOL-FUNCTION ,name) ,fn))
     ((setf-name-p ,name)
-     (SETF (gethash (second ,name) *setf-definitions*) ,fn))
+     (puthash (SECOND ,name) ,fn *setf-definitions*))
     (T
      (error "type error"))))
 
