@@ -85,7 +85,14 @@
 	    eof-value)
 	(CODE-CHAR ch))))
 
-;;; TODO: READ-CHAR-NO-HANG
+(cl:defun READ-CHAR-NO-HANG (&optional stream-designator (eof-error-p T)
+				       eof-value recursive-p)
+  (let ((stream (input-stream stream-designator)))
+    (if (eq (STREAM-read-fn stream)
+	    (cl:function read-char-exclusive-ignoring-arg))
+	(when (LISTEN stream)
+	  (READ-CHAR stream stream eof-error-p eof-value recursive-p))
+	(READ-CHAR stream stream eof-error-p eof-value recursive-p))))
 
 (defun TERPRI (&optional stream-designator)
   (let ((stream (output-stream stream-designator)))
@@ -118,7 +125,7 @@
     (loop
      (let ((char (READ-CHAR stream eof-error-p eof-value recursive-p)))
        (cond
-	 ((eq char eof-value)
+	 ((EQL char eof-value)
 	  (return-from READ-LINE
 	    (VALUES (if (= (length line) 0) eof-value line) t)))
 	 ((ch= char 10)
@@ -198,7 +205,12 @@
 	  (PROGN ,@body)
        (CLOSE ,var))))
 
-;;; TODO: listen
+(cl:defun LISTEN (&optional stream-designator)
+  (let ((stream (input-stream stream-designator)))
+     (if (eq (STREAM-read-fn stream)
+	     (cl:function read-char-exclusive-ignoring-arg))
+	 (not (sit-for 0))
+	 (not (eq (PEEK-CHAR nil stream :eof) :eof)))))
 
 ;;; TODO: clear-input
 
@@ -310,10 +322,13 @@
 			       (when (eq char 10)
 				 (sit-for 0)))))
 
+(cl:defun read-char-exclusive-ignoring-arg (arg)
+  (read-char-exclusive))
+
 (defun make-read-char-exclusive-input-stream ()
   (MAKE-STREAM (kw content) nil
 	       (kw index) 0
-	       (kw read-fn) (lambda (s) (read-char-exclusive))
+	       (kw read-fn) (cl:function read-char-exclusive-ignoring-arg)
 	       (kw write-fn) nil))
 
 (defun make-fill-pointer-output-stream (string)
