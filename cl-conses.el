@@ -43,13 +43,13 @@
     (t		'object)))
 
 (macrolet ((def (sym)
-	       (let ((name (symbol-name sym)))
-		 `(progn
-		   (defun ,sym (object)
-		     ,(build-cxr name 1))
-		   (defsetf ,name (cons) (obj)
-		     (list ',(if (eq (aref name 1) 65) 'setcar 'setcdr)
-			   ,(build-cxr name 2) obj))))))
+	     (let ((name (symbol-name sym)))
+	       `(progn
+		 (defun ,sym (object)
+		   ,(build-cxr name 1))
+		 (defsetf ,sym (cons) (obj)
+		   (list ',(if (eq (aref name 1) 65) 'setcar 'setcdr)
+			 ,(build-cxr name 2) obj))))))
   (def CAAR) (def CADR) (def CDAR) (def CDDR)
   (def CAAAR) (def CAADR) (def CADAR) (def CADDR)
   (def CDAAR) (def CDADR) (def CDDAR) (def CDDDR)

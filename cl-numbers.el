@@ -657,13 +657,13 @@
 	(integer 0)
 	(i start)
 	char digit)
-    (while (whitespacep (char string i))
+    (while (whitespacep (CHAR string i))
       (incf i)
       (when (= i end)
 	(if junk-allowed
 	    (return-from PARSE-INTEGER (values nil i))
 	    (error))))
-    (setq char (char string i))
+    (setq char (CHAR string i))
     (when (find char "+-")
       (when (CHAR= char (CODE-CHAR 45))
 	(setq sign -1))
@@ -672,7 +672,7 @@
 	(if junk-allowed
 	    (return-from PARSE-INTEGER (values nil i))
 	    (error)))
-      (setq char (char string i)))
+      (setq char (CHAR string i)))
     (while (setq digit (DIGIT-CHAR-P char radix))
 ;     (print (format "before: %s %s" (cl:* integer 10) digit))
       (setq integer (cl:+ (cl:* integer radix) digit))
@@ -682,7 +682,7 @@
       (when (= i end)
 ;	(print (format "int: %s" integer))
 	(return-from PARSE-INTEGER (values (cl:* sign integer) i)))
-      (setq char (char string i)))
+      (setq char (CHAR string i)))
     (cond
       (junk-allowed
        (values (cl:* sign integer) i))
@@ -690,7 +690,7 @@
        (do ((j i (1+ j)))
 	   ((= j end)
 	    (values (cl:* sign integer) i))
-	 (unless (whitespacep (char string j))
+	 (unless (whitespacep (CHAR string j))
 	   (error)))))))
 
 (defun LOGNOT (num)

@@ -30,7 +30,7 @@
        (let ((string (or displaced-to
 			 (make-string size
 				      (if initial-element
-					  (char-code initial-element)
+					  (CHAR-CODE initial-element)
 					  0)))))
 	 (cond
 	   (simplep	string)
@@ -73,7 +73,7 @@
     ((BIT-VECTOR-P array)
      (bit array (just-one subscripts)))
     ((STRINGP array)
-     (char array (just-one subscripts)))
+     (CHAR array (just-one subscripts)))
     ((vector-and-typep array 'simple-vector)
      (svref array (just-one subscripts)))
     ((vector-and-typep array 'vector)

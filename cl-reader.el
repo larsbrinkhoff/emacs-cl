@@ -398,10 +398,10 @@
   (when (potential-number-p string)
     (multiple-value-bind (integer end)
 	(PARSE-INTEGER string :radix *READ-BASE* :junk-allowed T)
-      (when (and integer (= end (length string)))
+      (when (and (el-truth integer) (= end (length string)))
 	(return-from parse-number integer))
-      (when (and integer
-		 (CHAR= (char string end) (CODE-CHAR 47)))
+      (WHEN (AND integer
+		 (CHAR= (CHAR string end) (CODE-CHAR 47)))
 	(multiple-value-bind (denumerator end2)
 	    (PARSE-INTEGER string :radix *READ-BASE* :start (1+ end)
 			   :junk-allowed T)

@@ -114,8 +114,8 @@
 (defun EQL (x y)
   (or (eq x y)
       (cond
-	((and (characterp x) (characterp y))
-	 (eq (char-code x) (char-code y)))
+	((el-truth (AND (CHARACTERP x) (CHARACTERP y)))
+	 (EQ (CHAR-CODE x) (CHAR-CODE y)))
 	((and (cl::bignump x) (cl::bignump y))
 	 (and (eq (length x) (length y))
 	      (every #'eq x y)))

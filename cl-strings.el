@@ -7,35 +7,35 @@
 (defun SIMPLE-STRING-P (object)
   (stringp object))
 
-(defun char (string index)
+(defun CHAR (string index)
   (cond
     ((SIMPLE-STRING-P string)
-     (schar string index))
+     (SCHAR string index))
     ((STRINGP string)
-     (schar (aref string 2) index))
+     (SCHAR (aref string 2) index))
     (t
      (error "type error"))))
 
-(defsetf char (string index) (char)
+(defsetf CHAR (string index) (char)
   `(cond
     ((SIMPLE-STRING-P string)
-     (setf (schar ,string ,index) ,char))
+     (setf (SCHAR ,string ,index) ,char))
     ((STRINGP string)
-     (setf (schar (aref ,string 2) ,index) ,char))
+     (setf (SCHAR (aref ,string 2) ,index) ,char))
     (t
      (error "type error"))))
 
-(defun schar (string index)
-  (code-char (aref string index)))
+(defun SCHAR (string index)
+  (CODE-CHAR (aref string index)))
 
-(defsetf schar (string index) (char)
-  `(aset ,string ,index (char-code ,char)))
+(defsetf SCHAR (string index) (char)
+  `(aset ,string ,index (CHAR-CODE ,char)))
 
 (defun STRING (x)
   (cond
     ((STRINGP x)	x)
-    ((symbolp x)	(symbol-name x))
-    ((characterp x)	(cl:make-string 1 :initial-element x))
+    ((SYMBOLP x)	(SYMBOL-NAME x))
+    ((CHARACTERP x)	(MAKE-STRING 1 :initial-element x))
     (t			(error))))
 
 ;;; TODO: string-upcase, string-downcase, string-capitalize,
@@ -51,5 +51,5 @@
   (or (SIMPLE-STRING-P object)
       (vector-and-typep object 'string)))
 
-(defun* cl:make-string (size &key initial-element element-type)
-  (make-string size (if initial-element (char-code initial-element) 0)))
+(defun* MAKE-STRING (size &key initial-element element-type)
+  (make-string size (if initial-element (CHAR-CODE initial-element) 0)))
