@@ -66,14 +66,34 @@
   (unless (fboundp symbol)
     (ERROR 'UNDEFINED-FUNCTION (kw NAME) symbol))
   (let ((fn (symbol-function symbol)))
-    (if (and (consp fn) (consp (third fn)))
-	(let ((ifn (second (third fn))))
-	  (if (INTERPRETED-FUNCTION-P ifn) ifn fn))
-	fn)))
+    (cond
+      ((and (consp fn)
+	    (consp (third fn))
+	    (eq (first (third fn)) 'APPLY))
+       (let ((ifn (second (third fn))))
+	 (if (INTERPRETED-FUNCTION-P ifn) ifn fn)))
+      ((and (consp fn)
+	    (consp (fourth fn))
+	    (eq (first (fourth fn)) 'APPLY))
+       (let ((ifn (second (fourth fn))))
+	 (if (INTERPRETED-FUNCTION-P ifn) ifn fn)))
+      (t fn))))
 
 (defsetf SYMBOL-FUNCTION set-symbol-function)
 
 (DEFSETF SYMBOL-FUNCTION set-symbol-function)
+
+(defun interactive-stuff (forms)
+  (some (lambda (form)
+	  (and (consp form)
+	       (eq (car form) 'DECLARE)
+	       (consp (cdr form))
+	       (or (when (eq (cadr form) 'INTERACTIVE)
+		     '((interactive)))
+		   (when (and (consp (cadr form))
+			      (eq (caadr form) 'INTERACTIVE))
+		     `((interactive ,@(cdadr form)))))))
+	forms))
 
 (defun set-symbol-function (symbol fn)
   (unless (symbolp symbol)
@@ -81,7 +101,10 @@
   (fset symbol
 	(cond
 	  ((INTERPRETED-FUNCTION-P fn)
-	   `(lambda (&rest args) (APPLY ,fn args)))
+	   `(lambda (&rest args)
+	     ,@(interactive-stuff
+		(cddr (cl:values (FUNCTION-LAMBDA-EXPRESSION fn))))
+	     (APPLY ,fn args)))
 	  ((FUNCTIONP fn)
 	   fn)
 	  (t
