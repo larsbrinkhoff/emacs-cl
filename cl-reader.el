@@ -4,6 +4,8 @@
 ;;;;
 ;;;; This file implements operators in chapter 23, Reader.
 
+(defvar *backquote-level* 0)
+
 (defstruct (readtable (:predicate readtablep) (:copier nil))
   case
   syntax-type
@@ -133,7 +135,7 @@
 	(funcall fn stream char2 nil))))
 
 (defun quote-reader (stream ch)
-  (values (list (cl:intern "QUOTE" "CL") (cl:read stream t nil t))))
+  (values (list 'QUOTE (cl:read stream t nil t))))
 
 (defun left-paren-reader (stream char)
   (do ((list nil)
@@ -146,7 +148,18 @@
   (error "unbalanced '%c'" char))
 
 (defun comma-reader (stream char)
-  nil)
+  (unless (plusp *backquote-level*)
+    (error "comma outside backquote"))
+  (let ((next-char (cl:read-char stream t nil t)))
+    (let ((*backquote-level* (1- *backquote-level*)))
+      (cond
+	((eql next-char (code-char 64))
+	 (values (list 'COMMA-AT (cl:read stream t nil t))))
+	((eql next-char (code-char 46))
+	 (values (list 'COMMA-DOT (cl:read stream t nil t))))
+	(t
+	 (unread-char next-char stream)
+	 (values (list 'COMMA (cl:read stream t nil t))))))))
 
 (defun semicolon-reader (stream ch)
   (do ()
@@ -154,7 +167,9 @@
        (values))))
 
 (defun backquote-reader (stream char)
-  nil)
+  (let* ((*backquote-level* (1+ *backquote-level*))
+	 (form (cl:read stream t nil t)))
+    (values (list 'BACKQUOTE form))))
 
 (defun sharp-backslash-reader (stream char n)
   (do ((string "")
@@ -167,7 +182,7 @@
     (setq string (concat string (list (char-code char))))))
 
 (defun sharp-quote-reader (stream char n)
-  (values (list (cl:intern "FUNCTION" "CL") (cl:read stream t nil t))))
+  (values (list 'FUNCTION (cl:read stream t nil t))))
 
 (defun sharp-left-paren-reader (stream char n)
   (values (cl:concatenate 'vector
