@@ -52,7 +52,7 @@
 	   (ERROR 'UNDEFINED-FUNCTION (kw NAME) name)
 	   fn)))
     (t
-     (not-function-name-error))))
+     (not-function-name-error name))))
 
 (defsetf FDEFINITION (name) (fn)
   `(cond
@@ -70,7 +70,7 @@
     ((setf-name-p name)
      (not (null (gethash (second name) *setf-definitions*))))
     (t
-     (not-function-name-error))))
+     (not-function-name-error name))))
     
 (defun FMAKUNBOUND (name)
   (cond
@@ -80,7 +80,7 @@
     ((setf-name-p name)
      (remhash (second name) *setf-definitions*))
     (t
-     (not-function-name-error)))
+     (not-function-name-error name)))
   name)
     
 ;;; Special operators: FLET, LABELS, MACROLET
@@ -96,7 +96,7 @@
     (t
      (APPLY (FDEFINITION fn) args))))
 
-;;; TODO: function
+;;; Special operator: FUNCTION
 
 (defun FUNCTION-LAMBDA-EXPRESSION (fn)
   (cond
@@ -115,12 +115,6 @@
   (or (byte-code-function-p object)
       (subrp object)))
 
-;;; TODO: call-argument-limit
-
-(defvar LAMBDA-LIST-KEYWORDS
-        '(&allow-other-keys &aux &body &environment &key &optional
-	  &rest &whole))
-
 (defvar *constants* '(nil T PI))
 
 (defmacro* DEFCONSTANT (name initial-value &optional documentation)
@@ -134,6 +128,13 @@
      (DEFVAR ,name ,initial-value)
      (PUSHNEW (QUOTE ,name) *constants*)
      (QUOTE ,name)))
+
+(DEFCONSTANT CALL-ARGUMENT-LIMIT 50)
+
+(DEFCONSTANT LAMBDA-LIST-KEYWORDS
+  '(&allow-other-keys &aux &body &environment &key &optional &rest &whole))
+
+(DEFCONSTANT LAMBDA-PARAMETERS-LIMIT 50)
 
 (cl:defmacro DEFVAR (name &optional (initial-value nil valuep) documentation)
   (with-gensyms (val)
@@ -301,7 +302,23 @@
 	(t
 	 nil))))
 
-;;; TODO: EQUALP
+(defun EQUALP (x y)
+  (or (EQUAL x y)
+      (cond
+	((and (CHARACTERP x) (CHARACTERP y))
+	 (CHAR-EQUAL x y))
+	((and (NUMBERP x) (NUMBERP y))
+	 (cl:= x y))
+	((and (consp x) (consp y))
+	 (and (EQUAL (car x)) (EQUAL (car y))
+	      (EQUAL (cdr x)) (EQUAL (cdr y))))
+	((and (ARRAYP x) (ARRAYP y))
+	 (and (equal (ARRAY-DIMENSIONS x) (ARRAY-DIMENSIONS y))
+	      ;; TODO
+	      'maybe))
+	;; TODO: structures and hash tables
+	(t
+	 nil))))
 
 (cl:defun IDENTITY (object)
   object)
@@ -354,8 +371,7 @@
 	  (t	`(IF ,(first clause) (PROGN ,@(rest clause))
 				     (COND ,@(rest clauses))))))))
 
-(defmacro IF (condition then &optional else)
-  `(if ,condition ,then ,else))
+;;; Special Operator: IF
 
 (cl:defmacro OR (&rest forms)
   (if (null forms)
@@ -465,6 +481,8 @@
   (setq mvals (cdr-safe list))
   (car-safe list))
 
+(DEFCONSTANT MULTIPLE-VALUES-LIMIT 20)
+
 (defmacro* NTH-VALUE (n form)
   (if (eq n 0)
       `(VALUES ,form)
@@ -474,6 +492,19 @@
 
 (cl:defmacro NTH-VALUE (n form)
   `(MULTIPLE-VALUE-CALL (LAMBDA (&rest vals) (NTH ,n vals)) ,form))
+
+(defun expand-prog (let bindings body)
+  (MULTIPLE-VALUE-BIND (body decl) (parse-body body)
+    `(BLOCK nil
+       (,let ,bindings
+	 ,@decl
+	 (TAGBODY ,@body)))))
+
+(cl:defmacro PROG (bindings &body body)
+  (expand-prog 'LET bindings body))
+
+(cl:defmacro PROG* (bindings &body body)
+  (expand-prog 'LET* bindings body))
 
 (cl:defmacro PROG1 (form1 &rest forms)
   (with-gensyms (val)
@@ -488,6 +519,8 @@
        (LET ((,val ,form2))
 	 ,@forms
 	 ,val))))
+
+;;; Special Operator: PROGN
 
 ;;; TODO:
 ; (defmacro DEFINE-MODIFY-MACRO (name lambda-list fn &optional documentation)
@@ -588,3 +621,6 @@
 ;;; TODO: SHIFTF
 
 ;;; TODO: ROTATEF
+
+;;; CONTROL-ERROR, PROGRAM-ERROR, and UNDEFINED-FUNCTION are defined
+;;; in cl-conditions.el.
