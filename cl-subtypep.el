@@ -12,8 +12,9 @@
   '(complex number null boolean keyword symbol cons list))
 
 (defvar *objects*
-  (list (complex 0 1) 0 nil t (cl:intern "reallyunlikelysymbolname" "KEYWORD")
-	(make-symbol "") (cons nil nil)))
+  (list (complex 0 1) 0 nil t (make-symbol "") (cons nil nil)
+	;; Should really be an uninterned keyword.
+	(cl:intern "reallyunlikelysymbolname" "KEYWORD")))
 
 (defvar *type-val* (make-hash-table :test 'equal))
 
@@ -35,9 +36,23 @@
 (dolist (object *objects*)
   (register object))
 
-(integer * 0)
-
-(integer -10 0)
+(defun simplify-integer-range (range &optional high)
+  (if (null range)
+      nil
+      (cons
+       (let ((x (first range)))
+	 (cond
+	   ((eq x '*)		x)
+	   ((integerp x)	x)
+	   ((realp x)		(if high (floor x) (ceiling x)))
+	   ((consp x)
+	    (setq x (car x))
+	    (cond
+	      ((integerp x)	(if high (1- x) (1+ x)))
+	      ((realp x)	(if high (1- (ceiling x)) (1+ (floor x))))
+	      (t		(error))))
+	   (t			(error))))
+       (simplify-integer-range (rest range) (not high)))))
 
 (defun negate-range (range)
   (cond
@@ -56,6 +71,9 @@
 		 ((consp x) (first x))
 		 (t (list x))))
 	     range))))
+
+(defun negate-integer-range (range)
+  (simplify-integer-range (negate-range range)))
 
 (defun ll<= (x y)
   (cond
@@ -139,12 +157,14 @@
 ; 		 (union-ranges ranges1 (cddr ranges2)))))
        (list* low1 high1 (cddr (union-ranges ranges1 (cddr ranges2))))))))
 
+(defun union-integer-ranges (r1 r2)
+  (simplify-integer-range (union-ranges r1 r2)))
+
 (defun union-types (v1 v2)
   (let* ((r1 (second v1))
 	 (r2 (second v2)))
-    (print (format "union: %s" (union-ranges (first r1) (first r2))))
     `(,(logior (first v1) (first v2))
-      (,(union-ranges (first r1) (first r2))
+      (,(union-integer-ranges (first r1) (first r2))
        ,(union-ranges (second r1) (second r2))
        ,(union-ranges (third r1) (third r2))))))
 
@@ -162,7 +182,9 @@
 	       `((,most-negative-fixnum ,most-positive-fixnum) () ()))
 	      (bignum
 	       `((* (,most-negative-fixnum) (,most-positive-fixnum) *) () ()))
-	      (integer
+	      (unsigned-byte
+	       `((0 *) () ()))
+	      ((integer signed-byte)
 	       `((* *) () ()))
 	      (ratio
 	       `(() (* *) ()))
@@ -176,37 +198,29 @@
  	 (when (cl:typep object type)
  	   (setq num (logior num (object-val object)))))))
     (t
-     (print (format "type: %s" type))
      (ecase (first type)
-       (integer	`(0 (,type () ())))
+       (mod	`(0 ((0 ,(1- mod)) () ())))
+       (integer	`(0 (,(rest type) () ())))
        (rational
-		`(0 ((integer ,(second type) ,(third type))
-		     (ratio ,(second type) ,(third type))
-		     ())))
+		`(0 (,(rest type) ,(rest type) ())))
        ((float short-float single-float double-float long-float)
-		`(0 (() () ,type)))
-       (real	`(0 ((,(second type) ,(third type))
-		     (,(second type) ,(third type))
-		     (,(second type) ,(third type)))))
-       (eql	`(,(object-val (second type))
-		  (,(second type) ,(second type))
-		  (,(second type) ,(second type))
-		  (,(second type) ,(second type))))
+		`(0 (() () ,(rest type))))
+       (real	`(0 (,(rest type) ,(rest type) ,(rest type))))
+       (eql	(if (realp (second type))
+		    `(,(object-val (second type))
+		      (,(second type) ,(second type))
+		      (,(second type) ,(second type))
+		      (,(second type) ,(second type)))
+		    `(,(object-val (second type)) (() () ()))))
        (member	(type-val `(or ,@(mapcar (lambda (obj)) `(eql ,obj))
 			       (rest type))))
-       (and	;(reduce #'logand (mapcar #'type-val (rest type))))
-		;(reduce #'intersect-types (rest type)))
-		(type-val `(not (or ,@(mapcar (lambda (type) `(not ,type))
+       (and	(type-val `(not (or ,@(mapcar (lambda (type) `(not ,type))
 				              (rest type))))))
-       (or	;(reduce #'logior (mapcar #'type-val (rest type))))
-		(print (format "or %s => %s" (rest type)
-			       (reduce #'union-types (rest type) :key #'type-val)))
-	        (reduce #'union-types (rest type) :key #'type-val))
+       (or	(reduce #'union-types (rest type) :key #'type-val))
        (not	(let* ((val (type-val (second type)))
 		       (ranges (second val)))
-		  (print (format "not %s => %s" type val))
 		  `(,(lognot (first val))
-		    (,(negate-range (first ranges))
+		    (,(negate-integer-range (first ranges))
 		     ,(negate-range (second ranges))
 		     ,(negate-range (third ranges))))))))))
 
@@ -232,12 +246,10 @@
       (setf (gethash type *type-val*) 0))
     (dolist (object *objects*)
       (register object))
-    (print *objects*)
-    (dolist (type *types*)
-      (print (format "%s => %s" type (type-val type))))
+;     (dolist (type *types*)
+;       (print (format "%s => %s" type (type-val type))))
     (let* ((val (type-val `(and ,type1 (not ,type2))))
 	   (ranges (second val)))
-      (print (format "type val %s" val))
       (and (zerop (first val))
 	   (null (first ranges))
 	   (null (second ranges))
