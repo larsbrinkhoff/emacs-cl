@@ -6,21 +6,75 @@
 (IN-PACKAGE "EMACS-CL")
 
 ;;; TODO:
-; (cl:defun COMPILE-FILE (input-file &key OUTPUT-FILE
-;				     (VERBOSE *COMPILE-VERBOSE*)
-; 				     (PRINT *COMPILE-PRINT*)
-; 				     EXTERNAL-FORMAT)
-;   nil)
+; (cl:defun COMPILE-FILE (input-file &rest keys
+; 			&key OUTPUT-FILE
+; 			     (VERBOSE *COMPILE-VERBOSE*)
+; 			     (PRINT *COMPILE-PRINT*)
+; 			     EXTERNAL-FORMAT)
+;   (let* ((*PACKAGE* *PACKAGE*)
+; 	 (*READTABLE* *READTABLE*)
+; 	 (*COMPILE-FILE-PATHNAME* (MERGE-PATHNAMES input-file))
+; 	 (*COMPILE-FILE-TRUENAME* (TRUENAME *COMPILE-FILE-PATHNAME*))
+; 	 (output (apply #'COMPILE-FILE-PATHNAME input-file keys)))
+;     (WITH-COMPILATION-UNIT ()
+;       (VALUES (TRUENAME output) warnings-p failure-p))))
 
-;;; TODO: Function COMPILE-FILE-PATHNAME
+(defun elc-file (filename)
+  (MERGE-PATHNAMES (MAKE-PATHNAME (kw TYPE) "elc") filename))
 
-(cl:defun LOAD (filespec &key (VERBOSE *LOAD-VERBOSE*) (PRINT *LOAD-PRINT*)
-		              IF-DOES-NOT-EXIST EXTERNAL-FORMAT)
-  (let ((*LOAD-PATHNAME* filespec)
-	(*LOAD-TRUENAME* (TRUENAME filespec)))
-    (load filespec)))
+(cl:defun COMPILE-FILE-PATHNAME (input-file
+				 &key (OUTPUT-FILE (elc-file input-file))
+				 &allow-other-keys)
+  (let* ((input (MERGE-PATHNAMES input-file)))
+    (MERGE-PATHNAMES OUTPUT-FILE input)))
 
-;;; TODO: Macro WITH-COMPILATION-UNIT
+(cl:defun LOAD (file &key (VERBOSE *LOAD-VERBOSE*)
+		     	  (PRINT *LOAD-PRINT*)
+		     	  (IF-DOES-NOT-EXIST T)
+		     	  (EXTERNAL-FORMAT (kw DEFAULT)))
+  (let* ((*PACKAGE* *PACKAGE*)
+	 (*READTABLE* *READTABLE*)
+	 (*LOAD-PATHNAME* (MERGE-PATHNAMES file))
+	 (*LOAD-TRUENAME* (TRUENAME *LOAD-PATHNAME*)))
+    (cond
+      ((STREAMP file)
+       (let ((val (EVAL (READ file))))
+	 (when PRINT
+	   (PRINT val)))
+       T)
+      ((STRING= (PATHNAME-TYPE file) "elc")
+       (when VERBOSE
+	 (PRINT "; Loading file ~S" file))
+       (load (NAMESTRING *LOAD-PATHNAME*))
+       T)
+      ((or (STRINGP file) (PATHNAMEP file))
+       (WITH-OPEN-FILE (stream file)
+	 (when VERBOSE
+	   (PRINT "; Loading file ~S" file))
+	 (LOAD stream (kw PRINT) PRINT)))
+      (t
+       (type-error file '(OR PATHNAME STRING STREAM))))))
+
+(defvar *compilation-unit* nil)
+(defvar *deferred-compilation-actions* nil)
+
+(cl:defmacro WITH-COMPILATION-UNIT ((&key OVERRIDE) &body body)
+  `(PROGN
+     (LET ((*compilation-unit* T))
+       ,@body)
+     (WHEN (OR ,OVERRIDE (NOT *compilation-unit*))
+       (DOLIST (fn (NREVERSE *deferred-compilation-actions*))
+	 (FUNCALL fn))
+       (SETQ *deferred-compilation-actions* nil))))
+
+(defmacro* WITH-COMPILATION-UNIT ((&key OVERRIDE) &body body)
+  `(progn
+     (let ((*compilation-unit* T))
+       ,@body)
+     (when (or ,OVERRIDE (not *compilation-unit*))
+       (dolist (fn (nreverse *deferred-compilation-actions*))
+	 (FUNCALL fn))
+       (setq *deferred-compilation-actions* nil))))
 
 (defvar *FEATURES* (list (kw COMMON-LISP)
 ; not yet	         (kw ANSI-CL)
