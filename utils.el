@@ -57,3 +57,6 @@
 
 (defun el-keyword (symbol)
   (intern (concat ":" (symbol-name symbol))))
+
+(defun map-to-gensyms (list)
+  (mapcar (lambda (x) (gensym)) list))
