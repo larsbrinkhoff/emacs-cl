@@ -223,23 +223,25 @@
 				      :use ,use-list)))
 	  ,package)))))
 
-(defmacro* DO-SYMBOLS ((var &optional (package *PACKAGE*) result)
-		       &body body)
-  (let ((ignore (gensym)))
-    `(progn
-      (maphash (lambda (,ignore ,var) ,@body) (package-table ,package))
-      ,result)))
+(cl:defmacro DO-SYMBOLS ((var &optional package result) &body body)
+  (let ((p1 (gensym)) (p2 (gensym)) (ignore (gensym)))
+    `(LET* ((,p1 ,package)
+	    (,p2 (IF ,p1 (FIND-PACKAGE ,p1) *PACKAGE*)))
+       (maphash (QUOTE (lambda (,ignore ,var) ,@body))
+	        (package-table ,p2)))))
 
-; (cl:defmacro DO-SYMBOLS ((var &optional (package *PACKAGE*) result)
-; 		      &body body)
-;   42)
+(cl:defmacro DO-EXTERNAL-SYMBOLS ((var &optional package result) &body body)
+  (let ((p1 (gensym)) (p2 (gensym)))
+    `(LET* ((,p1 ,package)
+	    (,p2 (IF ,p1 (FIND-PACKAGE ,p1) *PACKAGE*)))
+       (DOLIST (,var (aref ,p2 7) ,result)
+	 ,@body))))
 
-;   (let ((ignore (gensym)))
-;     `(progn
-;       (maphash (lambda (,ignore ,var) ,@body) (package-table ,package))
-;       ,result)))
-
-;;; do-external-symbols
+(cl:defmacro DO-ALL-SYMBOLS ((var &optional result) &body body)
+  (let ((p (gensym)) (ignore (gensym)))
+    `(DOLIST (,p *all-packages*)
+       (maphash (QUOTE (lambda (,ignore ,var) ,@body))
+	        (package-table ,p)))))
 
 ;;; do-all-symbols
 
