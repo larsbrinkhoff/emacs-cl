@@ -483,15 +483,27 @@
   (when (potential-number-p string)
     (MULTIPLE-VALUE-BIND (integer end)
 	(PARSE-INTEGER string :radix *READ-BASE* :junk-allowed T)
-      (when (and integer (= end (length string)))
-	(return-from parse-number (VALUES integer)))
-      (when (and integer
-		 (CHAR= (CHAR string end) (CODE-CHAR 47)))
-	(MULTIPLE-VALUE-BIND (denumerator end2)
-	    (PARSE-INTEGER string :radix *READ-BASE* :start (1+ end)
-			   :junk-allowed T)
-	  (when (and denumerator (= end2 (length string)))
-	    (VALUES (cl:/ integer denumerator))))))))
+      (unless integer
+	(return-from parse-integer (VALUES nil)))
+      (cond
+	((= end (length string))
+	 (return-from parse-number (VALUES integer)))
+	((CHAR= (CHAR string end) (CODE-CHAR 47))
+	 (MULTIPLE-VALUE-BIND (denumerator end2)
+	     (PARSE-INTEGER string :radix *READ-BASE* :start (1+ end)
+			    :junk-allowed T)
+	   (when (and denumerator (= end2 (length string)))
+	     (VALUES (cl:/ integer denumerator)))))
+	((CHAR= (CHAR string end) (CODE-CHAR 46))
+	 (MULTIPLE-VALUE-BIND (fraction end2)
+	     (PARSE-INTEGER string :radix *READ-BASE* :start (1+ end)
+			    :junk-allowed T)
+	   (when (and fraction (= end2 (length string)))
+	     (VALUES
+	      (cl:+ integer
+		    (cl:* (if (MINUSP integer) -1 1)
+			  (FLOAT fraction)
+			  (EXPT *READ-BASE* (cl:- end end2 -1))))))))))))
 
 (defun* READ-DELIMITED-LIST (delimiter &optional (stream *STANDARD-INPUT*)
 			                         recursive-p)
