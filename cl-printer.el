@@ -40,10 +40,8 @@
 	 (*STANDARD-OUTPUT* stream)
 	 (standard-output #'write-char-to-*standard-output*))
     (cond
-      ((integerp object)
-       (if (eq *PRINT-BASE* 10)
-	   (princ object)
-	   (prin1-integer object stream)))
+      ((INTEGERP object)
+       (prin1-integer object stream))
       ((floatp object)
        (princ object))
       ((symbolp object)
@@ -147,12 +145,25 @@
   (VALUES object))
 
 (defun prin1-integer (number stream)
+  (when *PRINT-RADIX*
+    (case *PRINT-BASE*
+      (2	(WRITE-STRING "#b" stream))
+      (8	(WRITE-STRING "#o" stream))
+      (10)
+      (16	(WRITE-STRING "#x" stream))
+      (t	(WRITE-STRING "#" stream)
+		(let* ((base *PRINT-BASE*) (*PRINT-BASE* 10)) (PRIN1 base)))))
   (when (MINUSP number)
     (WRITE-STRING "-" stream)
     (setq number (cl:- number)))
+  (print-digits number stream)
+  (when (and *PRINT-RADIX* (eq *PRINT-BASE* 10))
+    (WRITE-STRING "." stream)))
+
+(defun print-digits (number stream)
   (when (PLUSP number)
     (MULTIPLE-VALUE-BIND (number digit) (TRUNCATE number *PRINT-BASE*)
-      (prin1-integer number stream)
+      (print-digits number stream)
       (WRITE-CHAR (AREF "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" digit)
 		  stream))))
 
@@ -176,3 +187,5 @@
   object)
 
 (defvar *PRINT-BASE* 10)
+
+(defvar *PRINT-RADIX* nil)
