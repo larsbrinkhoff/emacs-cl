@@ -1015,13 +1015,13 @@
   (cond
     ((eq num 0)		0)
     ((integerp num)	(1+ (logb num)))
-    ((bignump num)	(let* ((len (length num))
-			       (last (aref num (1- len))))
-			  (+ (* fixnum-bits (- len 2))
+    ((bignump num)	(let* ((len (1- (length num)))
+			       (last (aref num len)))
+			  (+ (* fixnum-bits (1- len))
 			     (if (zerop last)
 				 0
 				 (1+ (logb last))))))
-    (t			(error "type error"))))
+    (t			(type-error num 'INTEGER))))
 
 (defun bignump (num)
   (vector-and-typep num 'BIGNUM))
