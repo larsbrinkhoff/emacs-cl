@@ -42,6 +42,8 @@ Emacs features wish list:
  * A function that returns the amount of processor time used, for
    implementing get-internal-run-time.
 
+ * A way to portably attach information to byte-code objects.
+
 
 
 There are problems with the cl:function macro when its output appears
