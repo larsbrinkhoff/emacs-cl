@@ -571,6 +571,8 @@
    (not (find (aref string (1- (length string))) "+-"))))
 
 (defun* parse-number (string)
+  ;; TODO: parse floats starting with a period.
+
   ;; First, is it a string of decimal digits followed by a period or an
   ;; exponent marker?  If so, can be either a decimal integer or a float.
   (MULTIPLE-VALUE-BIND (integer end)

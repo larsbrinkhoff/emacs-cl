@@ -5,6 +5,28 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+;;; TODO: Function COPY-PPRINT-DISPATCH
+
+;;; TODO: Macro FORMATTER
+
+;;; TODO: Function PPRINT-DISPATCH
+
+;;; TODO: Local Macro PPRINT-EXIT-IF-LIST-EXHAUSTED
+
+;;; TODO: Function PPRINT-FILL, PPRINT-LINEAR, PPRINT-TABULAR
+
+;;; TODO: Function PPRINT-INDENT
+
+;;; TODO: Macro PPRINT-LOGICAL-BLOCK
+
+;;; TODO: Function PPRINT-NEWLINE
+
+;;; TODO: Local Macro PPRINT-POP
+
+;;; TODO: Function PPRINT-TAB
+
+;;; TODO: Standard Generic Function PRINT-OBJECT
+
 (defvar *object-identities* (make-hash-table :test #'eq :weakness t))
 
 (defvar *identity-counter* 12345)
@@ -47,6 +69,8 @@
     (WRITE-STRING "}" stream))
   (WRITE-STRING ">" stream)
   nil)
+
+;;; TODO: Function SET-PPRINT-DISPATCH
 
 (defun external-symbol-p (symbol)
   (eq (NTH-VALUE 1 (FIND-SYMBOL (SYMBOL-NAME symbol) (SYMBOL-PACKAGE symbol)))
@@ -201,6 +225,14 @@
       (WRITE-CHAR (AREF "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" digit)
 		  stream))))
 
+(defun PRINT (object &optional stream)
+  (TERPRI stream)
+  (PRIN1 object stream)
+  (WRITE-CHAR (CODE-CHAR 32) stream)
+  object)
+
+;;; TODO: PPRINT
+
 (defun PRINC (object &optional stream-designator)
   (let* ((stream (output-stream stream-designator))
 	 (*STANDARD-OUTPUT* stream)
@@ -214,12 +246,38 @@
       (t
        (error "TODO")))))
 
-(defun PRINT (object &optional stream)
-  (TERPRI stream)
-  (PRIN1 object stream)
-  (WRITE-CHAR (CODE-CHAR 32) stream)
-  object)
+;;; TODO: Function WRITE-TO-STRING, PRIN1-TO-STRING, PRINC-TO-STRING
+
+;;; TODO: Variable *PRINT-ARRAY*
 
 (defvar *PRINT-BASE* 10)
 
 (defvar *PRINT-RADIX* nil)
+
+;;; TODO: Variable *PRINT-CASE*
+
+;;; TODO: Variable *PRINT-CIRCLE*
+
+;;; TODO: Variable *PRINT-ESCAPE*
+
+;;; TODO: Variable *PRINT-GENSYM*
+
+;;; TODO: Variable *PRINT-LEVEL*, *PRINT-LENGTH*
+
+;;; TODO: Variable *PRINT-LINES*
+
+;;; TODO: Variable *PRINT-MISER-WIDTH*
+
+;;; TODO: Variable *PRINT-PPRINT-DISPATCH*
+
+;;; TODO: Variable *PRINT-PRETTY*
+
+;;; TODO: Variable *PRINT-READABLY*
+
+;;; TODO: Variable *PRINT-RIGHT-MARGIN*
+
+;;; TODO: Condition Type PRINT-NOT-READABLE
+
+;;; TODO: Function PRINT-NOT-READABLE-OBJECT
+
+;;; TODO: Function FORMAT

@@ -5,6 +5,12 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+;;; TODO: Function DECODE-UNIVERSAL-TIME
+
+;;; TODO: function ENCODE-UNIVERSAL-TIME
+
+;;; TODO: Function GET-UNIVERSAL-TIME, GET-DECODED-TIME
+
 (defun SLEEP (seconds)
   (sit-for (if (or (integerp seconds) (floatp seconds))
 	       seconds
@@ -12,6 +18,16 @@
 	   0 t)
   ;; TODO: if sit-for didn't return t, sleep some more.
   nil)
+
+;;; TODO: Function APROPOS, APROPOS-LIST
+
+;;; TODO: Function DESCRIBE
+
+;;; TODO: Standard Generic Function DESCRIBE-OBJECT
+
+;;; TODO: Macro TRACE, UNTRACE
+
+;;; TODO: Macro STEP
 
 (cl:defmacro TIME (form)
   (with-gensyms (start val end)
@@ -34,7 +50,7 @@
 	 (microsec (third time)))
     (binary+ (binary* (binary+ (binary* high 65536) low) 1000000) microsec)))
 
-;;; (defun GET-INTERNAL-RUN-TIME ())
+;;; TODO: Function GET-INTERNAL-RUN-TIME
 
 (defun DISASSEMBLE (fn)
   (when (or (symbolp fn) (setf-name-p fn))
@@ -43,6 +59,8 @@
     nil)
   (disassemble fn)
   nil)
+
+;;; TODO: Standard Generic Function DOCUMENTATION, (SETF DOCUMENTATION)
 
 (cl:defun ROOM (&optional (x (kw DEFAULT)))
   (let* ((info (garbage-collect))
@@ -87,6 +105,29 @@
       (t
        (type-error x `(OR BOOLEAN (EQL ,(kw DEFAULT))))))))
 
+;;; TODO: Function ED
+
+;;; TODO: Function INSPECT
+
+;;; TODO: Function DRIBBLE
+
+(defvar cl:- nil)
+(defvar cl:+ nil)
+(defvar ++ nil)
+(defvar +++ nil)
+(defvar cl:* nil)
+(defvar ** nil)
+(defvar *** nil)
+(defvar cl:/ nil)
+(defvar // nil)
+(defvar /// nil)
+
+(defun LISP-IMPLEMENTATION-TYPE ()
+  "Emacs CL")
+
+(defun LISP-IMPLEMENTATION-VERSION ()
+  "0.1")
+
 (defun SHORT-SITE-NAME ()
   nil)
 
@@ -108,19 +149,4 @@
 (defun SOFTWARE-VERSION ()
   nil)
 
-(defvar cl:* nil)
-(defvar ** nil)
-(defvar ***)
-(defvar cl:+ nil)
-(defvar ++ nil)
-(defvar +++)
-(defvar cl:/ nil)
-(defvar // nil)
-(defvar ///)
-(defvar cl:- nil)
-
-(defun LISP-IMPLEMENTATION-TYPE ()
-  "Emacs CL")
-
-(defun LISP-IMPLEMENTATION-VERSION ()
-  "0.1")
+;;; TODO: Function USER-HOMEDIR-PATHNAME
