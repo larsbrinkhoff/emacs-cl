@@ -183,7 +183,7 @@
 
 (defun sharp-backslash-reader (stream char n)
   (do ((string "")
-       (char #1=(READ-CHAR stream nil ?  T) #1#))
+       (char #1=(READ-CHAR stream nil (CODE-CHAR 32) T) #1#))
       ((not (constituentp char))
        (UNREAD-CHAR char stream)
        (VALUES (if (= (length string) 1)
@@ -197,7 +197,19 @@
 (defun sharp-left-paren-reader (stream char n)
   (VALUES (CONCATENATE 'VECTOR (READ-DELIMITED-LIST (CODE-CHAR 41) stream))))
 
-(defun sharp-asterisk-reader (stream char n) nil)
+(defun bit-vector (contents)
+  (let* ((len (length contents))
+	 (vec (make-bool-vector len nil)))
+    (dotimes (i len vec)
+      (aset vec i (nth i contents)))))
+
+(defun sharp-asterisk-reader (stream char n)
+  (do ((contents nil)
+       (char #1=(READ-CHAR stream nil (CODE-CHAR 32) T) #1#))
+      ((not (constituentp char))
+       (UNREAD-CHAR char stream)
+       (VALUES (bit-vector (nreverse contents))))
+    (push (ecase (CHAR-CODE char) (48 nil) (49 1)) contents)))
 
 (defun sharp-colon-reader (stream char n)
   (do ((string "")
