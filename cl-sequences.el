@@ -31,12 +31,18 @@
     ((listp sequence)
      (nth index sequence))
     ((VECTORP sequence)
-     (if (and (ARRAY-HAS-FILL-POINTER-P sequence)
-	      (cl:< index (FILL-POINTER sequence)))
-	 (aref sequence index)
-	 (error)))
+     (if (ARRAY-HAS-FILL-POINTER-P sequence)
+	 (if (cl:< index (FILL-POINTER sequence))
+	     (AREF sequence index)
+	     (error))
+	 (AREF sequence index)))
     (t
-     (error))))
+     (error "type error"))))
+
+(defsetf ELT (sequence index) (obj)
+  `(if (listp ,sequence)
+       (setf (nth ,index ,sequence) ,obj)
+       (setf (AREF ,sequence ,index) ,obj)))
 
 ;;; TODO: fill
 
@@ -58,15 +64,28 @@
 ;;; TODO: subseq
 
 (defun* MAP (type fn &rest sequences)
-  (unless (eq type 'LIST)
-    (error "TODO"))
-  (let ((result nil))
-    (dolist (seq sequences)
-      (dosequence (x seq)
-        (push (FUNCALL fn x) result)))
-    (nreverse result)))
+  (let ((i 0)
+	(result nil))
+    (loop
+      (when (some (lambda (seq) (eq i (LENGTH seq))) sequences)
+	(return-from MAP
+	  (progn
+	    (setq result (nreverse result))
+	    (ecase type
+	      (LIST	result)
+	      (VECTOR	(apply #'VECTOR result))))))
+      (push (APPLY fn (mapcar (lambda (seq) (ELT seq i)) sequences)) result)
+      (incf i))))
 
-;;; TODO: map-into
+(defun* MAP-INTO (result fn &rest sequences)
+  (let ((i 0))
+    (loop
+      (when (or (eq i (LENGTH result))
+		(some (lambda (seq) (eq i (LENGTH seq))) sequences))
+	(return-from MAP-INTO result))
+      (setf (ELT result i) (APPLY fn (mapcar (lambda (seq) (ELT seq i))
+					     sequences)))
+      (incf i))))
 
 ;;; TODO: reduce
 
@@ -87,23 +106,33 @@
     (t
      (error))))
 
+(defun* SORT (sequence predicate &key (key #'IDENTITY))
+  (cond 
+    ((listp sequence)
+     (sort sequence (lambda (x y)
+		      (FUNCALL predicate (FUNCALL key x) (FUNCALL key y)))))
+    ((VECTORP sequence)
+     (MAP-INTO sequence
+	       #'IDENTITY
+	       (SORT (MAP 'LIST #'IDENTITY sequence) predicate :key key)))
+    (t
+     (error "type error"))))
+
 (defmacro* dovector ((var vector &optional result) &body body)
-  (let ((i (gensym))
-	(len (gensym))
-	(vec (gensym)))
+  (with-gensyms (i len vec)
     `(let* (,var (,i 0) (,vec ,vector) (,len (LENGTH ,vec)))
-      (while (< ,i ,len)
-	(setq ,var (AREF ,vec ,i))
-	,@body
-	(incf ,i))
-      ,result)))
+       (while (< ,i ,len)
+	 (setq ,var (AREF ,vec ,i))
+	 ,@body
+	 (incf ,i))
+       ,result)))
 
 (defmacro* dosequence ((var sequence &optional result) &body body)
   (let ((seq (gensym)))
     `(let ((,seq ,sequence))
-      (if (listp ,seq)
-	  (dolist (,var ,seq ,result) ,@body)
-	  (dovector (,var ,seq ,result) ,@body)))))
+       (if (listp ,seq)
+	   (dolist (,var ,seq ,result) ,@body)
+	   (dovector (,var ,seq ,result) ,@body)))))
 
 (defun CONCATENATE (type &rest sequences)
   (ecase type
