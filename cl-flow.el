@@ -569,7 +569,7 @@
 		  (list* ',access-fn temps)))))
 
 (defun* long-form-defsetf (access-fn lambda-list variables &body body)
-  (let ((args (remove-if (lambda (x) (member x LAMBDA-LIST-KEYWORDS))
+  (let ((args (remove-if (lambda (x) (memq x '(&optional &rest &key)))
 			 lambda-list)))
     `(DEFINE-SETF-EXPANDER ,access-fn ,lambda-list
        (let* ((var (gensym))
