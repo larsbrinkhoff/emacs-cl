@@ -1,7 +1,7 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
 ;;; Copyright (C) 2003 Lars Brinkhoff.
-;;; This file implements the TYPEP operator.
+;;; This file implements the TYPEP function from chapter 4, Types and Classes.
 
 (IN-PACKAGE "EMACS-CL")
 

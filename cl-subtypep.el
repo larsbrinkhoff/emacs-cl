@@ -2,9 +2,9 @@
 ;;;
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;;
-;;; This file implements the SUBTYPEP operator.  The implementation is
-;;; based on Henry Baker's paper A Decision Procedure for Common
-;;; Lisp's SUBTYPEP Predicate.
+;;; This file implements the SUBTYPEP function from chapter 4, Types
+;;; and Classes.  The implementation is based on Henry Baker's paper A
+;;; Decision Procedure for Common Lisp's SUBTYPEP Predicate.
 
 (IN-PACKAGE "EMACS-CL")
 
@@ -260,7 +260,7 @@
       (register object))
 ;     (dolist (type *types*)
 ;       (print (format "%s => %s" type (type-val type))))
-    (let* ((val (type-val `(and ,type1 (not ,type2))))
+    (let* ((val (type-val `(AND ,type1 (NOT ,type2))))
 	   (ranges (second val)))
       (and (zerop (first val))
 	   (null (first ranges))
