@@ -50,7 +50,7 @@
 (defun lexical-or-global-function (name env)
   (multiple-value-bind (type localp decl) (function-information name env)
     (ecase type
-      ((nil)		(error "unbound function %s" name))
+      ((nil)		(ERROR 'UNBOUND-FUNCTION (kw NAME) name))
       (:function	(if localp
 			    (lexical-function name env)
 			    (FDEFINITION name)))
@@ -60,17 +60,17 @@
   (VALUES
     (cond
       ((SYMBOLP form)		(lexical-or-global-function form env))
-      ((ATOM form)		(error "syntax error"))
+      ((ATOM form)		(not-function-name-error form))
       ((case (first form)
 	 (LAMBDA		(enclose form env))
 	 (SETF			(lexical-or-global-function form env))
-	 (t			(error "syntax error")))))))
+	 (t			(not-function-name-error form)))))))
 
 (define-special-operator GO (tag) env
   (let ((info (tagbody-information tag env)))
     (if info
 	(throw info tag)
-	(error "syntax error"))))
+	(ERROR 'PROGRAM-ERROR))))
 
 (define-special-operator IF (condition then &optional else) env
   (if (eval-with-env condition env)
@@ -179,11 +179,11 @@
   (let ((info (block-information tag env)))
     (if info
 	(throw (cdr info) (eval-with-env form env))
-	(error "syntax error"))))
+	(ERROR 'PROGRAM-ERROR))))
 
 (define-special-operator SETQ (&rest forms) env
   (when (oddp (length forms))
-    (error "syntax error"))
+    (ERROR (format "odd number of forms in setq")))
   (do* (lastval
 	(forms forms (cddr forms)))
        ((null forms)
@@ -375,33 +375,35 @@
 (defun eval-with-env (form env)
   (unless env
     (setq env *global-environment*))
-  (setq form (NTH-VALUE 0 (MACROEXPAND form env)))
+  (setq form (MACROEXPAND form env))
   (cond
     ((SYMBOLP form)
      (VALUES
        (ecase (nth-value 0 (variable-information form env))
-	 ((nil)		(error "unbound variable %s" form))
+	 ((nil)		(ERROR 'UNBOUND-VARIABLE (kw NAME) form))
 	 (:special	(SYMBOL-VALUE form))
 	 (:lexical	(lexical-value form env))
 	 (:symbol-macro	(error "shouldn't happen yet"))
 	 (:constant	(SYMBOL-VALUE form)))))
     ((ATOM form)
      (VALUES form))
+    ((consp (car form))
+     (if (eq (caar form) 'LAMBDA)
+	 (eval-lambda-form form env t)
+	 (ERROR 'PROGRAM-ERROR)))
     (t
-     (if (consp (car form))
-	 (if (eq (caar form) 'LAMBDA)
-	     (eval-lambda-form form env t)
-	     (error "syntax error: %s" form))
-	 (let ((fn (gethash (first form) *special-operator-evaluators*)))
-	   (if fn
-	       (apply fn env (rest form))
-	       (let ((fn (lexical-or-global-function (first form) env)))
-		 (if (listp fn)
-		     ;; Special hack for interpreted Emacs Lisp function.
-		     (apply fn (mapcar (lambda (arg) (eval-with-env arg env))
-				       (rest form)))
-		     (APPLY fn (mapcar (lambda (arg) (eval-with-env arg env))
-				       (rest form)))))))))))
+     (let* ((name (first form))
+	    (fn (gethash name *special-operator-evaluators*)))
+       (cond
+	 (fn
+	  (apply fn env (rest form)))
+	 ((setq fn (lexical-or-global-function name env))
+	  (if (listp fn)
+	      ;; Special hack for interpreted Emacs Lisp function.
+	      (apply fn (mapcar (lambda (arg) (eval-with-env arg env))
+				(rest form)))
+	      (APPLY fn (mapcar (lambda (arg) (eval-with-env arg env))
+				(rest form))))))))))
 
 (defun EVAL (form)
   (eval-with-env form nil))
