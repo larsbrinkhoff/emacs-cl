@@ -10,6 +10,8 @@
 ;;; a hash table or a list of exported symbols.  Instead, symbols are
 ;;; searched with intern-soft, and all symbols are exported.
 
+(defconst kw:EXTERNAL (keyword "EXTERNAL"))
+
 ;;; The PACKAGE system class is built in.
 
 (defun PACKAGE-NAME (package)
@@ -95,7 +97,7 @@
 	     (progn
 	       (unless (SYMBOL-PACKAGE symbol)
 		 (setf (SYMBOL-PACKAGE symbol) *emacs-lisp-package*))
-	       (VALUES symbol (kw external)))
+	       (VALUES symbol kw:EXTERNAL))
 	     (VALUES nil nil))))
       (t
        (let* ((table (package-table package))
@@ -103,7 +105,7 @@
 	 (if (not (eq symbol not-found))
 	     (VALUES symbol
 		     (if (member symbol (package-exported package))
-			 (kw external)
+			 kw:EXTERNAL
 			 (kw INTERNAL)))
 	     (dolist (p (PACKAGE-USE-LIST package) (VALUES nil nil))
 	       (MULTIPLE-VALUE-BIND (symbol found) (FIND-SYMBOL string p)
@@ -120,7 +122,7 @@
 	(syms nil))
     (dolist (p *all-packages* (VALUES syms))
       (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL string p)
-	(if (or (eq status :internal) (eq status (kw external)))
+	(if (or (eq status :internal) (eq status kw:EXTERNAL))
 	    (push sym syms))))))
 
 (defun* IMPORT (symbols &optional (package-designator *PACKAGE*))
