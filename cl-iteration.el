@@ -6,6 +6,6 @@
 (IN-PACKAGE "EMACS-CL")
 
 (cl:defmacro DOLIST ((var list &optional result) &body body)
-  `(progn
+  `(PROGN
     (MAPC (LAMBDA (,var) ,@body) ,list)
     ,result))
