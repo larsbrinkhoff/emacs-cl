@@ -21,21 +21,25 @@
 
 (defmacro* DEFUN (name lambda-list &body body)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (SETF (FDEFINITION ,name) (function* (lambda ,lambda-list ,@body)))))
+     (SETF (FDEFINITION ',name) (function* (lambda ,lambda-list ,@body)))))
 
-; (cl:defmacro DEFUN (name lambda-list &body body)
-;   `(EVAL-WHEN (:COMPILE-TOPLEVEL :LOAD-TOPLEVEL :EXECUTE)
-;      (SETF (FDEFINITION ,name)
-;	     (FUNCTION (LAMBDA ,lambda-list
-;	       (BLOCK ,name ,@body))))
-;      ',name))
+(cl:defmacro DEFUN (name lambda-list &body body)
+  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
+	       ,(keyword "LOAD-TOPLEVEL")
+	       ,(keyword "EXECUTE"))
+     (SETF (FDEFINITION (QUOTE ,name))
+           (FUNCTION (LAMBDA ,lambda-list (BLOCK ,name ,@body))))
+     (QUOTE ,name)))
 
 (defun FDEFINITION (name)
   (cond
     ((symbolp name)
      (symbol-function name))
     ((and (consp name) (eq (first name) 'SETF) (eq (cddr name) nil))
-     (gethash (second name) *setf-definitions*))
+     (let ((fn (gethash (second name) *setf-definitions*)))
+       (if (null fn)
+	   (error "unbound function")
+	   fn)))
     (t
      (error))))
 
@@ -48,11 +52,34 @@
     (t
      (error "type error"))))
 
-;;; TODO: fboundp
+(DEFSETF FDEFINITION (name) (fn)
+  `(COND
+    ((SYMBOLP ,name)
+     (SETF (SYMBOL-FUNCTION ,name) ,fn))
+    ((AND (CONSP ,name) (EQ (FIRST ,name) 'SETF) (EQ (CDDR ,name) NIL))
+     (SETF (gethash (second ,name) *setf-definitions*) ,fn))
+    (T
+     (error "type error"))))
 
-;;; TODO: fmakunbound
-
-;;; TODO: flet, labels, macrolet
+(defun FBOUNDP (name)
+  (cond
+    ((symbolp name)
+     (fboundp name))
+    ((and (consp name) (eq (first name) 'SETF) (eq (cddr name) nil))
+     (not (null (gethash (second name) *setf-definitions*))))
+    (t
+     (error "type error"))))
+    
+(defun FMAKUNBOUND (name)
+  (cond
+    ((symbolp name)
+     (fmakunbound name))
+    ((and (consp name) (eq (first name) 'SETF) (eq (cddr name) nil))
+     (remhash (second name) *setf-definitions*))
+    (t
+     (error "type error"))))
+    
+;;; Special operators: FLET, LABELS, MACROLET.
 
 (defun FUNCALL (fn &rest args)
   (cond
@@ -417,3 +444,9 @@
     `(LET* (,@(MAPCAR #'list temps values)
 	    (,(first variables) ,value))
        ,setter)))
+
+;;; TODO: PSETF
+
+;;; TODO: SHIFTF
+
+;;; TODO: ROTATEF
