@@ -234,7 +234,7 @@
 			      (EXTERNAL-FORMAT (kw DEFAULT)))
   (mk-FILE-STREAM
    (kw filename) (when (eq DIRECTION (kw OUTPUT)) filespec)
-   (kw content) (let ((buffer (create-file-buffer filespec)))
+   (kw content) (let ((buffer (create-file-buffer (NAMESTRING filespec))))
 		  (when (eq DIRECTION (kw INPUT))
 		    (save-current-buffer
 		      (set-buffer buffer)
