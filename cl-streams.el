@@ -60,7 +60,6 @@
 (defun TERPRI (&optional stream-designator)
   (let ((stream (output-stream stream-designator)))
     (WRITE-CHAR (CODE-CHAR 10) stream))
-  (sit-for 0)
   nil)
 
 ;;; TODO: FRESH-LINE
@@ -89,16 +88,16 @@
 	  (return-from READ-LINE (VALUES line nil))))
        (setq line (concat line (list (CHAR-CODE char))))))))
 
-(defun* WRITE-STRING (string &optional stream-designator &key (start 0) end)
+(cl:defun WRITE-STRING (string &optional stream-designator &key (start 0) end)
   (do ((stream (output-stream stream-designator))
        (i 0 (1+ i)))
       ((= i (LENGTH string)) string)
     (WRITE-CHAR (CHAR string i) stream)))
 
-(defun* WRITE-LINE (string &optional stream-designator &key (start 0) end)
+(cl:defun WRITE-LINE (string &optional stream-designator &key (start 0) end)
   (let ((stream (output-stream stream-designator)))
     (WRITE-STRING string stream :start start :end end)
-    (WRITE-CHAR 10 stream)
+    (TERPRI stream)
     string))
 
 ;;; TODO: read-sequence
@@ -110,9 +109,9 @@
 (defun FILE-POSITION (stream)
   (STREAM-index stream))
 
-(defun* OPEN (filespec &key (direction :input) (element-type 'CHARACTER)
-		            if-exists if-does-not-exist
-			    (external-format :default))
+(cl:defun OPEN (filespec &key (direction (kw INPUT)) (element-type 'CHARACTER)
+		              if-exists if-does-not-exist
+			      (external-format (kw DEFAULT)))
   (MAKE-STREAM :filename (when (eq direction :output) filespec)
 	       :content (let ((buffer (create-file-buffer filespec)))
 			  (when (eq direction :input)
@@ -135,15 +134,15 @@
 
 ;;; TODO: stream-external-format
 
-(defmacro* WITH-OPEN-FILE ((stream filespec &rest options) &body body)
-  `(WITH-OPEN-STREAM (,stream (OPEN ,filespec ,@options))
-     ,@body))
+; (defmacro* WITH-OPEN-FILE ((stream filespec &rest options) &body body)
+;   `(WITH-OPEN-STREAM (,stream (OPEN ,filespec ,@options))
+;      ,@body))
 
 (cl:defmacro WITH-OPEN-FILE ((stream filespec &rest options) &body body)
   `(WITH-OPEN-STREAM (,stream (OPEN ,filespec ,@options))
      ,@body))
 
-(defun* CLOSE (stream &key abort)
+(cl:defun CLOSE (stream &key abort)
   (when (STREAM-filename stream)
     (save-current-buffer
       (set-buffer (STREAM-content stream))
@@ -152,11 +151,11 @@
     (kill-buffer (STREAM-content stream)))
   T)
 
-(defmacro* WITH-OPEN-STREAM ((var stream) &body body)
-  `(let ((,var ,stream))
-    (unwind-protect
-	 (progn ,@body)
-      (CLOSE ,var))))
+; (defmacro* WITH-OPEN-STREAM ((var stream) &body body)
+;   `(let ((,var ,stream))
+;     (unwind-protect
+; 	 (progn ,@body)
+;       (CLOSE ,var))))
 
 (cl:defmacro WITH-OPEN-STREAM ((var stream) &body body)
   `(LET ((,var ,stream))
@@ -205,7 +204,7 @@
 (defun GET-OUTPUT-STREAM-STRING (stream)
   (STREAM-content stream))
 
-(defun* MAKE-STRING-INPUT-STREAM (string &optional (start 0) end)
+(cl:defun MAKE-STRING-INPUT-STREAM (string &optional (start 0) end)
   (MAKE-STREAM :content (let ((substr (substring string start end)))
 			  (if (> (length substr) 0)
 			      substr
@@ -223,7 +222,7 @@
 				   (1- (incf (STREAM-index stream)))))))
 	       :write-fn (lambda (c s) (error "write to input stream"))))
 
-(defun* MAKE-STRING-OUTPUT-STREAM (&key element-type)
+(cl:defun MAKE-STRING-OUTPUT-STREAM (&key (element-type 'CHARACTER))
   (MAKE-STREAM :content ""
 	       :index 0
 	       :read-fn (lambda (s) (error "read from output stream"))
@@ -233,10 +232,27 @@
 			 (concat (STREAM-content stream)
 				 (list char))))))
 
-(defmacro* WITH-INPUT-FROM-STRING ((var string &key index (start 0) end)
-				   &body body)
+; (defmacro* WITH-INPUT-FROM-STRING ((var string &key index (start 0) end)
+; 				   &body body)
+;   `(WITH-OPEN-STREAM (,var (MAKE-STRING-INPUT-STREAM ,string ,start ,end))
+;      ,@body))
+
+(cl:defmacro WITH-INPUT-FROM-STRING ((var string &key index (start 0) end)
+				     &body body)
   `(WITH-OPEN-STREAM (,var (MAKE-STRING-INPUT-STREAM ,string ,start ,end))
      ,@body))
+
+(cl:defmacro WITH-OUTPUT-TO-STRING ((var &optional string &key element-type)
+				    &body body)
+  (when (null element-type)
+    (setq element-type '(QUOTE CHARACTER)))
+  (if string
+      `(WITH-OPEN-STREAM (,var (make-fill-pointer-output-stream ,string))
+	 ,@body)
+      `(WITH-OPEN-STREAM (,var (MAKE-STRING-OUTPUT-STREAM
+				,(kw ELEMENT-TYPE) ,element-type))
+	 ,@body
+	 (GET-OUTPUT-STREAM-STRING ,var))))
 
 ;;; TODO: with-output-to-string (needs strings with fill pointers)
 ;;; (which we now have)
@@ -250,10 +266,20 @@
 	       :read-fn (lambda (s) (error "read from output stream"))
 	       :write-fn
 	         (lambda (char stream)
-		   (insert char))))
+		   (insert char)
+		   (sit-for 0))))
 
 (defun make-read-char-exclusive-input-stream ()
   (MAKE-STREAM :content nil
 	       :index 0
 	       :read-fn (lambda (s) (read-char-exclusive))
 	       :write-fn (lambda (c s) (error "write to input stream"))))
+
+(defun make-fill-pointer-output-stream (string)
+  (MAKE-STREAM :content string
+	       :index 0
+	       :read-fn (lambda (s) (error "read from output stream"))
+	       :write-fn (lambda (char stream)
+			   (VECTOR-PUSH-EXTEND
+			    (CODE-CHAR char)
+			    (STREAM-content stream)))))
