@@ -154,7 +154,7 @@
     ((ratiop num)
      (minusp (NUMERATOR num)))
     (t
-     (error "type error"))))
+     (type-error num 'REAL))))
 
 (defun PLUSP (num)
   (cond
@@ -165,7 +165,7 @@
     ((ratiop num)
      (plusp (NUMERATOR num)))
     (t
-     (error "type error"))))
+     (type-error num 'REAL))))
 
 (defun ZEROP (num)
   (cond
@@ -178,7 +178,7 @@
     ((bignump num)
      nil)
     (t
-     (error "type error"))))
+     (type-error num 'NUMBER))))
 
 (defconst fixnum-bits (1+ (round (log most-positive-fixnum 2))))
 
@@ -194,9 +194,9 @@
 	   (r 0)
 	   (i (1- (if (integerp x) fixnum-bits (* fixnum-bits (1- (length x)))))))
        (when (MINUSP x)
-	 (setq sign -1))
+	 (setq x (cl:- x) sign -1))
        (when (MINUSP y)
-	 (setq sign (- sign)))
+	 (setq y (cl:- y) sign (- sign)))
        (while (>= i 0)
 ;	 (print (format "x=%s y=%s q=%s r=%s" x y q r))
 	 (setq r (ASH r 1))
@@ -898,7 +898,7 @@
 
 (defun NUMERATOR (num)
   (if (ratiop num)
-      (ration-num num)
+      (ratio-num num)
       num))
 
 (defun DENOMINATOR (num)
