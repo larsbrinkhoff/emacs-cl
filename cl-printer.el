@@ -13,19 +13,39 @@
   (or (gethash object *object-identities*)
       (setf (gethash object *object-identities*) (incf *identity-counter*))))
 
-(defmacro* PRINT-UNREADABLE-OBJECT ((object stream &key type identity)
-				    &body body)
-  `(progn
-     (WRITE-STRING "#<" stream)
-     ,@(when type
-	`((PRIN1 (TYPE-OF ,object) stream)
-	  (WRITE-STRING " " stream)))
-     ,@body
-     ,@(when identity
-        `((WRITE-STRING " {" stream)
-	  (PRIN1 (object-identity object))
-	  (WRITE-STRING "}" stream)))
-    (WRITE-STRING ">" stream)))
+; (defmacro* PRINT-UNREADABLE-OBJECT ((object stream &key type identity)
+; 				    &body body)
+;   `(progn
+;      (WRITE-STRING "#<" ,stream)
+;      ,@(when type
+; 	`((PRIN1 (TYPE-OF ,object) ,stream)
+; 	  (WRITE-STRING " " ,stream)))
+;      ,@body
+;      ,@(when identity
+;         `((WRITE-STRING " {" ,stream)
+; 	  (PRIN1 (object-identity ,object))
+; 	  (WRITE-STRING "}" ,stream)))
+;      (WRITE-STRING ">" ,stream)
+;      nil))
+
+(defmacro* PRINT-UNREADABLE-OBJECT ((object stream &rest keys) &body body)
+  `(print-unreadable-object ,object ,stream (lambda () ,@body) ,@keys))
+
+(cl:defmacro PRINT-UNREADABLE-OBJECT ((object stream &rest keys) &body body)
+  `(print-unreadable-object ,object ,stream (LAMBDA () ,@body) ,@keys))
+
+(cl:defun print-unreadable-object (object stream fn &key type identity)
+  (WRITE-STRING "#<" stream)
+  (when type
+    (PRIN1 (TYPE-OF object) stream)
+    (WRITE-STRING " " stream))
+  (FUNCALL fn)
+  (when identity
+    (WRITE-STRING " {" stream)
+    (PRIN1 (object-identity object))
+    (WRITE-STRING "}" stream))
+  (WRITE-STRING ">" stream)
+  nil)
 
 (defun external-symbol-p (symbol)
   (eq (NTH-VALUE 1 (FIND-SYMBOL (SYMBOL-NAME symbol) (SYMBOL-PACKAGE symbol)))
@@ -75,7 +95,7 @@
 	 (PRIN1 (cdr object) stream))
        (WRITE-STRING ")" stream))
       ((FUNCTIONP object)
-       (PRINT-UNREADABLE-OBJECT (object stream :type t :identity t)))
+       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
       ((bignump object)
        (prin1-integer object stream))
       ((ratiop object)
@@ -109,12 +129,12 @@
 	 (PRIN1 (AREF object i) stream))
        (WRITE-STRING ")" stream))
       ((PACKAGEP object)
-       (PRINT-UNREADABLE-OBJECT (object stream :type t)
-         (WRITE-STRING (PACKAGE-NAME object) stream)))
+       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t)
+         (PRIN1 (PACKAGE-NAME object) stream)))
       ((READTABLEP object)
-       (PRINT-UNREADABLE-OBJECT (object stream :type t :identity t)))
+       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
       ((STREAMP object)
-       (PRINT-UNREADABLE-OBJECT (object stream :type t :identity t)
+       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
          (cond
 	   ((STREAM-filename object)
 	    (WRITE-STRING object stream))
@@ -128,14 +148,14 @@
 	   ;; TODO: these two won't be necessary later
 	   (TYPEP object 'SIMPLE-ERROR)
 	   (TYPEP object 'SIMPLE-WARNING))
-       (PRINT-UNREADABLE-OBJECT (object stream :type t :identity t)
+       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
          (PRINC (apply #'FORMAT nil
 		       (SIMPLE-CONDITION-FORMAT-CONTROL object)
 		       (SIMPLE-CONDITION-FORMAT-ARGUMENTS object)))))
       ((TYPEP object 'CONDITION)
-       (PRINT-UNREADABLE-OBJECT (object stream :type t :identity t)))
+       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
       ((restartp object)
-       (PRINT-UNREADABLE-OBJECT (object stream :type t :identity t)
+       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
          (PRIN1 (RESTART-name object) stream)
 	 (when (RESTART-condition object)
 	   (WRITE-STRING " " stream)
