@@ -192,7 +192,9 @@
 ;;; pathname (atomic only)
 ;;; print-not-readable (atomic only)
 ;;; program-error (atomic only)
-;;; random-state (atomic only)
+
+(define-typep (object RANDOM-STATE env)
+  (RANDOM-STAE-P object))
 
 (define-typep (object RATIO env)
   (ratiop object))

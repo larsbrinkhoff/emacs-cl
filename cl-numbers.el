@@ -32,11 +32,26 @@
 ; 	do (unless (equal (cl:+ x y) z)
 ; 	     (princ (format "%s + %s /= %s\n" x y z)))))
 
+;;; System Class NUMBER
+;;; System Class COMPLEX
+;;; System Class REAL
+;;; System Class FLOAT
+;;; Type SHORT-FLOAT, SINGLE-FLOAT, DOUBLE-FLOAT, LONG-FLOAT
+;;; System Class RATIONAL
+;;; System Class RATIO
+;;; System Class INTEGER
+;;; Type SIGNED-BYTE
+;;; Type UNSIGNED-BYTE
+;;; Type Specifier MOD
+;;; Type BIT
+;;; Type FIXNUM
+;;; Type BIGNUM
+
 (defun cl:= (number &rest numbers)
   (every (lambda (n) (binary= number n)) numbers))
 
-;;; TODO: This doesn't work for all possible pairs of numbers.
 (defun binary= (num1 num2)
+  ;; TODO: This doesn't work for all possible pairs of numbers.
   (cond
     ((and (or (integerp num1) (floatp num1))
 	  (or (integerp num2) (floatp num2)))
@@ -210,7 +225,7 @@
 
 (cl:defun FFLOOR (number &optional (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (FLOOR number divisor)
-    (VALUES (FLOAT quotient remainder))))
+    (VALUES (FLOAT quotient) remainder)))
 
 (cl:defun CEILING (number &optional (divisor 1))
   (let (quotient remainder)
@@ -234,7 +249,7 @@
 
 (cl:defun FCEILING (number &optional (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (CEILING number divisor)
-    (VALUES (FLOAT quotient remainder))))
+    (VALUES (FLOAT quotient) remainder)))
 
 (cl:defun TRUNCATE (number &optional (divisor 1))
   (let (quotient)
@@ -254,9 +269,17 @@
 
 (cl:defun FTRUNCATE (number &optional (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (TRUNCATE number divisor)
-    (VALUES (FLOAT quotient remainder))))
+    (VALUES (FLOAT quotient) remainder)))
 
-;;; TODO: round, fround
+(cl:defun ROUND (number &optional (divisor 1))
+  (MULTIPLE-VALUE-BIND (quotient remainder)
+      ;; TODO: proper rounding
+      (TRUNCATE (binary+ number .5) divisor)
+    (VALUES quotient remainder)))
+
+(cl:defun FROUND (number &optional (divisor 1))
+  (MULTIPLE-VALUE-BIND (quotient remainder) (ROUND number divisor)
+    (VALUES (FLOAT quotient) remainder)))
 
 (defun SIN (x)
   (cond
@@ -297,7 +320,25 @@
 
 (DEFCONSTANT PI 3.141592653589793)
 
-;;; TODO: sinh, cosh, tanh, asinh, acosh, atanh
+(defun SINH (x)
+  (binary* 0.5 (binary- (EXP x) (EXP (cl:- x)))))
+
+(defun COSH (x)
+  (binary* 0.5 (binary+ (EXP x) (EXP (cl:- x)))))
+
+(defun TANH (x)
+  (binary/ (binary- (EXP x) (EXP (cl:- x)))
+	   (binary+ (EXP x) (EXP (cl:- x)))))
+
+(defun ASINH (x)
+  (LOG (binary+ x (SQRT (1+ (binary* x x))))))
+
+(defun ACOSH (x)
+  (binary* 2 (LOG (binary+ (SQRT (binary* 0.5 (1+ x)))
+			   (SQRT (binary* 0.5 (1- x)))))))
+
+(defun ATANH (x)
+  (binary* 0.5 (binary- (LOG (1+ x)) (LOG (binary- 1 x)))))
 
 (defun cl:* (&rest numbers)
   (reduce #'binary* numbers :initial-value 1))
@@ -714,9 +755,20 @@
 (defun ISQRT (number)
   (VALUES (FLOOR (sqrt (FLOAT number)))))
 
-;;; TODO: MAKE-RANDOM-STATE
+;;; System Class RANDOM-STATE
 
-(defun RANDOM (limit &optional random-state)
+(defun MAKE-RANDOM-STATE (&optional state)
+  (vector
+   'RANDOM-STATE
+   (cond
+     ((null state)		0)
+     ((eq state T)		(aref *RANDOM-STATE* 1))
+     ((RANDOM-STATE-P state)	(aref state 1))
+     (t				(type-error state
+					    '(OR BOOLEAN RANDOM-STATE))))))
+
+(defun RANDOM (limit &optional state)
+  ;; TODO: use state
   (cond
     ((integerp limit)
      (random limit))
@@ -726,9 +778,10 @@
      ;; TODO
      0)))
 
-;;; TODO: RANDOM-STATE-P
+(defun RANDOM-STATE-P (object)
+  (vector-and-typep object 'RANDOM-STATE))
 
-;;; TODO: *RANDOM-STATE*
+(defun *RANDOM-STATE* (MAKE-RANDOM-STATE))
 
 (defun NUMBERP (object)
   (or (numberp object)
@@ -738,7 +791,10 @@
 		 (eq type 'RATIO)
 		 (eq type 'COMPLEX))))))
 
-;;; TODO: CIS
+(defun CIS (x)
+  (unless (REALP x)
+    (type-error x 'REAL))
+  (EXP (vector 'COMPLEX 0 x)))
 
 (cl:defun COMPLEX (realpart &optional (imagpart 0))
   (cond
@@ -773,7 +829,7 @@
   'REAL)
 
 (defun REALP (num)
-  (or (RATIONALP num) (FLOATP num)))
+  (or (RATIONALP num) (floatp num)))
 
 (defun make-ratio (num den)
   (unless (and (INTEGERP num) (INTEGERP den))
@@ -805,9 +861,42 @@
       (aref num 2)
       1))
 
-;;; TODO: rational
+(defun RATIONAL (num)
+  (cond
+    ((floatp num)
+     (MULTIPLE-VALUE-BIND (significand exp sign) (INTEGER-DECODE-FLOAT num)
+       (VALUES
+	(make-ratio
+	 (PARSE-INTEGER (prin1-to-string (+ (SCALE-FLOAT significand 53)) .5)
+			(kw JUNK-ALLOWED) t)
+	 (EXPT 2 (- 53 exp))))))
+    ((RATIONALP num)
+     num)
+    (t
+     (type-error num 'REAL))))
 
-;;; TODO: rationalize
+(defun RATIONALIZE (num)
+  (cond
+    ((floatp num)
+     (MULTIPLE-VALUE-BIND (significand exp sign) (INTEGER-DECODE-FLOAT num)
+       (do ((i -5 (1+ i))
+	    (j (PARSE-INTEGER (prin1-to-string
+			       (+ (SCALE-FLOAT significand 52)) .5)
+			      (kw JUNK-ALLOWED) t))
+	    (k (EXPT 2 (- 52 exp)))
+	    (result nil))
+	   ((eq i 6) (VALUES result))
+	 (do ((l -5 (1+ l)))
+	     ((eq l 6))
+	   (let ((candidate (make-ratio (binary+ i j) (binary+ k l))))
+	     (if result
+		 (when (binary< (DENOMINATOR candidate) (DENOMINATOR result))
+		   (setq result candidate))
+		 (setq result candidate)))))))
+    ((RATIONALP num)
+     num)
+    (t
+     (type-error num 'REAL))))
 
 (defun RATIONALP (num)
   (or (INTEGERP num) (ratiop num)))
@@ -1257,4 +1346,8 @@
 (DEFCONSTANT LONG-FLOAT-EPSILON 0.0)
 (DEFCONSTANT LONG-FLOAT-NEGATIVE-EPSILON 0.0)
 
-;;; TODO: ARITHMETIC-ERROR-OPERANDS, ARITHMETIC-ERROR-OPERATION
+;;; Defined in cl-conditions.el: ARITHMETIC-ERROR,
+;;; ARITHMETIC-ERROR-OPERANDS, ARITHMETIC-ERROR-OPERATION,
+;;; DIVISION-BY-ZERO, FLOATING-POINT-INVALID-OPERATION,
+;;; FLOATING-POINT-INEXACT, FLOATING-POINT-OVERFLOW,
+;;; FLOATING-POINT-UNDERFLOW
