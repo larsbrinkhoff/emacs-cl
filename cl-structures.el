@@ -181,7 +181,7 @@
 	,@(mapcar
 	   (lambda (constructor)
 	     (let ((slotps (map-to-gensyms slots)))
-	       `(defun* ,@constructor
+	       `(cl:defun ,@constructor
 		 ,(ecase type
 		    ((nil)
 		     `(let ((object (make-vector ,struct-size ',name)))
