@@ -227,6 +227,50 @@
 (define-compiler "1-" (arg) env
   `(binary+ ,(compile-form arg env) -1))
 
+(define-compiler "=" (&rest args) env
+  (case (length args)
+    (0	(ERROR "'=' needs at least one argument"))
+    (1	'T)
+    (2	`(binary= ,@(compile-forms args env)))
+    (t	(compile-funcall `(QUOTE ,(INTERN "=" *cl-package*)) args env))))
+
+(define-compiler "/=" (&rest args) env
+  (case (length args)
+    (0	(ERROR "'/=' needs at least one argument"))
+    (1	'T)
+    (2	`(null (binary= ,@(compile-forms args env))))
+    (t	(compile-funcall `(QUOTE ,(INTERN "/=" *cl-package*)) args env))))
+
+(define-compiler "<" (&rest args) env
+  (case (length args)
+    (0	(ERROR "'<' needs at least one argument"))
+    (1	'T)
+    (2	`(binary< ,@(compile-forms args env)))
+    (t	(compile-funcall `(QUOTE ,(INTERN "<" *cl-package*)) args env))))
+
+(define-compiler "<=" (&rest args) env
+  (case (length args)
+    (0	(ERROR "'<=' needs at least one argument"))
+    (1	'T)
+    (2	`(binary<= ,@(compile-forms args env)))
+    (t	(compile-funcall `(QUOTE ,(INTERN "<=" *cl-package*)) args env))))
+
+(define-compiler ">" (&rest args) env
+  (case (length args)
+    (0	(ERROR "'>' needs at least one argument"))
+    (1	'T)
+    (2	(let ((forms (compile-forms args env)))
+	  `(binary< ,(second forms) ,(first forms))))
+    (t	(compile-funcall `(QUOTE ,(INTERN ">" *cl-package*)) args env))))
+
+(define-compiler ">=" (&rest args) env
+  (case (length args)
+    (0	(ERROR "'>=' needs at least one argument"))
+    (1	'T)
+    (2	(let ((forms (compile-forms args env)))
+	  `(binary<= ,(second forms) ,(first forms))))
+    (t	(compile-funcall `(QUOTE ,(INTERN ">=" *cl-package*)) args env))))
+
 (define-compiler APPLY (fn &rest args) env
   (let ((fn (compile-form fn env))
 	(args (compile-forms args env)))
