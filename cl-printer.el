@@ -123,6 +123,12 @@
 		       (SIMPLE-ERROR-FORMAT-ARGUMENTS object)))))
       ((TYPEP object 'CONDITION)
        (PRINT-UNREADABLE-OBJECT (object stream)))
+      ((restartp object)
+       (PRINT-UNREADABLE-OBJECT (object stream)
+         (PRIN1 (RESTART-name object) stream)
+	 (when (RESTART-condition object)
+	   (WRITE-STRING " " stream)
+	   (PRIN1 (RESTART-condition object) stream))))
       (t
        (error))))
   (VALUES object))
