@@ -10,22 +10,22 @@
 
 (defmacro* (DEFUN name lambda-list &body body)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (setf (fdefinition ,name) (function* (lambda ,lambda-list ,@body)))))
+     (SETF (fdefinition ,name) (function* (lambda ,lambda-list ,@body)))))
 
-(defun fdefinition (name)
+(defun FDEFINITION (name)
   (cond
     ((symbop name)
      (symbol-function name))
-    ((and (consp name) (eq (first name) 'setf) (eq (cddr name) nil))
+    ((and (consp name) (eq (first name) 'SETF) (eq (cddr name) nil))
      (gethash (second name) *setf-definitions*))
     (t
      (error))))
 
-(defsetf fdefinition (name) (fn)
+(defsetf FDEFINITION (name) (fn)
   `(cond
     ((symbolp ,name)
      (setf (symbol-function ,name) ,fn))
-    ((and (consp ,name) (eq (first ,name) 'setf) (eq (cddr ,name) nil))
+    ((and (consp ,name) (eq (first ,name) 'SETF) (eq (cddr ,name) nil))
      (setf (gethash (second ,name) *setf-definitions*) ,fn))
     (t
      (error "type error"))))
@@ -35,7 +35,7 @@
     ((symbolp fn)
      (apply fn args))
     ((and (consp fn) (eq (first fn) 'setf) (null (cddr fn)))
-     (apply (fdefinition fn) args))
+     (apply (FDEFINITION fn) args))
     (t
      (error))))
 
@@ -172,7 +172,7 @@
 	  (values temps
 		  (rest place)
 		  (list var)
-		  `(cl:funcall '(setf ,(first place)) ,var ,@temps)
+		  `(cl:funcall '(SETF ,(first place)) ,var ,@temps)
 		  ())))))
 
 (defmacro* SETF (place value &environment env)
