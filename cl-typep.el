@@ -197,7 +197,7 @@
 ;;; program-error (atomic only)
 
 (define-typep (object RANDOM-STATE env)
-  (RANDOM-STAE-P object))
+  (RANDOM-STATE-P object))
 
 (define-typep (object RATIO env)
   (ratiop object))
