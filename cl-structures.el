@@ -13,11 +13,17 @@
 
 (defun struct-subtypep (type1 type2)
   (or (eq type1 type2)
-      (member type1 (car (gethash type2 *structure-info*)))))
+      (let ((subtypes (car (gethash type2 *structure-info*))))
+	(if (member type1 subtypes)
+	    T
+	    (some (lambda (type)
+		    (and (struct-subtypep type1 type)
+			 (struct-subtypep type type2)))
+		  subtypes)))))
 
 (defun add-struct-subtype (struct sub)
   (maphash (lambda (key val)
-	     (setf (car val) (delete sub val)))
+	     (setf (car val) (delete sub (car val))))
 	   *structure-info*)
   (push sub (car (gethash struct *structure-info*))))
 
