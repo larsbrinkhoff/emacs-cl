@@ -69,8 +69,7 @@
 ;;; *initial-keywords*.  Later, it will be redefined to intern symbols
 ;;; into the KEYWORD package directly.
 (defun keyword (name)
-  (let* ((name (upcase name))
-	 (sym (find name *initial-keywords* :key 'symbol-name :test 'string=)))
+  (let ((sym (find name *initial-keywords* :key 'symbol-name :test 'string=)))
     (or sym
 	(let ((sym (make-symbol name)))
 	  (push sym *initial-keywords*)

@@ -33,13 +33,13 @@
     (t
      (type-error pathspec '(OR PATHNAME STRING STREAM)))))
 
-(cl:defun MAKE-PATHNAME (&key host device directory name
-			      type version defaults case)
-  (unless defaults
-    (setq defaults (mkpathname (PATHNAME-HOST *DEFAULT-PATHNAME-DEFAULTS*)
+(cl:defun MAKE-PATHNAME (&key HOST DEVICE DIRECTORY NAME
+			      TYPE VERSION DEFAULTS CASE)
+  (unless DEFAULTS
+    (setq DEFAULTS (mkpathname (PATHNAME-HOST *DEFAULT-PATHNAME-DEFAULTS*)
 			       nil nil nil nil nil)))
-  (MERGE-PATHNAMES (mkpathname host device directory name type version)
-		   defaults))
+  (MERGE-PATHNAMES (mkpathname HOST DEVICE DIRECTORY NAME TYPE VERSION)
+		   DEFAULTS))
 
 ;;; PATHNAMEP defined by defstruct.
 
@@ -193,18 +193,18 @@
 
 (cl:defun PARSE-NAMESTRING (thing &optional host
 			    (default *DEFAULT-PATHNAME-DEFAULTS*)
-			    &key (start 0) end junk-allowed)
+			    &key (START 0) END JUNK-ALLOWED)
   (cond
     ((STREAMP thing)
-     (PARSE-NAMESTRING (STREAM-filename thing) host default (kw START) start
-		       (kw END) end (kw JUNK-ALLOWED) junk-allowed))
+     (PARSE-NAMESTRING (STREAM-filename thing) host default (kw START) START
+		       (kw END) END (kw JUNK-ALLOWED) JUNK-ALLOWED))
     ((PATHNAMEP thing)
      (if (EQUAL (PATHNAME-HOST thing) host)
-	 (VALUES thing start)
+	 (VALUES thing START)
 	 (ERROR 'ERROR)))
     ((STRINGP thing)
      ;; TODO: parse logical pathnames
-     (let* ((string (SUBSEQ thing start end))
+     (let* ((string (SUBSEQ thing START END))
 	    (dir (parse-dir (file-name-directory thing)))
 	    (name+ver (file-name-nondirectory thing))
 	    (name-ver (file-name-sans-versions name+ver))
@@ -212,7 +212,7 @@
 	    (name (maybe-wild (file-name-sans-extension name-ver)))
 	    (type (maybe-wild (file-name-extension name+ver))))
        (VALUES (mkpathname nil nil dir name type ver)
-	       (or end (LENGTH thing)))))
+	       (or END (LENGTH thing)))))
     (t
      (type-error thing '(OR PATHNAME STRING STREAM)))))
 

@@ -956,17 +956,17 @@
 (defun INTEGERP (num)
   (or (integerp num) (bignump num)))
 
-(cl:defun PARSE-INTEGER (string &key (start 0) (end (LENGTH string))
-			             (radix 10) junk-allowed)
+(cl:defun PARSE-INTEGER (string &key (START 0) (END (LENGTH string))
+			             (RADIX 10) JUNK-ALLOWED)
   (let ((sign 1)
 	(integer 0)
-	(i start)
+	(i START)
 	char digit)
     (catch 'PARSE-INTEGER
       (while (whitespacep (CHAR string i))
 	(incf i)
-	(when (= i end)
-	  (if junk-allowed
+	(when (= i END)
+	  (if JUNK-ALLOWED
 	      (throw 'PARSE-INTEGER (VALUES nil i))
 	      (ERROR 'PARSE-ERROR))))
       (setq char (CHAR string i))
@@ -974,25 +974,25 @@
 	(when (ch= char 45)
 	  (setq sign -1))
 	(incf i)
-	(when (= i end)
-	  (if junk-allowed
+	(when (= i END)
+	  (if JUNK-ALLOWED
 	      (throw 'PARSE-INTEGER (VALUES nil i))
 	      (ERROR 'PARSE-ERROR)))
 	(setq char (CHAR string i)))
-      (unless (DIGIT-CHAR-P char radix)
-	(if junk-allowed
+      (unless (DIGIT-CHAR-P char RADIX)
+	(if JUNK-ALLOWED
 	    (throw 'PARSE-INTEGER (VALUES nil i))
 	    (ERROR 'PARSE-ERROR)))
-      (while (setq digit (DIGIT-CHAR-P char radix))
-	(setq integer (cl:+ (cl:* integer radix) digit))
+      (while (setq digit (DIGIT-CHAR-P char RADIX))
+	(setq integer (cl:+ (cl:* integer RADIX) digit))
 	(incf i)
-	(when (= i end)
+	(when (= i END)
 	  (throw 'PARSE-INTEGER (VALUES (cl:* sign integer) i)))
 	(setq char (CHAR string i)))
-      (if junk-allowed
+      (if JUNK-ALLOWED
 	  (VALUES (cl:* sign integer) i)
 	  (do ((i i (1+ i)))
-	      ((= i end)
+	      ((= i END)
 	       (VALUES (cl:* sign integer) i))
 	    (unless (whitespacep (CHAR string i))
 	      (ERROR 'PARSE-ERROR)))))))

@@ -146,9 +146,9 @@
       (push object list))))
 
 (cl:defun READ-FROM-STRING (string &optional (eof-error-p T) eof-value
-			           &key (start 0) end preserve-whitespace)
-  (let ((stream (MAKE-STRING-INPUT-STREAM string start end)))
-    (if preserve-whitespace
+			           &key (START 0) END PRESERVE-WHITESPACE)
+  (let ((stream (MAKE-STRING-INPUT-STREAM string START END)))
+    (if PRESERVE-WHITESPACE
 	(READ-PRESERVING-WHITESPACE stream eof-error-p eof-value)
 	(READ stream eof-error-p eof-value))))
 

@@ -7,8 +7,8 @@
 
 (if (eq (type-of (make-hash-table)) 'hash-table)
     (progn
-      (defun* MAKE-HASH-TABLE (&key test size rehash-size rehash-threshold)
-	(make-hash-table :test test :size size))
+      (cl:defun MAKE-HASH-TABLE (&key TEST SIZE REHASH-SIZE REHASH-THRESHOLD)
+	(make-hash-table :test TEST :size SIZE))
 
       (defmacro htab (hash)
 	hash)
@@ -25,8 +25,8 @@
       (DEFSTRUCT (HASH-TABLE (:copier nil) (:constructor mkhash (TABLE TEST)))
         TABLE TEST)
 
-      (defun* MAKE-HASH-TABLE (&key test size rehash-size rehash-threshold)
-	(mkhash (make-hash-table :test test :size size) test))
+      (defun* MAKE-HASH-TABLE (&key TEST SIZE REHASH-SIZE REHASH-THRESHOLD)
+	(mkhash (make-hash-table :test TEST :size SIZE) TEST))
 
       (defun htab (hash)
 	(HASH-TABLE-TABLE hash))))

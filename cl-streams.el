@@ -18,6 +18,7 @@
   filename
   content
   index
+  end
   fresh-line-p
   read-fn
   write-fn)
@@ -136,15 +137,15 @@
        (setq line (concat line (list (CHAR-CODE char))))))))
 
 (cl:defun WRITE-STRING (string &optional stream-designator
-			&key (start 0) (end (LENGTH string)))
+			&key (START 0) (END (LENGTH string)))
   (do ((stream (output-stream stream-designator))
-       (i start (1+ i)))
-      ((eq i end) string)
+       (i START (1+ i)))
+      ((eq i END) string)
     (WRITE-CHAR (CHAR string i) stream)))
 
-(cl:defun WRITE-LINE (string &optional stream-designator &key (start 0) end)
+(cl:defun WRITE-LINE (string &optional stream-designator &key (START 0) END)
   (let ((stream (output-stream stream-designator)))
-    (WRITE-STRING string stream (kw START) start (kw END) end)
+    (WRITE-STRING string stream (kw START) START (kw END) END)
     (TERPRI stream)
     string))
 
@@ -163,12 +164,12 @@
 		 (PRINT object s)
 	      (CLOSE s)))))
 
-(cl:defun OPEN (filespec &key (direction (kw INPUT)) (element-type 'CHARACTER)
-		              if-exists if-does-not-exist
-			      (external-format (kw DEFAULT)))
-  (MAKE-STREAM (kw filename) (when (eq direction (kw OUTPUT)) filespec)
+(cl:defun OPEN (filespec &key (DIRECTION (kw INPUT)) (ELEMENT-TYPE 'CHARACTER)
+		              IF-EXISTS IF-DOES-NOT-EXIST
+			      (EXTERNAL-FORMAT (kw DEFAULT)))
+  (MAKE-STREAM (kw filename) (when (eq DIRECTION (kw OUTPUT)) filespec)
 	       (kw content) (let ((buffer (create-file-buffer filespec)))
-			      (when (eq direction (kw INPUT))
+			      (when (eq DIRECTION (kw INPUT))
 				(save-current-buffer
 				  (set-buffer buffer)
 				  (insert-file-contents-literally filespec)))
@@ -194,7 +195,7 @@
   `(WITH-OPEN-STREAM (,stream (OPEN ,filespec ,@options))
      ,@body))
 
-(cl:defun CLOSE (stream &key abort)
+(cl:defun CLOSE (stream &key ABORT)
   (when (STREAM-filename stream)
     (save-current-buffer
       (set-buffer (STREAM-content stream))
@@ -207,6 +208,12 @@
   `(LET ((,var ,stream))
      (UNWIND-PROTECT
 	  (PROGN ,@body)
+       (CLOSE ,var))))
+
+(defmacro* WITH-OPEN-STREAM ((var stream) &body body)
+  `(let ((,var ,stream))
+     (unwind-protect
+	  (progn ,@body)
        (CLOSE ,var))))
 
 (cl:defun LISTEN (&optional stream-designator)
@@ -262,21 +269,21 @@
 			      (if (> (length substr) 0)
 				  substr
 				  :eof))
-	       (kw index) 0
+	       (kw index) start
+	       (kw end) (or end (LENGTH string))
 	       (kw read-fn)
 	         (lambda (stream)
 		   (cond
 		     ((eq (STREAM-content stream) :eof)
 		      :eof)
-		     ((= (STREAM-index stream)
-			 (length (STREAM-content stream)))
+		     ((= (STREAM-index stream) (STREAM-end stream))
 		      (setf (STREAM-content stream) :eof))
 		     (t
 		      (aref (STREAM-content stream)
 			    (1- (incf (STREAM-index stream)))))))
 	       (kw write-fn) nil))
 
-(cl:defun MAKE-STRING-OUTPUT-STREAM (&key (element-type 'CHARACTER))
+(cl:defun MAKE-STRING-OUTPUT-STREAM (&key (ELEMENT-TYPE 'CHARACTER))
   (MAKE-STREAM (kw content) ""
 	       (kw index) 0
 	       (kw read-fn) nil
@@ -286,34 +293,34 @@
 			 (concat (STREAM-content stream)
 				 (list char))))))
 
-(cl:defmacro WITH-INPUT-FROM-STRING ((var string &key index start end)
+(cl:defmacro WITH-INPUT-FROM-STRING ((var string &key INDEX START END)
 				     &body body)
-  (when (null start)
-    (setq start 0))
-  `(WITH-OPEN-STREAM (,var (MAKE-STRING-INPUT-STREAM ,string ,start ,end))
+  (when (null START)
+    (setq START 0))
+  `(WITH-OPEN-STREAM (,var (MAKE-STRING-INPUT-STREAM ,string ,START ,END))
      ,@body))
 
-(defmacro* WITH-OUTPUT-TO-STRING ((var &optional string &key element-type)
+(defmacro* WITH-OUTPUT-TO-STRING ((var &optional string &key ELEMENT-TYPE)
 				  &body body)
-  (when (null element-type)
-    (setq element-type '(QUOTE CHARACTER)))
+  (when (null ELEMENT-TYPE)
+    (setq ELEMENT-TYPE ''CHARACTER))
   (if string
       `(WITH-OPEN-STREAM (,var (make-fill-pointer-output-stream ,string))
 	 ,@body)
       `(WITH-OPEN-STREAM (,var (MAKE-STRING-OUTPUT-STREAM
-				,(kw ELEMENT-TYPE) ,element-type))
+				,(kw ELEMENT-TYPE) ,ELEMENT-TYPE))
 	 ,@body
 	 (GET-OUTPUT-STREAM-STRING ,var))))
 
-(cl:defmacro WITH-OUTPUT-TO-STRING ((var &optional string &key element-type)
+(cl:defmacro WITH-OUTPUT-TO-STRING ((var &optional string &key ELEMENT-TYPE)
 				    &body body)
-  (when (null element-type)
-    (setq element-type '(QUOTE CHARACTER)))
+  (when (null ELEMENT-TYPE)
+    (setq ELEMENT-TYPE '(QUOTE CHARACTER)))
   (if string
       `(WITH-OPEN-STREAM (,var (make-fill-pointer-output-stream ,string))
 	 ,@body)
       `(WITH-OPEN-STREAM (,var (MAKE-STRING-OUTPUT-STREAM
-				,(kw ELEMENT-TYPE) ,element-type))
+				,(kw ELEMENT-TYPE) ,ELEMENT-TYPE))
 	 ,@body
 	 (GET-OUTPUT-STREAM-STRING ,var))))
 

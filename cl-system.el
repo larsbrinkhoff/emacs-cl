@@ -6,16 +6,16 @@
 (IN-PACKAGE "EMACS-CL")
 
 ;;; TODO:
-; (cl:defun COMPILE-FILE (input-file &key output-file
-;				     (verbose *COMPILE-VERBOSE*)
-; 				     (print *COMPILE-PRINT*)
-; 				     external-format)
+; (cl:defun COMPILE-FILE (input-file &key OUTPUT-FILE
+;				     (VERBOSE *COMPILE-VERBOSE*)
+; 				     (PRINT *COMPILE-PRINT*)
+; 				     EXTERNAL-FORMAT)
 ;   nil)
 
 ;;; TODO: Function COMPILE-FILE-PATHNAME
 
-(cl:defun LOAD (filespec &key (verbose *LOAD-VERBOSE*) (print *LOAD-PRINT*)
-		              if-does-not-exist external-format)
+(cl:defun LOAD (filespec &key (VERBOSE *LOAD-VERBOSE*) (PRINT *LOAD-PRINT*)
+		              IF-DOES-NOT-EXIST EXTERNAL-FORMAT)
   (let ((*LOAD-PATHNAME* filespec)
 	(*LOAD-TRUENAME* (TRUENAME filespec)))
     (load filespec)))

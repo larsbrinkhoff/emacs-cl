@@ -12,63 +12,63 @@
 ;;; System Class	BIT-VECTOR
 ;;; Type		SIMPLE-BIT-VECTOR
 
-(cl:defun MAKE-ARRAY (dimensions &key (element-type T) initial-element
-		      initial-contents adjustable fill-pointer
-		      displaced-to displaced-index-offset)
+(cl:defun MAKE-ARRAY (dimensions &key (ELEMENT-TYPE T) INITIAL-ELEMENT
+		      INITIAL-CONTENTS ADJUSTABLE FILL-POINTER
+		      DISPLACED-TO DISPLACED-INDEX-OFFSET)
   (let* ((vectorp (or (atom dimensions) (null (cdr dimensions))))
-	 (simplep (not (or adjustable fill-pointer
-			   displaced-to (not vectorp))))
+	 (simplep (not (or ADJUSTABLE FILL-POINTER
+			   DISPLACED-TO (not vectorp))))
 	 (size (if (atom dimensions)
 		   dimensions
 		   (apply #'cl:* dimensions))))
-    (when (eq fill-pointer T)
-      (setq fill-pointer (just-one dimensions)))
-    (ecase (UPGRADED-ARRAY-ELEMENT-TYPE element-type)
+    (when (eq FILL-POINTER T)
+      (setq FILL-POINTER (just-one dimensions)))
+    (ecase (UPGRADED-ARRAY-ELEMENT-TYPE ELEMENT-TYPE)
       (BIT
-       (let ((bit-vector (or displaced-to
-			     (make-bool-vector size (ecase initial-element
+       (let ((bit-vector (or DISPLACED-TO
+			     (make-bool-vector size (ecase INITIAL-ELEMENT
 						      ((0 nil) nil) (1 t))))))
 	 (cond
 	   (simplep	bit-vector)
-	   (vectorp	(vector 'BIT-VECTOR fill-pointer bit-vector
-				displaced-index-offset))
+	   (vectorp	(vector 'BIT-VECTOR FILL-POINTER bit-vector
+				DISPLACED-INDEX-OFFSET))
 	   (t		(vector 'bit-array dimensions bit-vector
-				displaced-index-offset)))))
+				DISPLACED-INDEX-OFFSET)))))
       (CHARACTER
-       (let ((string (or displaced-to
+       (let ((string (or DISPLACED-TO
 			 (make-string size
-				      (if initial-element
-					  (CHAR-CODE initial-element)
+				      (if INITIAL-ELEMENT
+					  (CHAR-CODE INITIAL-ELEMENT)
 					  0)))))
 	 (cond
 	   (simplep	string)
-	   (vectorp	(vector 'STRING fill-pointer string
-				displaced-index-offset))
+	   (vectorp	(vector 'STRING FILL-POINTER string
+				DISPLACED-INDEX-OFFSET))
 	   (t		(vector 'char-array dimensions string
-				displaced-index-offset)))))
+				DISPLACED-INDEX-OFFSET)))))
       ((T)
        (when simplep
 	 (incf size))
-       (let ((array (or displaced-to (make-vector size initial-element))))
+       (let ((array (or DISPLACED-TO (make-vector size INITIAL-ELEMENT))))
 	 (cond
 	   (simplep	(aset array 0 'SIMPLE-VECTOR) array)
-	   (vectorp	(vector 'VECTOR fill-pointer array
-				displaced-index-offset))
+	   (vectorp	(vector 'VECTOR FILL-POINTER array
+				DISPLACED-INDEX-OFFSET))
 	   (t		(vector 'ARRAY dimensions array
-				displaced-index-offset))))))))
+				DISPLACED-INDEX-OFFSET))))))))
 
 (cl:defun ADJUST-ARRAY (array new-dimensions
-			&key element-type initial-element initial-contents
-			     fill-pointer displaced-to displaced-index-offset)
+			&key ELEMENT-TYPE INITIAL-ELEMENT INITIAL-CONTENTS
+			     FILL-POINTER DISPLACED-TO DISPLACED-INDEX-OFFSET)
   (if (ADJUSTABLE-ARRAY-P array)
       (error "TODO")
       (MAKE-ARRAY new-dimensions
-		  :element-type element-type
-		  :initial-element initial-element
-		  :initial-contents initial-contents
-		  :filll-pointer fill-pointer
-		  :displaced-to displaced-to
-		  :displaced-index-offset displaced-index-offset)))
+		  (kw ELEMENT-TYPE) ELEMENT-TYPE
+		  (kw INITIAL-ELEMENT) INITIAL-ELEMENT
+		  (kw INITIAL-CONTENTS) INITIAL-CONTENTS
+		  (kw FILL-POINTER) FILL-POINTER
+		  (kw DISPLACED-TO) DISPLACED-TO
+		  (kw DISPLACED-INDEX-OFFSET) DISPLACED-INDEX-OFFSET)))
 
 (defun ADJUSTABLE-ARRAY-P (array)
   (and (vectorp array)

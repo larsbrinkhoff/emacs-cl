@@ -62,11 +62,11 @@
 	       (find string (PACKAGE-NICKNAMES p) :test 'equal)))
 	 *all-packages*))))
 
-(cl:defun MAKE-PACKAGE (name &key nicknames use)
+(cl:defun MAKE-PACKAGE (name &key NICKNAMES USE)
   (let ((package (make-vector 8 'PACKAGE))
-	(use-packages (mapcar #'FIND-PACKAGE use)))
+	(use-packages (mapcar #'FIND-PACKAGE USE)))
     (aset package 1 (STRING name))
-    (aset package 2 (mapcar #'STRING nicknames))
+    (aset package 2 (mapcar #'STRING NICKNAMES))
     (aset package 3 nil)
     (aset package 4 use-packages)
     (aset package 6 (make-hash-table :test 'equal))
@@ -351,4 +351,4 @@
 
 ;;; Redefine the keyword function (initially defined in utils.el).
 (defun keyword (name)
-  (VALUES (INTERN (upcase name) *keyword-package*)))
+  (VALUES (INTERN name *keyword-package*)))

@@ -47,33 +47,33 @@
     ((CHARACTERP x)	(MAKE-STRING 1 (kw INITIAL-ELEMENT) x))
     (t			(error))))
 
-(cl:defun STRING-UPCASE (string &key (start 0) end)
-  (NSTRING-UPCASE (COPY-SEQ string) (kw START) start (kw END) end))
+(cl:defun STRING-UPCASE (string &key (START 0) END)
+  (NSTRING-UPCASE (COPY-SEQ string) (kw START) START (kw END) END))
 
-(cl:defun STRING-DOWNCASE (string &key (start 0) end)
-  (NSTRING-DOWNCASE (COPY-SEQ string) (kw START) start (kw END) end))
+(cl:defun STRING-DOWNCASE (string &key (START 0) END)
+  (NSTRING-DOWNCASE (COPY-SEQ string) (kw START) START (kw END) END))
 
-(cl:defun STRING-CAPITALIZE (string &key (start 0) (end (LENGTH string)))
-  (NSTRING-CAPITALIZE (COPY-SEQ string) (kw START) start (kw END) end))
+(cl:defun STRING-CAPITALIZE (string &key (START 0) (END (LENGTH string)))
+  (NSTRING-CAPITALIZE (COPY-SEQ string) (kw START) START (kw END) END))
 
-(cl:defun NSTRING-UPCASE (string &key (start 0) end)
-  (unless end
-    (setq end (LENGTH string)))
-  (do ((i start (1+ i)))
-      ((eq i end) string)
+(cl:defun NSTRING-UPCASE (string &key (START 0) END)
+  (unless END
+    (setq END (LENGTH string)))
+  (do ((i START (1+ i)))
+      ((eq i END) string)
     (setf (CHAR string i) (CHAR-UPCASE (CHAR string i)))))
 
-(cl:defun NSTRING-DOWNCASE (string &key (start 0) end)
-  (unless end
-    (setq end (LENGTH string)))
-  (do ((i start (1+ i)))
-      ((eq i end) string)
+(cl:defun NSTRING-DOWNCASE (string &key (START 0) END)
+  (unless END
+    (setq END (LENGTH string)))
+  (do ((i START (1+ i)))
+      ((eq i END) string)
     (setf (CHAR string i) (CHAR-DOWNCASE (CHAR string i)))))
 
-(cl:defun NSTRING-CAPITALIZE (string &key (start 0) (end (LENGTH string)))
-  (do* ((i start (1+ i))
+(cl:defun NSTRING-CAPITALIZE (string &key (START 0) (END (LENGTH string)))
+  (do* ((i START (1+ i))
 	(in-word-p nil))
-       ((eq i end)
+       ((eq i END)
 	string)
     (let* ((char (CHAR string i))
 	   (alnump (ALPHANUMERICP char)))
@@ -100,31 +100,31 @@
       (decf i))
     (SUBSEQ string 0 (1+ i))))
 
-(cl:defun STRING= (string1 string2 &key (start1 0) end1 (start2 0) end2)
-  (string= (substring string1 start1 end1)
-	   (substring string2 start2 end2)))
+(cl:defun STRING= (string1 string2 &key (START1 0) END1 (START2 0) END2)
+  (string= (substring string1 START1 END1)
+	   (substring string2 START2 END2)))
 
-(cl:defun STRING/= (string1 string2 &key (start1 0) end1 (start2 0) end2)
-  (not (STRING= string1 string2 :start1 start1 :end1 end1
-		                :start2 start2 :end2 end2)))
+(cl:defun STRING/= (string1 string2 &key (START1 0) END1 (START2 0) END2)
+  (not (STRING= string1 string2 :START1 START1 :END1 END1
+		                :START2 START2 :END2 END2)))
 
-(cl:defun STRING< (string1 string2 &key (start1 0) end1 (start2 0) end2)
+(cl:defun STRING< (string1 string2 &key (START1 0) END1 (START2 0) END2)
   (let ((len1 (LENGTH string1))
 	(len2 (LENGTH string2)))
     (block nil
       (loop
-       (when (eq start1 len1)
-	 (return (if (eq start2 len2) nil start1)))
-       (when (eq start2 len2)
+       (when (eq START1 len1)
+	 (return (if (eq START2 len2) nil START1)))
+       (when (eq START2 len2)
 	 (return nil))
-       (when (CHAR< (CHAR string1 start1) (CHAR string2 start2))
-	 (return start1))
-       (when (CHAR> (CHAR string1 start1) (CHAR string2 start2))
+       (when (CHAR< (CHAR string1 START1) (CHAR string2 START2))
+	 (return START1))
+       (when (CHAR> (CHAR string1 START1) (CHAR string2 START2))
 	 (return nil))
-       (incf start1)
-       (incf start2)))))
+       (incf START1)
+       (incf START2)))))
 
-(cl:defun STRING> (string1 string2 &key start1 end1 start2 end2)
+(cl:defun STRING> (string1 string2 &key START1 END1 START2 END2)
   (let ((i 0)
 	(len1 (LENGTH string1))
 	(len2 (LENGTH string2)))
@@ -139,41 +139,41 @@
 	(return-from STRING> i))
       (incf i))))
 
-(cl:defun STRING<= (string1 string2 &key start1 end1 start2 end2)
-  (STRING> string2 string1 :start1 start2 :end1 end2
-			   :start2 start1 :end2 end1))
+(cl:defun STRING<= (string1 string2 &key START1 END1 START2 END2)
+  (STRING> string2 string1 :START1 START2 :END1 END2
+			   :START2 START1 :END2 END1))
 
-(cl:defun STRING>= (string1 string2 &key start1 end1 start2 end2)
-  (STRING< string2 string1 :start1 start2 :end1 end2
-			   :start2 start1 :end2 end1))
+(cl:defun STRING>= (string1 string2 &key START1 END1 START2 END2)
+  (STRING< string2 string1 :START1 START2 :END1 END2
+			   :START2 START1 :END2 END1))
 
-(cl:defun STRING-EQUAL (string1 string2 &key (start1 0) end1 (start2 0) end2)
-  (string= (substring (STRING-UPCASE string1) start1 end1)
-	   (substring (STRING-UPCASE string2) start2 end2)))
+(cl:defun STRING-EQUAL (string1 string2 &key (START1 0) END1 (START2 0) END2)
+  (string= (substring (STRING-UPCASE string1) START1 END1)
+	   (substring (STRING-UPCASE string2) START2 END2)))
 
-(cl:defun STRING-NOT-EQUAL (string1 string2 &key (start1 0) end1
-			                         (start2 0) end2)
-  (not (STRING-EQUAL string1 string2 :start1 start1 :end1 end1
-				     :start2 start2 :end2 end2)))
+(cl:defun STRING-NOT-EQUAL (string1 string2 &key (START1 0) END1
+			                         (START2 0) END2)
+  (not (STRING-EQUAL string1 string2 :START1 START1 :END1 END1
+				     :START2 START2 :END2 END2)))
 
-(cl:defun STRING-LESSP (string1 string2 &key (start1 0) end1 (start2 0) end2)
-  (STRING< (substring (STRING-UPCASE string1) start1 end1)
-	   (substring (STRING-UPCASE string2) start1 end1)))
+(cl:defun STRING-LESSP (string1 string2 &key (START1 0) END1 (START2 0) END2)
+  (STRING< (substring (STRING-UPCASE string1) START1 END1)
+	   (substring (STRING-UPCASE string2) START1 END1)))
 
-(cl:defun STRING-GREATERP (string1 string2 &key (start1 0) end1
-						(start2 0) end2)
-  (STRING> (substring (STRING-UPCASE string1) start1 end1)
-	   (substring (STRING-UPCASE string2) start1 end1)))
+(cl:defun STRING-GREATERP (string1 string2 &key (START1 0) END1
+						(START2 0) END2)
+  (STRING> (substring (STRING-UPCASE string1) START1 END1)
+	   (substring (STRING-UPCASE string2) START1 END1)))
 
-(cl:defun STRING-NOT-GREATERP (string1 string2 &key (start1 0) end1
-						    (start2 0) end2)
-  (STRING<= (substring (STRING-UPCASE string1) start1 end1)
-	    (substring (STRING-UPCASE string2) start1 end1)))
+(cl:defun STRING-NOT-GREATERP (string1 string2 &key (START1 0) END1
+						    (START2 0) END2)
+  (STRING<= (substring (STRING-UPCASE string1) START1 END1)
+	    (substring (STRING-UPCASE string2) START1 END1)))
 
-(cl:defun STRING-NOT-LESSP (string1 string2 &key (start1 0) end1
-						 (start2 0) end2)
-  (STRING>= (substring (STRING-UPCASE string1) start1 end1)
-	    (substring (STRING-UPCASE string2) start1 end1)))
+(cl:defun STRING-NOT-LESSP (string1 string2 &key (START1 0) END1
+						 (START2 0) END2)
+  (STRING>= (substring (STRING-UPCASE string1) START1 END1)
+	    (substring (STRING-UPCASE string2) START1 END1)))
 
 (defun STRINGP (object)
   (or (stringp object)

@@ -63,122 +63,122 @@
       (CONS (COPY-TREE (CAR tree)) (COPY-TREE (CDR tree)))
       tree))
 
-(defun* SUBLIS (alist tree &key (key #'IDENTITY) test test-not)
-  (when (and test test-not)
+(defun* SUBLIS (alist tree &key (KEY #'IDENTITY) TEST TEST-NOT)
+  (when (and TEST TEST-NOT)
     (error))
-  (when test-not
-    (setq test (COMPLEMENT test-not)))
-  (unless test
-    (setq test #'EQL))
-  (let ((pair (ASSOC tree alist :key key :test test)))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
+  (let ((pair (ASSOC tree alist (kw KEY) KEY (kw TEST) TEST)))
     (cond
       (pair		(CDR pair))
       ((ATOM tree)	tree)
       (t		(CONS
-			 (SUBLIS alist (CAR tree) :key key :test test)
-			 (SUBLIS alist (CDR tree) :key key :test test))))))
+			 (SUBLIS alist (CAR tree) (kw KEY) KEY (kw TEST) TEST)
+			 (SUBLIS alist (CDR tree) (kw KEY) KEY (kw TEST) TEST))))))
 
-(defun* NSUBLIS (alist tree &key (key #'IDENTITY) test test-not)
-  (when (and test test-not)
+(defun* NSUBLIS (alist tree &key (KEY #'IDENTITY) TEST TEST-NOT)
+  (when (and TEST TEST-NOT)
     (error))
-  (when test-not
-    (setq test (COMPLEMENT test-not)))
-  (unless test
-    (setq test #'EQL))
-  (let ((pair (ASSOC tree alist :key key :test test)))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
+  (let ((pair (ASSOC tree alist (kw KEY) KEY (kw TEST) TEST)))
     (cond
       (pair		(CDR pair))
       ((ATOM tree)	tree)
       (t
        (progn
-	 (RPLACA tree (NSUBLIS alist (CAR tree) :key key :test test))
-	 (RPLACD tree (NSUBLIS alist (CDR tree) :key key :test test)))))))
+	 (RPLACA tree (NSUBLIS alist (CAR tree) (kw KEY) KEY (kw TEST) TEST))
+	 (RPLACD tree (NSUBLIS alist (CDR tree) (kw KEY) KEY (kw TEST) TEST)))))))
 
-(defun* SUBST (new old tree &key (key #'IDENTITY) test test-not)
-  (when (and test test-not)
+(defun* SUBST (new old tree &key (KEY #'IDENTITY) TEST TEST-NOT)
+  (when (and TEST TEST-NOT)
     (error))
-  (when test-not
-    (setq test (COMPLEMENT test-not)))
-  (unless test
-    (setq test #'EQL))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
   (cond
-    ((FUNCALL test old (FUNCALL key tree))
+    ((FUNCALL TEST old (FUNCALL KEY tree))
      new)
     ((ATOM tree)
      tree)
     (t
-     (CONS (SUBST new old (CAR tree) :key key :test test)
-	   (SUBST new old (CAR tree) :key key :test test)))))
+     (CONS (SUBST new old (CAR tree) (kw KEY) KEY (kw TEST) TEST)
+	   (SUBST new old (CAR tree) (kw KEY) KEY (kw TEST) TEST)))))
 
-(defun* SUBST-IF (new predicate tree &key (key #'IDENTITY))
+(defun* SUBST-IF (new predicate tree &key (KEY #'IDENTITY))
   (cond
-    ((FUNCALL predicate (FUNCALL key tree))
+    ((FUNCALL predicate (FUNCALL KEY tree))
      new)
     ((ATOM tree)
      tree)
     (t
-     (CONS (SUBST-IF new predicate (CAR tree) :key key)
-	   (SUBST-IF new predicate (CAR tree) :key key)))))
+     (CONS (SUBST-IF new predicate (CAR tree) (kw KEY) KEY)
+	   (SUBST-IF new predicate (CAR tree) (kw KEY) KEY)))))
 
-(defun* SUBST-IF-NOT (new predicate tree &key (key #'IDENTITY))
+(defun* SUBST-IF-NOT (new predicate tree &key (KEY #'IDENTITY))
   (cond
-    ((not (FUNCALL predicate (FUNCALL key tree)))
+    ((not (FUNCALL predicate (FUNCALL KEY tree)))
      new)
     ((ATOM tree)
      tree)
     (t
-     (CONS (SUBST-IF new predicate (CAR tree) :key key)
-	   (SUBST-IF new predicate (CAR tree) :key key)))))
+     (CONS (SUBST-IF new predicate (CAR tree) (kw KEY) KEY)
+	   (SUBST-IF new predicate (CAR tree) (kw KEY) KEY)))))
 
-(defun* NSUBST (new old tree &key (key #'IDENTITY) test test-not)
-  (when (and test test-not)
+(defun* NSUBST (new old tree &key (KEY #'IDENTITY) TEST TEST-NOT)
+  (when (and TEST TEST-NOT)
     (error))
-  (when test-not
-    (setq test (COMPLEMENT test-not)))
-  (unless test
-    (setq test #'EQL))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
   (cond
-    ((FUNCALL test old (FUNCALL key tree))
+    ((FUNCALL TEST old (FUNCALL KEY tree))
      new)
     ((ATOM tree)
      tree)
     (t
-     (RPLACA tree (SUBST new old (CAR tree) :key key :test test))
-     (RPLACD tree (SUBST new old (CDR tree) :key key :test test)))))
+     (RPLACA tree (SUBST new old (CAR tree) (kw KEY) KEY (kw TEST) TEST))
+     (RPLACD tree (SUBST new old (CDR tree) (kw KEY) KEY (kw TEST) TEST)))))
 
-(defun* NSUBST-IF (new predicate tree &key (key #'IDENTITY))
+(defun* NSUBST-IF (new predicate tree &key (KEY #'IDENTITY))
   (cond
-    ((FUNCALL predicate (FUNCALL key tree))
+    ((FUNCALL predicate (FUNCALL KEY tree))
      new)
     ((ATOM tree)
      tree)
     (t
-     (RPLACA tree (NSUBST-IF new predicate (CAR tree) :key key))
-     (RPLACD tree (NSUBST-IF new predicate (CDR tree) :key key)))))
+     (RPLACA tree (NSUBST-IF new predicate (CAR tree) (kw KEY) KEY))
+     (RPLACD tree (NSUBST-IF new predicate (CDR tree) (kw KEY) KEY)))))
 
-(defun* NSUBST-IF-NOT (new predicate tree &key (key #'IDENTITY))
+(defun* NSUBST-IF-NOT (new predicate tree &key (KEY #'IDENTITY))
   (cond
-    ((not (FUNCALL predicate (FUNCALL key tree)))
+    ((not (FUNCALL predicate (FUNCALL KEY tree)))
      new)
     ((ATOM tree)
      tree)
     (t
-     (RPLACA tree (NSUBST-IF new predicate (CAR tree) :key key))
-     (RPLACD tree (NSUBST-IF new predicate (CDR tree) :key key)))))
+     (RPLACA tree (NSUBST-IF new predicate (CAR tree) (kw KEY) KEY))
+     (RPLACD tree (NSUBST-IF new predicate (CDR tree) (kw KEY) KEY)))))
 
-(defun* TREE-EQUAL (tree1 tree2 &key test test-not)
-  (when (and test test-not)
+(defun* TREE-EQUAL (tree1 tree2 &key TEST TEST-NOT)
+  (when (and TEST TEST-NOT)
     (error))
-  (when test-not
-    (setq test (COMPLEMENT test-not)))
-  (unless test
-    (setq test #'EQL))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
   (cond
     ((and (ATOM tree1) (ATOM tree2))
-     (FUNCALL test tree1 tree2))
+     (FUNCALL TEST tree1 tree2))
     ((and (CONSP tree1) (CONSP tree2))
-     (and (TREE-EQUAL (CAR tree1) (CAR tree2) :test test)
-	  (TREE-EQUAL (CDR tree1) (CDR tree2) :test test)))))
+     (and (TREE-EQUAL (CAR tree1) (CAR tree2) (kw TEST) TEST)
+	  (TREE-EQUAL (CDR tree1) (CDR tree2) (kw TEST) TEST)))))
 
 (fset 'COPY-LIST (symbol-function 'copy-list))
 
@@ -190,8 +190,8 @@
 
 (fset 'LISTP (symbol-function 'listp))
 
-(defun* MAKE-LIST (size &key initial-element)
-  (make-list size initial-element))
+(cl:defun MAKE-LIST (size &key INITIAL-ELEMENT)
+  (make-list size INITIAL-ELEMENT))
 
 (cl:defmacro PUSH (object place)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
@@ -362,28 +362,28 @@
 (DEFSETF REST (cons) (cdr)
   `(setcdr ,cons ,cdr))
 
-(cl:defun MEMBER (object list &key (key #'IDENTITY) test test-not)
-  (when (and test test-not)
+(cl:defun MEMBER (object list &key (KEY #'IDENTITY) TEST TEST-NOT)
+  (when (and TEST TEST-NOT)
     (error))
-  (when test-not
-    (setq test (COMPLEMENT test-not)))
-  (unless test
-    (setq test #'EQL))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
   (do ((list list (cdr list)))
       ((null list) nil)
-    (when (FUNCALL test object (FUNCALL key (car list)))
+    (when (FUNCALL TEST object (FUNCALL KEY (car list)))
       (return-from MEMBER list))))
 
-(cl:defun MEMBER-IF (predicate list &key (key #'IDENTITY))
+(cl:defun MEMBER-IF (predicate list &key (KEY #'IDENTITY))
   (do ((list list (cdr list)))
       ((null list) nil)
-    (when (FUNCALL predicate (FUNCALL key (car list)))
+    (when (FUNCALL predicate (FUNCALL KEY (car list)))
       (return-from MEMBER list))))
 
-(cl:defun MEMBER-IF-NOT (predicate list &key (key #'IDENTITY))
+(cl:defun MEMBER-IF-NOT (predicate list &key (KEY #'IDENTITY))
   (do ((list list (cdr list)))
       ((null list) nil)
-    (unless (FUNCALL predicate (FUNCALL key (car list)))
+    (unless (FUNCALL predicate (FUNCALL KEY (car list)))
       (return-from MEMBER list))))
 
 (defun MAPC (fn &rest lists)
@@ -422,55 +422,55 @@
   (apply (cl:function nconc)
 	 (apply (cl:function MAPLIST) fn lists)))
 
-(defun ACONS (key datum alist)
-  (CONS (CONS key datum) alist))
+(defun ACONS (KEY datum alist)
+  (CONS (CONS KEY datum) alist))
 
-(cl:defun ASSOC (item alist &key (key #'IDENTITY) test test-not)
-  (when (and test test-not)
+(cl:defun ASSOC (item alist &key (KEY #'IDENTITY) TEST TEST-NOT)
+  (when (and TEST TEST-NOT)
     (error))
-  (when test-not
-    (setq test (COMPLEMENT test-not)))
-  (unless test
-    (setq test #'EQL))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
   (dolist (pair alist)
-    (when (and pair (FUNCALL test item (FUNCALL key (car pair))))
+    (when (and pair (FUNCALL TEST item (FUNCALL KEY (car pair))))
       (return-from ASSOC pair))))
 
-(cl:defun ASSOC-IF (predicate alist &key (key #'IDENTITY))
+(cl:defun ASSOC-IF (predicate alist &key (KEY #'IDENTITY))
   (dolist (pair alist)
-    (when (and pair (FUNCALL predicate (FUNCALL key (car pair))))
+    (when (and pair (FUNCALL predicate (FUNCALL KEY (car pair))))
       (return-from ASSOC-IF pair))))
 
-(cl:defun ASSOC-IF-NOT (predicate alist &key (key #'IDENTITY))
+(cl:defun ASSOC-IF-NOT (predicate alist &key (KEY #'IDENTITY))
   (dolist (pair alist)
-    (when (and pair (not (FUNCALL predicate (FUNCALL key (car pair)))))
+    (when (and pair (not (FUNCALL predicate (FUNCALL KEY (car pair)))))
       (return-from ASSOC-IF-NOT pair))))
 
 (defun COPY-ALIST (alist)
   (mapcar (lambda (pair) (CONS (CAR pair) (CDR pair)))))
 
-(defun PAIRLIS (keys data &optional alist)
-  (NCONC (MAPCAR #'CONS keys data) alist))
+(defun PAIRLIS (KEYs data &optional alist)
+  (NCONC (MAPCAR #'CONS KEYs data) alist))
 
-(cl:defun RASSOC (item alist &key (key #'IDENTITY) test test-not)
-  (when (and test test-not)
+(cl:defun RASSOC (item alist &key (KEY #'IDENTITY) TEST TEST-NOT)
+  (when (and TEST TEST-NOT)
     (error))
-  (when test-not
-    (setq test (COMPLEMENT test-not)))
-  (unless test
-    (setq test #'EQL))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
   (dolist (pair alist)
-    (when (and pair (FUNCALL test item (FUNCALL key (cdr pair))))
+    (when (and pair (FUNCALL TEST item (FUNCALL KEY (cdr pair))))
       (return-from ASSOC pair))))
 
-(cl:defun RASSOC-IF (predicate alist &key (key #'IDENTITY))
+(cl:defun RASSOC-IF (predicate alist &key (KEY #'IDENTITY))
   (dolist (pair alist)
-    (when (and pair (FUNCALL predicate (FUNCALL key (cdr pair))))
+    (when (and pair (FUNCALL predicate (FUNCALL KEY (cdr pair))))
       (return-from ASSOC-IF pair))))
 
-(cl:defun RASSOC-IF-NOT (predicate alist &key (key #'IDENTITY))
+(cl:defun RASSOC-IF-NOT (predicate alist &key (KEY #'IDENTITY))
   (dolist (pair alist)
-    (when (and pair (not (FUNCALL predicate (FUNCALL key (cdr pair)))))
+    (when (and pair (not (FUNCALL predicate (FUNCALL KEY (cdr pair)))))
       (return-from ASSOC-IF pair))))
 
 (defun* GET-PROPERTIES (plist indicators)
@@ -512,68 +512,68 @@
 	    (,(first variables) (delete-property ,getter ,indicator)))
        ,setter)))
 
-(cl:defun INTERSECTION (list1 list2 &key (key #'IDENTITY) test test-not)
+(cl:defun INTERSECTION (list1 list2 &key (KEY #'IDENTITY) TEST TEST-NOT)
   (let ((result nil))
     (dolist (x list1 result)
-      (when (MEMBER x list2 (kw KEY) key (kw TEST) test (kw TEST-NOT) test-not)
+      (when (MEMBER x list2 (kw KEY) KEY (kw TEST) TEST (kw TEST-NOT) TEST-NOT)
 	(push x result)))))
 
 (fset 'NINTERSECTION (symbol-function 'INTERSECTION))
 
-(cl:defun ADJOIN (object list &key (key #'IDENTITY) test test-not)
-  (if (MEMBER object list (kw KEY) key (kw TEST) test (kw TEST-NOT) test-not)
+(cl:defun ADJOIN (object list &key (KEY #'IDENTITY) TEST TEST-NOT)
+  (if (MEMBER object list (kw KEY) KEY (kw TEST) TEST (kw TEST-NOT) TEST-NOT)
       list
       (cons object list)))
 
-(cl:defmacro PUSHNEW (object place &key test test-not)
-  (when (and test test-not)
+(cl:defmacro PUSHNEW (object place &key TEST TEST-NOT)
+  (when (and TEST TEST-NOT)
     (error))
-  (when test-not
-    (setq test (COMPLEMENT test-not)))
-  (unless test
-    (setq test `(FUNCTION EQL)))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST `(FUNCTION EQL)))
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
       (GET-SETF-EXPANSION place env)
     (with-gensyms (obj)
       `(LET* ((,obj ,object)
 	      ,@(MAPCAR #'list temps values)
-	      (,(first variables) (ADJOIN ,obj ,getter (kw TEST) ,test)))
+	      (,(first variables) (ADJOIN ,obj ,getter (kw TEST) ,TEST)))
 	 ,setter))))
 
-(cl:defun SET-DIFFERENCE (list1 list2 &key (key #'IDENTITY) test test-not)
+(cl:defun SET-DIFFERENCE (list1 list2 &key (KEY #'IDENTITY) TEST TEST-NOT)
   (let ((result nil))
     (dolist (x list1 result)
-      (unless (MEMBER x list2 (kw KEY) key (kw TEST) test
-		              (kw TEST-NOT) test-not)
+      (unless (MEMBER x list2 (kw KEY) KEY (kw TEST) TEST
+		              (kw TEST-NOT) TEST-NOT)
 	(push x result)))))
 
 (fset 'NSET-DIFFERENCE (symbol-function 'SET-DIFFERENCE))
 
-(cl:defun SET-EXCLUSIVE-OR (list1 list2 &key (key #'IDENTITY) test test-not)
+(cl:defun SET-EXCLUSIVE-OR (list1 list2 &key (KEY #'IDENTITY) TEST TEST-NOT)
   (let ((result nil))
     (dolist (x list1)
-      (unless (MEMBER x list2 (kw KEY) key (kw TEST) test
-		              (kw TEST-NOT) test-not)
+      (unless (MEMBER x list2 (kw KEY) KEY (kw TEST) TEST
+		              (kw TEST-NOT) TEST-NOT)
 	(push x result)))
     (dolist (x list2 result)
-      (unless (MEMBER x list1 (kw KEY) key (kw TEST) test
-		              (kw TEST-NOT) test-not)
+      (unless (MEMBER x list1 (kw KEY) KEY (kw TEST) TEST
+		              (kw TEST-NOT) TEST-NOT)
 	(push x result)))))
 
 (fset 'NSET-EXCLUSIVE-OR (symbol-function 'SET-EXCLUSIVE-OR))
 
-(cl:defun SUBSETP (list1 list2 &key key test test-not)
-  (EVERY (lambda (x) (MEMBER x list2 (kw KEY) key (kw TEST) test
-			             (kw TEST-NOT) test-not))
+(cl:defun SUBSETP (list1 list2 &key KEY TEST TEST-NOT)
+  (EVERY (lambda (x) (MEMBER x list2 (kw KEY) KEY (kw TEST) TEST
+			             (kw TEST-NOT) TEST-NOT))
 	 list1))
 
-(cl:defun UNION (list1 list2 &key key test test-not)
+(cl:defun UNION (list1 list2 &key KEY TEST TEST-NOT)
   (let ((result nil))
     (dolist (x list1)
-      (setq result (ADJOIN x result (kw KEY) key (kw TEST) test
-			            (kw TEST-NOT) test-not)))
+      (setq result (ADJOIN x result (kw KEY) KEY (kw TEST) TEST
+			            (kw TEST-NOT) TEST-NOT)))
     (dolist (x list2 result)
-      (setq result (ADJOIN x result (kw KEY) key (kw TEST) test
-			            (kw TEST-NOT) test-not)))))
+      (setq result (ADJOIN x result (kw KEY) KEY (kw TEST) TEST
+			            (kw TEST-NOT) TEST-NOT)))))
 
 (fset 'NUNION (symbol-function 'UNION))
