@@ -191,6 +191,10 @@
 
 ;;; TODO: stream-external-format
 
+(defmacro* WITH-OPEN-FILE ((stream filespec &rest options) &body body)
+  `(WITH-OPEN-STREAM (,stream (OPEN ,filespec ,@options))
+     ,@body))
+
 (cl:defmacro WITH-OPEN-FILE ((stream filespec &rest options) &body body)
   `(WITH-OPEN-STREAM (,stream (OPEN ,filespec ,@options))
      ,@body))
