@@ -1094,6 +1094,16 @@
 ;;; TODO: decode-float, scale-float, float-radix, float-sign, float-digits,
 ;;; float-precision, integer-decode-float
 
+(defun bignum-float (num)
+  (do ((i 1 (1+ i))
+       (w 1.0 (* w 268435456.0))
+       (x 0.0)
+       (len (1- (length num))))
+      ((eq i len)
+       (+ x (* w (aref num i))))
+    (let ((y (aref num i)))
+      (incf x (* w (if (minusp y) (+ 268435456.0 y) y))))))
+
 (defun FLOAT (num &optional prototype)
   (cond
     ((integerp num)
@@ -1103,7 +1113,7 @@
     ((cl::ratiop num)
      (/ (FLOAT (NUMERATOR num)) (FLOAT (DENOMINATOR num))))
     ((cl::bignump num)
-     1.0)
+     (bignum-float num))
     (t
      (error "type error"))))
 
