@@ -255,8 +255,12 @@
   (let (quotient)
     (cond
       ((or (floatp number) (floatp divisor))
-       ;; TODO: truncate can only output an Emacs Lisp integer.
-       (setq quotient (truncate (FLOAT number) (FLOAT divisor))))
+       (setq number (FLOAT number)
+	     divisor (FLOAT divisor)
+	     quotient
+	     (condition-case condition
+		 (truncate number divisor)
+	       (range-error (truncate-to-bignum (/ number divisor))))))
       ((or (ratiop number) (ratiop divisor))
        (setq quotient (integer-truncate
 		       (binary* (NUMERATOR number) (DENOMINATOR divisor))
@@ -266,6 +270,27 @@
       (t
        (error "type error")))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
+
+(defconst two^fixnum-bits
+    (* 2 (1+ (float most-positive-fixnum)))))
+
+(defun truncate-to-bignum (float)
+  (let ((neg nil)
+	(list nil))
+    (when (minusp float)
+      (setq float (- float)
+	    neg t))
+    (while (>= float 1.0)
+      (let ((residue (mod float two^fixnum-bits)))
+	(push (truncate (if (> residue most-positive-fixnum)
+			    (- residue two^fixnum-bits 1)
+			    residue))
+	      list))
+      (setq float (/ float two^fixnum-bits)))
+    (let ((bignum (canonical-bignum (nreverse list))))
+      (if neg
+	  (cl:- bignum)
+	  bignum))))
 
 (cl:defun FTRUNCATE (number &optional (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (TRUNCATE number divisor)
