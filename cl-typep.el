@@ -139,7 +139,9 @@
   (error "(function ...) not allowed"))
 
 ;;; generic-function (atomic only)
-;;; hash-table (atomic only)
+
+(define-typep (object HASH-TABLE env)
+  (HASH-TABLE-P object))
 
 (define-typep (object (INTEGER &optional (low star) (high star)) env)
   (and (INTEGERP object) (in-range object low high)))
@@ -248,7 +250,7 @@
   (and (floatp object) (in-range object low high)))
 
 (define-typep (object STANDARD-CHAR env)
-  (find object "\n abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$\"'(),_-./:;?+<=>#%&*@[\\]{|}`^~"))
+  (STANDARD-CHAR-P object))
 
 ;;; standard-class (atomic only)
 ;;; standard-generic-function (atomic only)
