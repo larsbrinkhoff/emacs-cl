@@ -204,7 +204,29 @@
     (t
      (error))))
 
-;;; TODO: REVERSE, NREVERSE
+(defun REVERSE (seq)
+  (cond
+   ((listp seq)
+    (reverse seq))
+   ((VECTORP seq)
+    (NREVERSE (COPY-SEQ seq)))
+   (t
+    (type-error seq 'SEQUENCE))))
+
+(defun NREVERSE (seq)
+  (cond
+    ((listp seq)
+     (nreverse seq))
+    ((VECTORP seq)
+     (do* ((len (LENGTH seq))
+	   (end (/ len 2))
+	   (i 0 (1+ i))
+	   (j (1- len) (1- j)))
+	  ((eq i end)
+	   seq)
+       (rotatef (AREF seq i) (AREF seq j))))
+    (t
+     (type-error seq 'SEQUENCE))))
 
 (cl:defun SORT (sequence predicate &key (key (cl:function IDENTITY)))
   (cond 
@@ -313,29 +335,69 @@
   (catch 'SEARCH
     (if from-end
 	(do ((i (1- end2) (1- i)))
-	    ((minusp i)
-	     nil)
+	    ((minusp i))
 	  (when (subseq-p seq1 start1 end1 seq2 i end2 test key)
 	    (throw 'SEARCH i)))
 	(do ((i start2 (1+ i)))
-	    ((eq i end2)
-	     nil)
+	    ((eq i end2))
 	  (when (subseq-p seq1 start1 end1 seq2 i end2 test key)
-	    (throw 'SEARCH i))))))
+	    (throw 'SEARCH (+ i (- end1 start1) -1)))))
+    nil))
 
 ;;; TODO: MISMATCH
-;;; TODO: REPLACE
-;;; TODO: SUBSTITUTE
-;;; TODO: SUBSTITUTE-IF
 
-(cl:defun SUBSTITUTE-IF-NOT (predicate &rest args)
-  (apply (cl:function COUNT-IF) (COMPLEMENT predicate) args))
+(cl:defun REPLACE (seq1 seq2 &key (start1 0) (start2 0) end1 end2)
+  (unless end1
+    (setq end1 (LENGTH seq1)))
+  (unless end2
+    (setq end2 (LENGTH seq2)))
+  (do ((i start1 (1+ i))
+       (j start2 (1+ j)))
+      ((or (eq i end1) (eq j end2)))
+    (setf (ELT seq1 i) (ELT seq2 j)))
+  seq1)
 
-;;; TODO: NSUBSTITUTE
-;;; TODO: NSUBSTITUTE-IF
+(cl:defun SUBSTITUTE (new old seq &rest keys)
+  (apply (cl:function NSUBSTITUTE) new old (COPY-SEQ seq) keys))
+
+(cl:defun SUBSTITUTE-IF (obj predicate seq &rest keys)
+  (apply (cl:function NSUBSTITUTE-IF) obj predicate (COPY-SEQ seq) keys))
+
+(cl:defun SUBSTITUTE-IF-NOT (obj predicate seq &rest keys)
+  (apply (cl:function NSUBSTITUTE-IF)
+	 obj (COMPLEMENT predicate) (COPY-SEQ seq) keys))
+
+(cl:defun NSUBSTITUTE (new old seq &key (from-end test test-not (start 0) end
+					count (key (cl:function IDENTITY))))
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test #'EQL))
+  (NSUBSTITUTE-IF new (lambda (x) (FUNCALL test old x))
+		  (kw FROM-END) from-end (kw TEST) test (kw START) start
+		  (kw END) end (kw COUNT) count (kw KEY) key))
+
+(cl:defun NSUBSTITUTE-IF (obj predicate seq &key from-end (start 0) end count
+						 (key (cl:function IDENTITY)))
+  (unless end
+    (setq end (LENGTH seq)))
+  (if from-end
+      (do ((i (1- end) (1- i)))
+	  ((or (minusp i) (<= count 0)))
+	(when (FUNCALL predicate (FUNCALL key (ELT seq i)))
+	  (setf (ELT seq i) obj))
+	(decf count))
+      (do ((i start (1+ i)))
+	  ((or (eq i end) (<= count 0)))
+	(when (FUNCALL predicate (FUNCALL key (ELT seq i)))
+	  (setf (ELT seq i) obj))
+	(decf count)))
+  seq)
 
 (cl:defun NSUBSTITUTE-IF-NOT (predicate &rest args)
-  (apply (cl:function COUNT-IF) (COMPLEMENT predicate) args))
+  (apply (cl:function NSUBSTITUTE-IF) (COMPLEMENT predicate) args))
 
 (defun CONCATENATE (type &rest sequences)
   (ecase type
@@ -358,17 +420,20 @@
 
 ;;; TODO: MERGE
 
-;;; TODO: REMOVE, REMOVE-IF
+;;; TODO: REMOVE
+;;; TODO: REMOVE-IF
 
 (cl:defun REMOVE-IF-NOT (predicate &rest args)
   (apply (cl:function REMOVE-IF) (COMPLEMENT predicate) args))
 
-;;; TODO: DELETE, DELETE-IF
+;;; TODO: DELETE
+;;; TODO: DELETE-IF
 
 (cl:defun DELETE-IF-NOT (predicate &rest args)
   (apply (cl:function DELETE-IF) (COMPLEMENT predicate) args))
 
-;;; TODO: REMOVE-DUPLICATES, DELETE-DUPLICATES
+;;; TODO: REMOVE-DUPLICATES
+;;; TODO: DELETE-DUPLICATES
 
 
 
