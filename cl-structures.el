@@ -6,13 +6,36 @@
 
 (IN-PACKAGE "CL")
 
-;;; A hash table keyed on a structure type (symbol).  The data is a
-;;; list of types that are subtypes of the key type.
-(defvar *structure-subtypes* (make-hash-table))
+;;; A hash table keyed on a structure name.  The data is a cons which
+;;; car is a list of structure names that are subtypes of the key.
+;;; The cdr is a list of slot descriptions in the form `(,name
+;;; ,initval ,type ,read-only).
+(defvar *structure-info* (make-hash-table))
 
 (defun struct-subtypep (type1 type2)
   (or (eq type1 type2)
-      (member type1 (gethash type2 *structure-subtypes*))))
+      (member type1 (car (gethash type2 *structure-info*)))))
+
+(defun add-struct-subtype (struct sub)
+  (pushnew sub (car (gethash struct *structure-info*))))
+
+(defun struct-slots (struct)
+  (cdr (gethash struct *structure-info*)))
+
+(defsetf struct-slots (struct) (slots)
+  `(setf (gethash ,struct *structure-info*) (cons nil ,slots)))
+
+(defun slot-name (slot)
+  (first slot))
+
+(defun slot-initval (slot)
+  (second slot))
+
+(defun slot-type (slot)
+  (third slot))
+
+(defun slot-read-only-p (slot)
+  (fourth slot))
 
 (defmacro* DEFSTRUCT (name &rest slots)
   (multiple-value-bind (name options) (if (consp name)
@@ -29,7 +52,8 @@
 	  (print-object		nil)
 	  (print-function	nil)
 	  (type			nil)
-	  (struct-size		nil))
+	  (struct-size		nil)
+	  (unbound		(cons nil nil)))
 
       ;; Process structure options.
       (dolist (option options)
@@ -38,7 +62,7 @@
 					     (values (first option)
 						     (rest option)))
 	  (ecase name
-	    (:conc-name		(setq conc-name (or (first args) "")))
+	    (:conc-name		(setq conc-name (STRING (or (first args) ""))))
 	    (:constructor	(ecase (length args)
 				  (0)
 				  (1	(if (null (first args))
@@ -47,7 +71,7 @@
 						  constructors)))
 				  (2	(push args constructors))))
 	    (:copier		(setq copier (first args)))
-	    (:include		(setq include (rest args)))
+	    (:include		(setq include args))
 	    (:initial-offset	(setq initial-offset (first args)))
 	    (:named		(setq named t))
 	    (:predicate		(setq predicate (first args)))
@@ -58,6 +82,23 @@
       ;; Provide a default constructor if appropriate.
       (when (and (null constructors) (not no-constructor))
 	(setq constructors (list (symcat "MAKE-" name))))
+
+      ;; Calculate the effective slot list.
+      (setq slots
+	    (mapcar (lambda (slot)
+		      (cond
+			((atom slot)
+			 (list slot unbound t nil))
+			((= (length slot) 1)
+			 (list (first slot) unbound t nil))
+			(t
+			 (list (first slot) (second slot)
+			       (getf (cddr slot) :type t)
+			       (getf (cddr slot) :read-only)))))
+		    slots))
+      (when include
+	(setq slots (append (struct-slots (first include)) slots)))
+      (setf (struct-slots name) slots)
 
       ;; Calculate initial-offset and structure size.
       (when (and initial-offset (not type))
@@ -71,7 +112,7 @@
       ;; Register the structure as a subtype of an included structure,
       ;; and provide a default predicate if appropriate.
       (when include
-	(pushnew name (gethash (first include) *structure-subtypes*)))
+	(add-struct-subtype (first include) name))
       (when (and type (not named) predicate)
 	(error))
       (unless predicate
@@ -85,13 +126,15 @@
 	   (lambda (constructor)
 	     `(defun* ,@(if (consp constructor)
 			    `(,(first constructor) ,(second constructor))
-			    `(,constructor (&key ,@slots)))
+			    `(,constructor (&key
+					    ,@(mapcar #'slot-name slots))))
 	       ,(ecase type
 		  ((nil)
 		   `(let ((object (make-vector ,struct-size ',name)))
 		     ,@(let ((index initial-offset))
 		         (mapcar (lambda (slot)
-				   `(aset object ,(incf index) ,slot))
+				   `(aset object ,(incf index)
+				          ,(slot-name slot)))
 				 slots))
 		      object))
 		  (vector
@@ -101,13 +144,13 @@
 			       `((setf (AREF object ,(incf index) ',name))))
 			   ,@(mapcar (lambda (slot)
 				       `(setf (AREF object ,(incf index))
-					      ,slot))
+					      ,(slot-name slot)))
 				     slots)))
 		     object))
 		  (list
 		   `(list ,@(make-list initial-offset nil)
 		          ,@(when named (list (list 'quote name)))
-		          ,@slots)))))
+		          ,@(mapcar #'slot-name slots))))))
 	   constructors)
 
 	;; Copier.
@@ -153,7 +196,7 @@
 		      (values `(nth ,index object)
 			      `(list 'setf (list 'nth ,index object) new))))
 		 (incf index)
-		 (let ((name (symcat conc-name slot)))
+		 (let ((name (symcat conc-name (slot-name slot))))
 		   `((defun ,name (object) ,getter)
 		     (defsetf ,name (object) (new) ,setter)))))
 	       slots))
