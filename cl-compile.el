@@ -83,7 +83,6 @@
     (compile-form form *global-environment*)))
 
 (defun compiler-macroexpand (form env)
-  (print (format "compiler-macroexpand %s" form))
   (if (and (consp form) (eq (first form) 'trampoline))
       (error))
   (let ((exp1 t) (exp2 nil))
