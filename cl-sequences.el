@@ -162,8 +162,8 @@
 			      (INITIAL-VALUE nil initial-value-p))
   (unless KEY
     (setq KEY (cl:function IDENTITY)))
-  (unless end
-    (setq end (LENGTH seq)))
+  (unless END
+    (setq END (LENGTH seq)))
   (let ((len (- END START))
 	result)
     (cond
@@ -313,8 +313,9 @@
 (cl:defun FIND-IF-NOT (predicate &rest args)
   (apply (cl:function FIND-IF) (COMPLEMENT predicate) args))
 
-(cl:defun POSITION (obj seq &key FROM-END TEST TEST-NOT (START 0) END
-				 (KEY (cl:function IDENTITY)))
+(cl:defun POSITION (obj seq &key FROM-END TEST TEST-NOT (START 0) END KEY)
+  (unless KEY
+    (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
     (error))
   (when TEST-NOT
@@ -334,14 +335,12 @@
       (if FROM-END
 	  (do ((i (1- END) (1- i)))
 	      ((eq i -1))
-	    (let ((elt (ELT seq i)))
-	      (when (FUNCALL predicate (FUNCALL KEY elt))
-		(throw 'FIND i))))
+	    (when (FUNCALL predicate (FUNCALL KEY (ELT seq i)))
+	      (throw 'POSITION i)))
 	  (do ((i START (1+ i)))
 	      ((eq i END))
-	    (let ((elt (ELT seq i)))
-	      (when (FUNCALL predicate (FUNCALL KEY elt))
-		(throw 'FIND elt)))))
+	    (when (FUNCALL predicate (FUNCALL KEY (ELT seq i)))
+	      (throw 'POSITION i))))
       nil)))
 
 (cl:defun POSITION-IF-NOT (predicate &rest args)
@@ -482,8 +481,39 @@
 		(prog1 (ELT seq1 j) (incf j)))))
     result))
 
-;;; TODO: REMOVE
-;;; TODO: REMOVE-IF
+(cl:defun REMOVE (obj seq &key FROM-END TEST TEST-NOT (START 0) END COUNT KEY)
+  (when (and TEST TEST-NOT)
+    (error))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
+  (REMOVE-IF (lambda (x) (FUNCALL TEST obj x)) seq (kw FROM-END) FROM-END
+	     (kw START) START (kw END) END (kw COUNT) COUNT (kw KEY) KEY))
+
+(defun list-remove (predicate list end count key)
+  (cond
+    ((or (null list) (zerop end) (when count (zerop count)))
+     nil)
+    ((FUNCALL predicate (FUNCALL key (first list)))
+     (list-remove predicate (rest list) (1- end) (when count (1- count)) key))
+    (t
+     (cons (first list)
+	   (list-remove predicate (rest list) (1- end) count key)))))
+
+(cl:defun REMOVE-IF (predicate seq &key FROM-END (START 0) END COUNT KEY)
+  (unless KEY
+    (setq KEY #'IDENTITY))
+  (cond
+    ((listp seq)
+     (if FROM-END
+	 (error "TODO")
+	 (list-remove predicate (nthcdr START seq) (or END (LENGTH seq))
+		      COUNT KEY)))
+    ((VECTORP seq)
+     (error "TODO"))
+    (t
+     (type-error seq 'SEQUENCE))))
 
 (cl:defun REMOVE-IF-NOT (predicate &rest args)
   (apply (cl:function REMOVE-IF) (COMPLEMENT predicate) args))
@@ -500,10 +530,11 @@
 
 (defun list-delete (predicate list end count key)
   (cond
-    ((or (null list) (zerop end) (zerop count))
+    ((or (null list) (zerop end) (when count (zerop count)))
      nil)
     ((FUNCALL predicate (FUNCALL key (first list)))
-     (let ((rest (list-delete predicate (rest list) (1- end) (1- count) key)))
+     (let ((rest (list-delete predicate (rest list) (1- end)
+			      (when count (1- count)) key)))
        (if (null rest)
 	   nil
 	 (RPLACA list (car rest))
@@ -513,17 +544,17 @@
 
 (cl:defun DELETE-IF (predicate seq &key FROM-END (START 0) END COUNT KEY)
   (cond
-    ((listp obj)
+    ((listp seq)
      (progn
        (unless KEY
 	 (setq KEY #'IDENTITY))
-       (if from-end
+       (if FROM-END
 	   (REMOVE-IF predicate seq (kw FROM-END) FROM-END (kw KEY) KEY
 		      (kw START) START (kw END) END (kw COUNT) COUNT)
 	   (list-delete predicate (nthcdr START seq) (or END (LENGTH seq))
 			COUNT KEY))))
-    ((VECTORP obj)
-     (if (ARRAY-HAS-FILL-POINTER-P obj)
+    ((VECTORP seq)
+     (if (ARRAY-HAS-FILL-POINTER-P seq)
 	 (error "TODO")
 	 (REMOVE-IF predicate seq (kw FROM-END) FROM-END (kw KEY) KEY
 		    (kw START) START (kw END) END (kw COUNT) COUNT)))
@@ -533,8 +564,35 @@
 (cl:defun DELETE-IF-NOT (predicate &rest args)
   (apply (cl:function DELETE-IF) (COMPLEMENT predicate) args))
 
-;;; TODO: REMOVE-DUPLICATES
-;;; TODO: DELETE-DUPLICATES
+(cl:defun REMOVE-DUPLICATES (seq &key FROM-END TEST TEST-NOT (START 0) END KEY)
+  (unless KEY
+    (setq KEY #'IDENTITY))
+  (when (and TEST TEST-NOT)
+    (error))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
+  (let ((i START))
+    (REMOVE-IF (lambda (x)
+		 (POSITION x seq (kw TEST) TEST (kw KEY) KEY
+				 (kw START) (incf i) (kw FROM-END) FROM-END))
+	       seq (kw KEY) KEY (kw START) START (kw END) END)))
+
+(cl:defun DELETE-DUPLICATES (seq &key FROM-END TEST TEST-NOT (START 0) END KEY)
+  (unless KEY
+    (setq KEY #'IDENTITY))
+  (when (and TEST TEST-NOT)
+    (error))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
+  (let ((i START))
+    (DELETE-IF (lambda (x)
+		 (POSITION x seq (kw TEST) TEST (kw KEY) KEY
+				 (kw START) (incf i) (kw FROM-END) FROM-END))
+	       seq (kw KEY) KEY (kw START) START (kw END) END)))
 
 
 
