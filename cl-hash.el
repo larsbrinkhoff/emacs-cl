@@ -14,15 +14,19 @@
 	hash)
 
       (defun HASH-TABLE-P (object)
-	(hash-table-p object)))
+	(hash-table-p object))
+
+      (defun HASH-TABLE-TEST (hash)
+	;; TODO
+	'EQ))
 
     ;; If there isn't a real hash-table type, make one using defstruct.
     (progn
-      (DEFSTRUCT (HASH-TABLE (:copier nil) (:constructor (mkhash (TABLE))))
-        TABLE)
+      (DEFSTRUCT (HASH-TABLE (:copier nil) (:constructor mkhash (TABLE TEST)))
+        TABLE TEST)
 
       (defun* MAKE-HASH-TABLE (&key test size rehash-size rehash-threshold)
-	(mkhash (make-hash-table :test test :size size)))
+	(mkhash (make-hash-table :test test :size size) test))
 
       (defun htab (hash)
 	(HASH-TABLE-TABLE hash))))
@@ -41,10 +45,6 @@
 (defun HASH-TABLE-SIZE (hash)
   ;; TODO
   0)
-
-(defun HASH-TABLE-TEST (hash)
-  ;; TODO
-  'EQ)
 
 (defun* GETHASH (key hash &optional default)
   (gethash key (htab hash) default))
