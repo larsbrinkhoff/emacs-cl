@@ -95,7 +95,8 @@
     (let ((handler (ASSOC condition *condition-handler-alist*
 			  (kw TEST) #'TYPEP)))
       (when handler
-	(FUNCALL (cdr handler) condition)))
+	(let ((*condition-handler-alist* (cddr handler)))
+	  (FUNCALL (cadr handler) condition))))
     nil))
 
 (DEFINE-CONDITION SIMPLE-CONDITION (CONDITION) (format args))
@@ -163,8 +164,9 @@
 (defmacro* HANDLER-BIND (bindings &body body)
   `(let ((*condition-handler-alist*
 	  (append (list ,@(mapcar (lambda (binding)
-				    `(cons ',(first binding)
-				           ,(second binding)))
+				    `(list* ',(first binding)
+				            ,(second binding)
+					    *condition-handler-alist*))
 				  bindings))
 		  *condition-handler-alist*)))
      ,@body))
