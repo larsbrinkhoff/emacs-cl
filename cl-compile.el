@@ -546,8 +546,14 @@
 
 (define-compiler MACROLET (macros &body forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
-    ;; TODO: bind macros, process decls
-    (compile-body body env)))
+    (let ((new-env (augment-environment env :macro (mapcar #'first macros))))
+      (dolist (macro macros)
+	(setf (MACRO-FUNCTION (first macro) new-env)
+	      (enclose `(LAMBDA (form env)
+			 ;; TODO: destructuring-bind
+			 (APPLY (LAMBDA ,@(rest macro)) (CDR form)))
+		       env (first macro))))
+      (body-form (compile-body body new-env)))))
 
 (define-compiler MULTIPLE-VALUE-BIND (vars form &body forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
@@ -636,10 +642,15 @@
 	      ,@(when more
 		  (rest (compile-form `(SETQ ,@more) env))))))))
 
-(defun compile-symbol-macrolet (forms)
-  (let ((macros (second forms))
-	(body (cddr forms)))
-    (compile-body body env)))
+(define-compiler SYMBOL-MACROLET (macros &rest forms) env
+  (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
+    (let ((new-env (augment-environment env :symbol-macro
+					(mapcar #'first macros))))
+      (dolist (macro macros)
+	(setf (lexical-value (first macro) new-env)
+	      (enclose `(LAMBDA (form env) (QUOTE ,(second macro)))
+		       env (first macro))))
+      (body-form (compile-body body new-env)))))
 
 (defun compile-tagbody-forms (forms tagbody start env)
   (let* ((nofirst (eq start (car forms)))
