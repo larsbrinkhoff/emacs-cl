@@ -26,9 +26,8 @@
   T)
 
 (defun* GET-MACRO-CHARACTER (char &optional (readtable *READTABLE*))
-  (VALUES
-   (aref (READTABLE-MACRO-TABLE readtable) (CHAR-CODE char))
-   (eq (char-syntx char readtable) :non-terminating-macro)))
+  (VALUES (aref (READTABLE-MACRO-TABLE readtable) (CHAR-CODE char))
+	  (eq (char-syntx char readtable) :non-terminating-macro)))
 
 (defun* SET-MACRO-CHARACTER (char new-function
 			     &optional non-terminating-p
@@ -365,11 +364,11 @@
 	(:whitespace
 	 (go STEP-1))
 	((:terminating-macro :non-terminating-macro)
-	 (MULTIPLE-VALUE-BIND (fn nt) (GET-MACRO-CHARACTER char)
-	   (let ((list (MULTIPLE-VALUE-LIST (funcall fn stream char))))
-	     (if (null list)
-		 (go STEP-1)
-		 (return-from READ (first list))))))
+	 (let* ((fn (GET-MACRO-CHARACTER char))
+		(list (MULTIPLE-VALUE-LIST (funcall fn stream char))))
+	   (if (null list)
+	       (go STEP-1)
+	       (return-from READ (VALUES (first list))))))
 	(:single-escape
 	 (setq escape t)
 	 (setq char (READ-CHAR stream T nil T))
@@ -449,15 +448,16 @@
   (when (null token)
     (error "token terminated by colon"))
   (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL token package)
-    (cond
-      ((or (eq status *:external*) (eq status *:inherited*))
-       sym)
-      ((eq status *:internal*)
-       (if (and (< colons 2) (not (eq package *PACKAGE*)))
-	   (error "internal symbol")
-	   sym))
-      ((null status)
-       (NTH-VALUE 0 (INTERN token package))))))
+    (VALUES
+      (cond
+	((or (eq status *:external*) (eq status *:inherited*))
+	 sym)
+	((eq status *:internal*)
+	 (if (and (< colons 2) (not (eq package *PACKAGE*)))
+	     (error "internal symbol")
+	     sym))
+	((null status)
+	 (NTH-VALUE 0 (INTERN token package)))))))
 
 (defvar *READ-BASE* 10)
 
@@ -484,14 +484,14 @@
     (MULTIPLE-VALUE-BIND (integer end)
 	(PARSE-INTEGER string :radix *READ-BASE* :junk-allowed T)
       (when (and integer (= end (length string)))
-	(return-from parse-number integer))
+	(return-from parse-number (VALUES integer)))
       (when (and integer
 		 (CHAR= (CHAR string end) (CODE-CHAR 47)))
 	(MULTIPLE-VALUE-BIND (denumerator end2)
 	    (PARSE-INTEGER string :radix *READ-BASE* :start (1+ end)
 			   :junk-allowed T)
 	  (when (and denumerator (= end2 (length string)))
-	    (return-from parse-number (cl:/ integer denumerator))))))))
+	    (VALUES (cl:/ integer denumerator))))))))
 
 (defun* READ-DELIMITED-LIST (delimiter &optional (stream *STANDARD-INPUT*)
 			                         recursive-p)

@@ -38,7 +38,7 @@
 
 (defun* EXPORT (symbols &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
-    (do-list-designator (sym symbols 'T)
+    (do-list-designator (sym symbols (VALUES T))
       (MULTIPLE-VALUE-BIND (s status) (FIND-SYMBOL (SYMBOL-NAME sym) package)
 	(cond
 	  ((eq status *:inherited*)
@@ -116,14 +116,14 @@
 (defun FIND-ALL-SYMBOLS (name)
   (let ((string (STRING name))
 	(syms nil))
-    (dolist (p *all-packages* syms)
+    (dolist (p *all-packages* (VALUES syms))
       (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL string p)
 	(if (or (eq status :internal) (eq status *:external*))
 	    (push sym syms))))))
 
 (defun* IMPORT (symbols &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
-    (do-list-designator (symbol symbols 'T)
+    (do-list-designator (symbol symbols (VALUES T))
       (MULTIPLE-VALUE-BIND (sym found)
 	  (FIND-SYMBOL (SYMBOL-NAME symbol) package)
 	(when (and found (not (eq sym symbol)))
@@ -144,25 +144,27 @@
 
 (defun* SHADOW (symbol-names &optional (package-designator *PACKAGE))
   (let ((package (FIND-PACKAGE package-designator)))
-    (do-list-designator (name symbol-names)
+    (do-list-designator (name symbol-names (VALUES T))
       (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL name package)
 	(when (or (null status) (eq status *:inherited*))
 	  (setq sym (nth-value 0 (INTERN name package))))
-	(pushnew sym (aref package 3)))))
-  'T)
+	(pushnew sym (aref package 3))))))
 
 (defun* SHADOWING-IMPORT (symbols &optional (package-designator *PACKAGE))
   (let ((package (FIND-PACKAGE package-designator)))
-    (do-list-designator (symbol symbols)
+    (do-list-designator (symbol symbols (VALUES T))
       (MULTIPLE-VALUE-BIND (sym found) (FIND-SYMBOL (SYMBOL-NAME sym package))
 	(when found
 	  (UNINTERN sym package)))
       (IMPORT symbol package))))
 
-(defun DELETE-PACKAGE (package)
-  (dolist (p (PACKAGE-USE-LIST package))
-    (aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))
-  (setq *all-packages* (delete package *all-packages*)))
+(defun DELETE-PACKAGE (package-designator)
+  (let ((package (FIND-PACKAGE package-designator)))
+    ;; TODO: follow spec more closely.
+    (dolist (p (PACKAGE-USE-LIST package))
+      (aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))
+    (setq *all-packages* (delete package *all-packages*)))
+  T)
 
 ;;; with-package-iterator
 
@@ -184,6 +186,12 @@
 (defmacro IN-PACKAGE (package)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     (setq *PACKAGE* (FIND-PACKAGE ,package))))
+
+(cl:defmacro IN-PACKAGE (package)
+  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
+	       ,(keyword "LOAD-TOPLEVEL")
+	       ,(keyword "EXECUTE"))
+     (SETQ *PACKAGE* (FIND-PACKAGE ,package))))
 
 (defun* UNUSE-PACKAGE (packages-to-unuse &optional (package *PACKAGE*))
   (let ((package (FIND-PACKAGE package)))
@@ -242,8 +250,6 @@
     `(DOLIST (,p *all-packages*)
        (maphash (QUOTE (lambda (,ignore ,var) ,@body))
 	        (package-table ,p)))))
-
-;;; do-all-symbols
 
 (defun* INTERN (name &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
