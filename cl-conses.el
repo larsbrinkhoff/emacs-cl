@@ -16,6 +16,11 @@
 	cadadr caddar cadddr cdaaar cdaadr cdadar cdaddr cddaar cddadr cdddar
 	cddddr))
 
+(defun COPY-TREE (tree)
+  (if (CONSP tree)
+      (CONS (COPY-TREE (CAR tree)) (COPY-TREE (CDR tree)))
+      tree))
+
 (defun* MAKE-LIST (size &key initial-element)
   (make-list size initial-element))
 
