@@ -72,7 +72,7 @@
 	((consp x)
 	 (when (eq state '&optional)
 	   (setq state :optional-rest))
-	 (ecase state
+	 (case state
 	   (:optional-rest
 	    (let ((var (first x))
 		  (default (second x))
