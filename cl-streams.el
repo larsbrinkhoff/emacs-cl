@@ -12,6 +12,7 @@
   (position 0)
   end
   fresh-line-p
+  (unread-buffer nil)
   read-fn
   write-fn)
 
@@ -104,14 +105,16 @@
 
 (defun* READ-CHAR (&optional stream-designator (eof-error-p T)
 			     eof-value recursive-p)
-  (let* ((stream (input-stream stream-designator))
-	 (fn (STREAM-read-fn stream))
-	 (ch (funcall (or fn (stream-error stream)) stream)))
-    (if (eq ch :eof)
-	(if eof-error-p
-	    (ERROR 'END-OF-FILE (kw STREAM) stream)
-	    eof-value)
-	(CODE-CHAR ch))))
+  (let ((stream (input-stream stream-designator)))
+    (when (STREAM-unread-buffer stream)
+      (return-from READ-CHAR (pop (STREAM-unread-buffer stream))))
+    (let* ((fn (STREAM-read-fn stream))
+	   (ch (funcall (or fn (stream-error stream)) stream)))
+      (if (eq ch :eof)
+	  (if eof-error-p
+	      (ERROR 'END-OF-FILE (kw STREAM) stream)
+	      eof-value)
+	  (CODE-CHAR ch)))))
 
 (cl:defun read-char-exclusive-ignoring-arg (arg)
   (let ((char (read-char-exclusive)))
@@ -138,8 +141,10 @@
 
 (cl:defun UNREAD-CHAR (char &OPTIONAL stream-designator)
   (let ((stream (input-stream stream-designator)))
-    (when (> (STREAM-position stream) 0)
-      (decf (STREAM-position stream)))))
+    (if (STREAM-position stream)
+	(when (> (STREAM-position stream) 0)
+	  (decf (STREAM-position stream)))
+	(push char (STREAM-unread-buffer stream)))))
 
 (cl:defun WRITE-CHAR (char &OPTIONAL stream-designator)
   (let* ((stream (output-stream stream-designator))
