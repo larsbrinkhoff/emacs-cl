@@ -240,9 +240,10 @@
     (aset package 7 (delete symbol (aref package 7))))
   'T)
 
-(defmacro IN-PACKAGE (package)
-  `(eval-when (:compile-toplevel :load-toplevel :execute)
-    (setq *PACKAGE* (FIND-PACKAGE ,package))))
+;;; Emacs' load function doesn't restore *PACKAGE* after loading a file.
+; (defmacro IN-PACKAGE (package)
+;   `(eval-when (:compile-toplevel :load-toplevel :execute)
+;     (setq *PACKAGE* (FIND-PACKAGE ,package))))
 
 (cl:defmacro IN-PACKAGE (package)
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
