@@ -407,7 +407,7 @@
 		   (CHAR-CODE char))))))))
 
 (defun GET-OUTPUT-STREAM-STRING (stream)
-  (STREAM-content stream))
+  (STRING-STREAM-string stream))
 
 (cl:defun MAKE-STRING-INPUT-STREAM (string &optional (start 0) end)
   (mk-STRING-STREAM
