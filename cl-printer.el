@@ -13,7 +13,9 @@
 
 ;;; TODO: Local Macro PPRINT-EXIT-IF-LIST-EXHAUSTED
 
-;;; TODO: Function PPRINT-FILL, PPRINT-LINEAR, PPRINT-TABULAR
+;;; TODO: Function PPRINT-FILL
+;;; TODO:          PPRINT-LINEAR
+;;; TODO:          PPRINT-TABULAR
 
 ;;; TODO: Function PPRINT-INDENT
 
@@ -35,21 +37,6 @@
   ;; TODO: Perhaps flush a non-weak hash table occasionally.
   (or (gethash object *object-identities*)
       (setf (gethash object *object-identities*) (incf *identity-counter*))))
-
-; (defmacro* PRINT-UNREADABLE-OBJECT ((object stream &key type identity)
-; 				    &body body)
-;   `(progn
-;      (WRITE-STRING "#<" ,stream)
-;      ,@(when type
-; 	`((PRIN1 (TYPE-OF ,object) ,stream)
-; 	  (WRITE-STRING " " ,stream)))
-;      ,@body
-;      ,@(when identity
-;         `((WRITE-STRING " {" ,stream)
-; 	  (PRIN1 (object-identity ,object))
-; 	  (WRITE-STRING "}" ,stream)))
-;      (WRITE-STRING ">" ,stream)
-;      nil))
 
 (defmacro* PRINT-UNREADABLE-OBJECT ((object stream &rest keys) &body body)
   `(print-unreadable-object ,object ,stream (lambda () ,@body) ,@keys))
@@ -88,54 +75,44 @@
     (WRITE-STRING name stream)
     (WRITE-STRING escape stream)))
 
-(defun write-char-to-*standard-output* (char)
-  (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*))
-
-;;; TODO:
-; (cl:defun WRITE (object &key
-; 		 (array *PRINT-ARRAY*)
-; 		 (base *PRINT-BASE*)
-; 		 (case *PRINT-CASE*)
-; 		 (circle *PRINT-CIRCLE*)
-; 		 (escape *PRINT-ESCAPE*)
-; 		 (gensym *PRINT-GENSYM*)
-; 		 (length *PRINT-LENGTH*)
-; 		 (level *PRINT-LEVEL*)
-; 		 (lines *PRINT-LINES*)
-; 		 (miser-width *PRINT-MISER-WIDTH*)
-; 		 (pprint-dispatch *PRINT-PPRINT-DISPATCH*)
-; 		 (pretty *PRINT-PRETTY*)
-; 		 (radix *PRINT-RADIX*)
-; 		 (readably *PRINT-READABLY*)
-; 		 (right-margin *PRINT-RIGHT-MARGIN*)
-; 		 stream)
-;   (let ((*PRINT-ARRAY* array)
-; 	(*PRINT-BASE* base)
-; 	(*PRINT-CASE* case)
-; 	(*PRINT-CIRCLE* circle)
-; 	(*PRINT-ESCAPE* escape)
-; 	(*PRINT-GENSYM* gensym)
-; 	(*PRINT-LENGTH* length)
-; 	(*PRINT-LEVEL* level)
-; 	(*PRINT-LINES* lines)
-; 	(*PRINT-MISER-WIDTH* miser-width)
-; 	(*PRINT-PPRINT-DISPATCH* pprint-dispatch)
-; 	(*PRINT-PRETTY* pretty)
-; 	(*PRINT-RADIX* radix)
-; 	(*PRINT-READABLY* readably)
-; 	(*PRINT-RIGHT-MARGIN* right-margin))
-;     object))
-
-;;; Ad-hoc unexensible.
-(defun PRIN1 (object &optional stream-designator)
-  (let* ((stream (output-stream stream-designator))
-	 (*STANDARD-OUTPUT* stream)
-	 (standard-output #'write-char-to-*standard-output*))
+(cl:defun WRITE (object &key
+		 (array *PRINT-ARRAY*)
+		 (base *PRINT-BASE*)
+		 (case *PRINT-CASE*)
+		 (circle *PRINT-CIRCLE*)
+		 (escape *PRINT-ESCAPE*)
+		 (gensym *PRINT-GENSYM*)
+		 (length *PRINT-LENGTH*)
+		 (level *PRINT-LEVEL*)
+		 (lines *PRINT-LINES*)
+		 (miser-width *PRINT-MISER-WIDTH*)
+		 (pprint-dispatch *PRINT-PPRINT-DISPATCH*)
+		 (pretty *PRINT-PRETTY*)
+		 (radix *PRINT-RADIX*)
+		 (readably *PRINT-READABLY*)
+		 (right-margin *PRINT-RIGHT-MARGIN*)
+		 stream)
+  (let ((stream (output-stream stream))
+	(*PRINT-ARRAY* array)
+	(*PRINT-BASE* base)
+	(*PRINT-CASE* case)
+	(*PRINT-CIRCLE* circle)
+	(*PRINT-ESCAPE* escape)
+	(*PRINT-GENSYM* gensym)
+	(*PRINT-LENGTH* length)
+	(*PRINT-LEVEL* level)
+	(*PRINT-LINES* lines)
+	(*PRINT-MISER-WIDTH* miser-width)
+	(*PRINT-PPRINT-DISPATCH* pprint-dispatch)
+	(*PRINT-PRETTY* pretty)
+	(*PRINT-RADIX* radix)
+	(*PRINT-READABLY* readably)
+	(*PRINT-RIGHT-MARGIN* right-margin))
     (cond
       ((INTEGERP object)
        (prin1-integer object stream))
       ((floatp object)
-       (princ object))
+       (prin1-float object stream))
       ((symbolp object)
        (cond
 	 ((eq (NTH-VALUE 0 (FIND-SYMBOL (SYMBOL-NAME object) *PACKAGE*))
@@ -168,8 +145,6 @@
        (WRITE-STRING ")" stream))
       ((FUNCTIONP object)
        (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
-      ((bignump object)
-       (prin1-integer object stream))
       ((ratiop object)
        (PRIN1 (NUMERATOR object) stream)
        (WRITE-STRING "/" stream)
@@ -185,14 +160,18 @@
        (dotimes (i (LENGTH object))
 	 (PRIN1 (AREF object i) stream)))
       ((STRINGP object)
-       (WRITE-STRING "\"" stream)
+       (when *PRINT-ESCAPE*
+	 (WRITE-STRING "\"" stream))
        (dotimes (i (LENGTH object))
 	 (let ((char (CHAR-CODE (CHAR object i))))
-	   (case char
-	     (34	(WRITE-STRING "\\\"" stream))
-	     (92	(WRITE-STRING "\\\\" stream))
-	     (t		(WRITE-STRING (string char) stream)))))
-       (WRITE-STRING "\"" stream))
+	   (if *PRINT-ESCAPE*
+	       (case char
+		 (34	(WRITE-STRING "\\\"" stream))
+		 (92	(WRITE-STRING "\\\\" stream))
+		 (t	(WRITE-STRING (string char) stream)))
+	       (WRITE-STRING (string char) stream))))
+       (when *PRINT-ESCAPE*
+	 (WRITE-STRING "\"" stream)))
       ((VECTORP object)
        (WRITE-STRING "#(" stream)
        (dotimes (i (LENGTH object))
@@ -236,8 +215,11 @@
        (WRITE-STRING "#P" stream)
        (PRIN1 (NAMESTRING object) stream))
       (t
-       (error))))
-  (VALUES object))
+       (error)))
+    (VALUES object)))
+
+(defun write-char-to-*standard-output* (char)
+  (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*))
 
 (defun prin1-integer (number stream)
   (when *PRINT-RADIX*
@@ -265,59 +247,70 @@
       (WRITE-CHAR (AREF "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" digit)
 		  stream))))
 
+(defun write-char-to-stream (char)
+  (WRITE-CHAR (CODE-CHAR char) stream))
+
+(defun prin1-float (float stream)
+  (let ((standard-output #'write-char-to-*standard-output*))
+    (prin1 float)))
+
+(defun PRIN1 (object &optional stream)
+  (WRITE object (kw STREAM) stream (kw ESCAPE) t))
+
 (defun PRINT (object &optional stream)
   (TERPRI stream)
   (PRIN1 object stream)
   (WRITE-CHAR (ch 32) stream)
   object)
 
-;;; TODO:
-; (defun PPRINT (object &optional stream-designator)
-;   (let ((stream (output-stream stream-designator)))
-;     (VALUES)))
+(defun PPRINT (object &optional stream)
+  (TERPRI stream)
+  (WRITE object (kw STREAM) stream (kw ESCAPE) t (kw PRETTY) t))
 
-(defun PRINC (object &optional stream-designator)
-  (let* ((stream (output-stream stream-designator))
-	 (*STANDARD-OUTPUT* stream)
-	 (standard-output #'write-char-to-*standard-output*))
-    (cond
-      ((or (integerp object)
-	   (floatp object))
-       (princ object))
-      ((STRINGP object)
-       (WRITE-STRING object stream))
-      (t
-       (error "TODO")))))
+(defun PRINC (object &optional stream)
+  (WRITE object (kw STREAM) stream (kw ESCAPE) nil (kw READABLY) nil))
 
-;;; TODO: Function WRITE-TO-STRING, PRIN1-TO-STRING, PRINC-TO-STRING
+(cl:defun WRITE-TO-STRING (object &rest keys)
+  (WITH-OUTPUT-TO-STRING (stream)
+    (apply (cl:function WRITE) object (kw STREAM) stream keys)))
 
-;;; TODO: Variable *PRINT-ARRAY*
+(cl:defun PRIN1-TO-STRING (object)
+  (WITH-OUTPUT-TO-STRING (stream)
+    (funcall (cl:function PRIN1) object stream)))
+
+(cl:defun PRINC-TO-STRING (object)
+  (WITH-OUTPUT-TO-STRING (stream)
+    (funcall (cl:function PRINC) object stream)))
+
+(defvar *PRINT-ARRAY* nil)
 
 (defvar *PRINT-BASE* 10)
 
 (defvar *PRINT-RADIX* nil)
 
-;;; TODO: Variable *PRINT-CASE*
+(defvar *PRINT-CASE* nil)
 
-;;; TODO: Variable *PRINT-CIRCLE*
+(defvar *PRINT-CIRCLE* nil)
 
-;;; TODO: Variable *PRINT-ESCAPE*
+(defvar *PRINT-ESCAPE* nil)
 
-;;; TODO: Variable *PRINT-GENSYM*
+(defvar *PRINT-GENSYM* nil)
 
-;;; TODO: Variable *PRINT-LEVEL*, *PRINT-LENGTH*
+(defvar *PRINT-LEVEL* nil)
 
-;;; TODO: Variable *PRINT-LINES*
+(defvar *PRINT-LENGTH* nil)
 
-;;; TODO: Variable *PRINT-MISER-WIDTH*
+(defvar *PRINT-LINES* nil)
 
-;;; TODO: Variable *PRINT-PPRINT-DISPATCH*
+(defvar *PRINT-MISER-WIDTH* nil)
 
-;;; TODO: Variable *PRINT-PRETTY*
+(defvar *PRINT-PPRINT-DISPATCH* nil)
+
+(defvar *PRINT-PRETTY* nil)
 
 (defvar *PRINT-READABLY* nil)
 
-;;; TODO: Variable *PRINT-RIGHT-MARGIN*
+(defvar *PRINT-RIGHT-MARGIN* nil)
 
 ;;; PRINT-NOT-READABLE and PRINT-NOT-READABLE-OBJECT defined in
 ;;; cl-conditions.el.
