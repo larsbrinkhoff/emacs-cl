@@ -172,11 +172,11 @@ WRITE-STRING WRITE-TO-STRING Y-OR-N-P YES-OR-NO-P ZEROP))
     (setf (gethash "NIL" emacs-cl-table) nil)
     (setf (SYMBOL-PACKAGE nil) *emacs-cl-package*)
 
-    ;; Internal symbols.
-    (dolist (sym '(BACKQUOTE COMMA COMMA-AT COMMA-DOT INTERPRETED-FUNCTION
-		   INTERPRETED-FUNCTION-P))
-      (setf (gethash (SYMBOL-NAME sym) emacs-cl-table) sym)
-      (setf (SYMBOL-PACKAGE sym) *emacs-cl-package*))
+    ;; * is treated specially.
+    (setf (gethash "*" emacs-cl-table) star)
+    (setf (SYMBOL-PACKAGE star) *emacs-cl-package*)
+    (set star nil)
+    (fset star (symbol-function 'cl:*))
 
     ;; Symbols prefixed with "cl:" in Emacs Lisp.
     (dolist (name '("=" "/=" "<" ">" "<=" ">=" "*" "+" "-" "/" "1+" "1-"))
@@ -188,12 +188,16 @@ WRITE-STRING WRITE-TO-STRING Y-OR-N-P YES-OR-NO-P ZEROP))
 	    (set to (symbol-value from)))
 	(fset to (symbol-function from))))
 
-    (setq star (INTERN "*" "EMACS-CL"))
-
     (dolist (sym '(** *** ++ +++ // ///))
       (setf (gethash (symbol-name sym) emacs-cl-table) sym)
       (setf (SYMBOL-PACKAGE sym) *emacs-cl-package*)
       (set sym nil))
+
+    ;; Internal symbols.
+    (dolist (sym '(BACKQUOTE COMMA COMMA-AT COMMA-DOT INTERPRETED-FUNCTION
+		   INTERPRETED-FUNCTION-P))
+      (setf (gethash (SYMBOL-NAME sym) emacs-cl-table) sym)
+      (setf (SYMBOL-PACKAGE sym) *emacs-cl-package*))
 
     (setq *global-environment*
 	  (vector 'environment

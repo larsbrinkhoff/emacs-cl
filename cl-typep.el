@@ -36,7 +36,7 @@
 	   (high-exclusive (cl:< num high))
 	   (t (cl:<= num high))))))
 
-(defvar star '*)
+(defvar star (INTERN "*" "EMACS-CL"))
 
 (defmacro star-or (type &rest forms)
   `(or (eq ,type star) ,@forms))
