@@ -250,7 +250,11 @@
 
 (cl:defmacro IN-PACKAGE (package)
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
-     (SETQ *PACKAGE* (FIND-PACKAGE ,package))))
+     (LET* ((p1 ,package)
+	    (p2 (FIND-PACKAGE ,package)))
+       (IF p2
+	   (SETQ *PACKAGE* p2)
+	   (ERROR (QUOTE PACKAGE-ERROR) ,(kw PACKAGE) p1)))))
 
 (cl:defun UNUSE-PACKAGE (packages-to-unuse &OPTIONAL (package *PACKAGE*))
   (let ((package (FIND-PACKAGE package)))
