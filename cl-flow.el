@@ -230,6 +230,9 @@
 			  ,@(rest clause)))))
 		   clauses)))))
 
+(cl:defmacro ECASE (form &rest clauses)
+  `(CASE ,form ,@clauses (T (error "type error"))))
+
 (defmacro* MULTIPLE-VALUE-BIND (vars form &body body)
   (if (null vars)
       `(progn ,form ,@body)
