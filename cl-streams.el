@@ -55,8 +55,10 @@
 
 ;;; TODO: READ-CHAR-NO-HANG
 
-(defun TERPRI (&optional stream)
-  (WRITE-CHAR (CODE-CHAR 10) stream)
+(defun TERPRI (&optional stream-designator)
+  (let ((stream (resolve-output-stream-designator stream-designator)))
+    (WRITE-CHAR (CODE-CHAR 10) stream))
+  (sit-for 0)
   nil)
 
 ;;; TODO: FRESH-LINE
