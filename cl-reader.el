@@ -222,8 +222,37 @@
 (defun sharp-p-reader (stream char n) nil)
 (defun sharp-equal-reader (stream char n) nil)
 (defun sharp-sharp-reader (stream char n) nil)
-(defun sharp-plus-reader (stream char n) nil)
-(defun sharp-minus-reader (stream char n) nil)
+
+(defun eval-feature-test (expr)
+  (cond
+    ((symbolp expr)
+     (member expr *FEATURES*))
+    ((atom expr)
+     (error "syntax error"))
+    ((eq (first expr) (INTERN "NOT" *keyword-package*))
+     (not (eval-feature-test (second expr))))
+    ((eq (first expr) (INTERN "AND" *keyword-package*))
+     (every #'eval-feature-test (rest expr)))
+    ((eq (first expr) (INTERN "OR" *keyword-package*))
+     (some #'eval-feature-test (rest expr)))
+    (t
+     (error "syntax error"))))
+
+(defun sharp-plus-reader (stream char n)
+  (if (eval-feature-test (let ((*PACKAGE* *keyword-package*))
+			   (READ stream T nil T)))
+      (values (READ stream T nil T))
+      (progn
+	(READ stream T nil T)
+	(values))))
+
+(defun sharp-minus-reader (stream char n)
+  (if (not (eval-feature-test (let ((*PACKAGE* *keyword-package*))
+				(READ stream T nil T))))
+      (values (READ stream T nil T))
+      (progn
+	(READ stream T nil T)
+	(values))))
 
 (defun sharp-bar-reader (stream char n)
   (do ((last nil)
