@@ -35,7 +35,7 @@
   (SET-MACRO-CHARACTER char #'dispatch-reader non-terminating-p readtable)
   T)
 
-(defun* READ (&optional stream (eof-error-p T) eof-value recursive-p)
+(defun* read1 (stream eof-error-p eof-value recursive-p preserve-whitespace)
   (let (char
 	(escape nil)
 	(package nil)
@@ -45,7 +45,7 @@
       STEP-1
        (setq char (READ-CHAR stream eof-error-p eof-value recursive-p))
        (when (EQL char eof-value)
-	 (return-from READ eof-value))
+	 (return-from read1 eof-value))
 
       (case (char-syntx char)
 	(:whitespace
@@ -55,7 +55,7 @@
 		(list (MULTIPLE-VALUE-LIST (funcall fn stream char))))
 	   (if (null list)
 	       (go STEP-1)
-	       (return-from READ (VALUES (first list))))))
+	       (return-from read1 (VALUES (first list))))))
 	(:single-escape
 	 (setq escape t)
 	 (setq char (READ-CHAR stream T nil T))
@@ -97,7 +97,7 @@
 	 (UNREAD-CHAR char stream)
 	 (go STEP-10))
 	(:whitespace
-	 (when nil
+	 (when preserve-whitespace
 	   (UNREAD-CHAR char stream))
 	 (go STEP-10)))
 
@@ -121,9 +121,14 @@
 
       STEP-10
       (unless *READ-SUPPRESS*
-	(return-from READ (process-token package colons token escape))))))
+	(return-from read1 (process-token package colons token escape))))))
 
-;;; TODO: READ-PRESERVING-WHITESPACE
+(cl:defun READ (&optional stream (eof-error-p T) eof-value recursive-p)
+  (read1 stream eof-error-p eof-value recursive-p nil))
+
+(cl:defun READ-PRESERVING-WHITESPACE (&optional stream (eof-error-p T)
+				      eof-value recursive-p)
+  (read1 stream eof-error-p eof-value recursive-p t))
 
 (defmacro* unless-read-suppress-let ((var form) &body body)
   `(let ((,var ,form))
