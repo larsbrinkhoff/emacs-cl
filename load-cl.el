@@ -45,6 +45,7 @@
   "cl-loop"
   "cl-format"
   "cl-conditions"
+  "cl-compile"
 
   "populate"))
 
