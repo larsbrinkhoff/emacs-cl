@@ -33,28 +33,35 @@
        (symbolp (cadr name))
        (null (cddr name))))
 
+(defun not-function-name-error (name)
+  (ERROR 'TYPE-ERROR (kw DATUM) name
+	 (kw EXPECTED-TYPE) '(OR SYMBOL
+			      (CONS (EQL SETF) (CONS SYMBOL NULL)))))
+
 (defun FDEFINITION (name)
   (cond
     ((symbolp name)
+     (unless (fboundp name)
+       (ERROR 'UNDEFINED-FUNCTION (kw NAME) name))
      (if (or (SPECIAL-OPERATOR-P name) (MACRO-FUNCTION name))
 	 nil
 	 (symbol-function name)))
     ((setf-name-p name)
      (let ((fn (gethash (second name) *setf-definitions*)))
        (if (null fn)
-	   (error "unbound function")
+	   (ERROR 'UNDEFINED-FUNCTION (kw NAME) name)
 	   fn)))
     (t
-     (error))))
+     (not-function-name-error))))
 
 (defsetf FDEFINITION (name) (fn)
   `(cond
     ((symbolp ,name)
-     (setf (symbol-function ,name) ,fn))
+     (fset ,name ,fn))
     ((setf-name-p name)
-     (setf (gethash (second ,name) *setf-definitions*) ,fn))
+     (puthash (second ,name) ,fn *setf-definitions*))
     (t
-     (error "type error"))))
+     (not-function-name-error ,name))))
 
 (defun FBOUNDP (name)
   (cond
@@ -63,16 +70,18 @@
     ((setf-name-p name)
      (not (null (gethash (second name) *setf-definitions*))))
     (t
-     (error "type error"))))
+     (not-function-name-error))))
     
 (defun FMAKUNBOUND (name)
   (cond
     ((symbolp name)
-     (fmakunbound name))
+     (fmakunbound name)
+     (remhash name *macro-functions*))
     ((setf-name-p name)
      (remhash (second name) *setf-definitions*))
     (t
-     (error "type error"))))
+     (not-function-name-error)))
+  name)
     
 ;;; Special operators: FLET, LABELS, MACROLET
 
