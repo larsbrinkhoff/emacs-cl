@@ -83,9 +83,7 @@
   (with-fresh-context
     (compile-form form *global-environment*)))
 
-(defun compiler-macroexpand (form env)
-  (if (and (consp form) (eq (first form) 'trampoline))
-      (error))
+(defun cl-compiler-macroexpand (form env)
   (let ((exp1 t) (exp2 nil))
     (while (or exp1 exp2)
       (MULTIPLE-VALUE-SETQ (form exp1) (MACROEXPAND form env))
@@ -104,7 +102,7 @@
 	   (fn (gethash name *form-compilers*)))
       (when fn
 	(return-from compile-form (apply fn env (rest form))))))
-  (setq form (compiler-macroexpand form env))
+  (setq form (cl-compiler-macroexpand form env))
   (cond
     ((symbolp form)
      (unless (eq values 0)
@@ -303,7 +301,7 @@
 (define-compiler GO (tag) env
   (let ((info (tagbody-information tag env)))
     (if info
-	`(throw ,info ,tag)
+	`(throw ',info ',tag)
 	(ERROR "No tagbody for (GO ~S)" tag))))
 
 (define-compiler IF (condition then &optional else) env
@@ -636,19 +634,47 @@
       ((:lexical :special nil)
        `(setf ,(compile-variable var env) ,(compile-form val env)
 	      ,@(when more
-		  (rest (compile-form `(SETQ ,@more)))))))))
+		  (rest (compile-form `(SETQ ,@more) env))))))))
 
 (defun compile-symbol-macrolet (forms)
   (let ((macros (second forms))
 	(body (cddr forms)))
     (compile-body body env)))
 
+(defun compile-tagbody-forms (forms tagbody start env)
+  (let* ((nofirst (eq start (car forms)))
+	 (clause (unless nofirst (list (list start)))))
+    (do ((clauses nil)
+	 (forms forms (cdr forms)))
+	((null forms)
+	 (unless (eq (first (car (last clause))) 'throw)
+	   (setq clause (append clause `((throw ',tagbody nil)))))
+	 (setq clauses (append clauses `(,clause)))
+	 clauses)
+      (let ((form (first forms)))
+	(cond
+	  ((atom form)
+	   (unless nofirst
+	     (setq clause (append clause `((throw ',tagbody ',form))))
+	     (setq first nil))
+	   (when clause
+	     (setq clauses (append clauses `(,clause))))
+	   (setq clause `((,form))))
+	  (t
+	   (setq clause (append clause `(,(compile-form form env))))))))))
+
 (define-compiler TAGBODY (&rest forms) env
   (let* ((tagbody (gensym))
 	 (new-env (augment-environment
 		   env :tagbody
-		   (cons tagbody (remove-if-not #'go-tag-p forms)))))
-    nil))
+		   (cons tagbody (remove-if-not #'go-tag-p forms))))
+	 (pc (new-register))
+	 (start (if (go-tag-p (car forms)) (car forms) (gensym))))
+    `(let ((,pc ',start))
+      (while (setq ,pc (catch ',tagbody
+			 (case ,pc
+			   ,@(compile-tagbody-forms
+			      forms tagbody start new-env))))))))
 
 (define-compiler THE (type form) env
   (compile-form form env))
