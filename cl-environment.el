@@ -44,9 +44,9 @@
   (disassemble fn)
   nil)
 
-(defun* ROOM (&optional (x :default))
+(cl:defun ROOM (&optional (x (kw default)))
   (let* ((info (garbage-collect))
-         (foo `("conses" "symbols" "misc" "string chars"
+         (foo '("conses" "symbols" "misc" "string chars"
                 "vector slots" "floats" "intervals" "strings"))
          (cons-info (first info))
          (sym-info (second info))
@@ -56,31 +56,35 @@
          (float-info (sixth info))
          (interval-info (seventh info))
          (string-info (eighth info)))
-    (case x
-      ((nil) nil)
-      ((:default)
+    (cond
+      ((eq x nil))
+      ((eq x (kw default))
        (do ((i info (cdr i))
             (j foo (cdr j)))
            ((null i) nil)
-         (PRINC (format "Used %s: " (car j)))
+         (PRINC (format "\nUsed %-13s:  " (car j)))
          (cond
            ((null (car i)))
            ((atom (car i))
-            (PRINC (format "%d.\n" (car i))))
+            (PRINC (format "%7d." (car i))))
            (t
-            (PRINC (format "%d, free %s: %d\n"
+            (PRINC (format "%7d, free %-10s: %7d"
                            (caar i) (car j) (cdar i)))))))
-      ((t)
+      ((eq x 'T)
        (ROOM)
-       (PRINC "Consed so far:\n")
-       (PRINC (format "%d conses,\n" cons-cells-consed))
-       (PRINC (format "%d floats,\n" floats-consed))
-       (PRINC (format "%d vector cells,\n" vector-cells-consed))
-       (PRINC (format "%d symbols,\n" symbols-consed))
-       (PRINC (format "%d string chars,\n" string-chars-consed))
-       (PRINC (format "%d misc objects,\n" misc-objects-consed))
-       (PRINC (format "%d intervals,\n" intervals-consed))
-       (PRINC (format "%d strings\n" strings-consed))))))
+       (PRINC "\nConsed so far:")
+       (PRINC (format "\n%d conses," cons-cells-consed))
+       (PRINC (format "\n%d floats," floats-consed))
+       (PRINC (format "\n%d vector cells," vector-cells-consed))
+       (PRINC (format "\n%d symbols," symbols-consed))
+       (PRINC (format "\n%d string chars," string-chars-consed))
+       (PRINC (format "\n%d misc objects," misc-objects-consed))
+       (PRINC (format "\n%d intervals" intervals-consed))
+       (if (boundp 'strings-consed)
+	   (PRINC (format "\n%d strings." strings-consed))
+	   (PRINC ".")))
+      (t
+       (ERROR 'TYPE-ERROR)))))
 
 (defun SHORT-SITE-NAME ()
   nil)
