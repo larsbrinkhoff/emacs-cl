@@ -30,7 +30,7 @@
     ((listp sequence)
      (nth index sequence))
     ((cl:vectorp sequence)
-     (if (and (array-has-fill-pointer-p sequence)
+     (if (and (ARRAY-HAS-FILL-POINTER-P sequence)
 	      (cl:< index (fill-pointer sequence)))
 	 (aref sequence index)
 	 (error)))
@@ -73,7 +73,7 @@
     ((simple-vector-p sequence)
      (1- (length sequence)))
     ((cl:vectorp sequence)
-     (if (array-has-fill-pointer-p sequence)
+     (if (ARRAY-HAS-FILL-POINTER-P sequence)
 	 (fill-pointer sequence)
 	 (length (aref sequence 2))))
     (t
@@ -85,7 +85,7 @@
 	(vec (gensym)))
     `(let* (,var (,i 0) (,vec ,vector) (,len (cl:length ,vec)))
       (while (< ,i ,len)
-	(setq ,var (cl:aref ,vec ,i))
+	(setq ,var (AREF ,vec ,i))
 	,@body
 	(incf ,i))
       ,result)))

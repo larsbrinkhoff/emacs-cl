@@ -10,7 +10,7 @@
     ((cdr list)		(error))
     (t			(car list))))
 
-(defun* make-array (dimensions &key (element-type t) initial-element
+(defun* MAKE-ARRAY (dimensions &key (element-type t) initial-element
 		    initial-contents adjustable fill-pointer
 		    displaced-to displaced-index-offset)
   (let* ((vectorp (or (atom dimensions) (null (cdr dimensions))))
@@ -21,7 +21,7 @@
 		   (apply #'cl:* dimensions))))
     (when (eq fill-pointer t)
       (setq fill-pointer (just-one dimensions)))
-    (ecase (upgraded-array-element-type element-type)
+    (ecase (UPGRADED-ARRAY-ELEMENT-TYPE element-type)
       (bit
        (let ((bit-vector (or displaced-to
 			     (make-bool-vector size (ecase initial-element
@@ -55,12 +55,12 @@
 	   (t		(vector 'array dimensions array
 				displaced-index-offset))))))))
 
-(defun adjust-array (array new-dimensions
+(defun ADJUST-ARRAY (array new-dimensions
 		     &key element-type initial-element initial-contents
 		          fill-pointer displaced-to displaced-index-offset)
-  (if (adjustable-array-p array)
+  (if (ADJUSTABLE-ARRAY-P array)
       (error "TODO")
-      (make-array new-dimensions
+      (MAKE-ARRAY new-dimensions
 		  :element-type element-type
 		  :initial-element initial-element
 		  :initial-contents initial-contents
@@ -68,13 +68,13 @@
 		  :displaced-to displaced-to
 		  :displaced-index-offset displaced-index-offset)))
 
-(defun adjustable-array-p (array)
+(defun ADJUSTABLE-ARRAY-P (array)
   (check-type array 'array)
   (and (vectorp array)
        (case (aref array 0)
 	 ((bit-vector bit-array string char-array vector array) t))))
 
-(defun cl:aref (array &rest subscripts)
+(defun AREF (array &rest subscripts)
   (cond
     ((bit-vector-p array)
      (bit array (just-one subscripts)))
@@ -89,19 +89,19 @@
     (t
      (error))))
 
-(defun array-dimension (array axis)
+(defun ARRAY-DIMENSION (array axis)
   (cond
     ((cl:vectorp array)		(cl:length array))
-    ((cl:arrayp array)		(nth axis (aref array 1)))
+    ((cl:arrayp array)		(nth axis (ARRAY-DIMENSIONS array)))
     (t				(error))))
 
-(defun array-dimensions (array)
+(defun ARRAY-DIMENSIONS (array)
   (cond
-    ((cl:vectorp array)		(cl:length array))
+    ((cl:vectorp array)		(list (cl:length array)))
     ((cl:arrayp array)		(aref array 1))
     (t				(error))))
 
-(defun array-element-type (array)
+(defun ARRAY-ELEMENT-TYPE (array)
   (cond
     ((bit-vector-p array)	'bit)
     ((cl:stringp array)		'character)
@@ -112,21 +112,21 @@
        ((vector array)		t)))
     (t				(error))))
 
-(defun array-has-fill-pointer-p (array)
+(defun ARRAY-HAS-FILL-POINTER-P (array)
   (and (cl:vectorp array)
        (not (simple-vector-p array))
        (aref array 1)))
 
 (defun array-in-bounds-p (array &rest subscripts)
   (and (not (some #'cl:minusp subscripts))
-       (every #'cl:< subscripts (array-dimensions array))))
+       (every #'cl:< subscripts (ARRAY-DIMENSIONS array))))
 
 (defun array-rank (array)
-  (length (array-dimensions array)))
+  (length (ARRAY-DIMENSIONS array)))
 
 (defun array-row-major-index (array &rest subscripts)
   (apply #'cl:+ (maplist (lambda (x y) (cl:* (car x) (apply #'cl:* (cdr y))))
-			 subscripts (array-dimensions a))))
+			 subscripts (ARRAY-DIMENSIONS a))))
 
 (defun cl:arrayp (object)
   (or (cl:vectorp object)
@@ -143,7 +143,7 @@
 (defun row-major-aref (array index)
   (cond
     ((cl:vectorp array)
-     (cl:aref array index))
+     (AREF array index))
     ((vector-and-typep array 'array)
      (aref (aref array 2) index))
     (t
@@ -152,7 +152,7 @@
 (defsetf row-major-aref (array index) (new)
   `(cond
     ((cl:vectorp ,array)
-     (setf (cl:aref ,array ,index) ,new))
+     (setf (AREF ,array ,index) ,new))
     ((and (vectorp ,array)
           (case (aref ,array 0)
 	    ((array bit-array char-array))))
@@ -160,7 +160,7 @@
     (t
      (error "type error"))))
 
-(defun upgraded-array-element-type (typespec &optional env)
+(defun UPGRADED-ARRAY-ELEMENT-TYPE (typespec &optional env)
   (cond
     ((SUBTYPEP typespec 'bit)		'bit)
     ((SUBTYPEP typespec 'character)	'character)
@@ -183,13 +183,13 @@
 
 (defun vector-pop (vector)
   (unless (and (cl:vectorp vector)
-	       (array-has-fill-pointer-p vector)
+	       (ARRAY-HAS-FILL-POINTER-P vector)
 	       (plusp (fill-pointer vector)))
     (error))
   (aref vector (aref vector 2) (aset vector 1 (1- (aref vector 1)))))
 
 (defun vector-push (new-element vector)
-  (unless (and (cl:vectorp vector) (array-has-fill-pointer-p vector))
+  (unless (and (cl:vectorp vector) (ARRAY-HAS-FILL-POINTER-P vector))
     (error))
   (let ((ptr (fill-pointer vector))
 	(storage (aref vector 2)))
@@ -198,7 +198,7 @@
       (aset vector 1 (1+ ptr)))))
 
 (defun vector-push-extend (new-element vector &optional extension)
-  (unless (and (cl:vectorp vector) (array-has-fill-pointer-p vector))
+  (unless (and (cl:vectorp vector) (ARRAY-HAS-FILL-POINTER-P vector))
     (error))
   (let* ((storage (aref vector 2))
 	 (len (length storage))
