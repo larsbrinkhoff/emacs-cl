@@ -1,4 +1,8 @@
 ;;;; -*- emacs-lisp -*-
+;;;;
+;;;; Copyright (C) 2003 Lars Brinkhoff.
+;;;;
+;;;; This file implements operators in chapter 4, Types and Classes.
 
 (in-package "CL")
 

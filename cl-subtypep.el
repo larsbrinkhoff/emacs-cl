@@ -1,4 +1,8 @@
 ;;;; -*- emacs-lisp -*-
+;;;;
+;;;; Copyright (C) 2003 Lars Brinkhoff.
+;;;;
+;;;; This file implements the SUBTYPEP operator.
 
 (in-package "CL")
 

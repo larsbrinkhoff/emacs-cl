@@ -1,6 +1,8 @@
 ;;; -*- emacs-lisp -*-
-
-(require 'cl)
+;;;
+;;; Copyright (C) 2003 Lars Brinkhoff.
+;;;
+;;; This file implements operators in chapter 5, Data and Control Flow.
 
 (defvar *setf-definitions* (make-hash-table))
 

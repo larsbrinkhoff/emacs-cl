@@ -1,5 +1,7 @@
 ;;;; -*- emacs-lisp -*-
 ;;;;
+;;;; Copyright (C) 2003 Lars Brinkhoff.
+;;;;
 ;;;; This file implements the Common Lisp TYPEP operator.
 
 (in-package "CL")

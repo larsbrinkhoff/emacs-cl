@@ -1,3 +1,9 @@
+;;; -*- emacs-lisp -*-
+;;;
+;;; Copyright (C) 2003 Lars Brinkhoff.
+;;;
+;;; This file implements operators in chapter 15, Arrays.
+
 (defun* make-array (dimensions &key element-type initial-element
 		    initial-contents adjustable fill-pointer
 		    displaced-to displaced-index-offset)

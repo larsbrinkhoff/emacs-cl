@@ -1,6 +1,8 @@
-;;;; -*- elisp -*-
-
-(require 'cl)
+;;;; -*- emacs-lisp -*-
+;;;;
+;;;; Copyright (C) 2003 Lars Brinkhoff.
+;;;;
+;;;; This file implements operators in chapter 21, Streams.
 
 (defstruct (stream (:predicate streamp) (:copier nil))
   content

@@ -1,6 +1,8 @@
 ;;;; -*- emacs-lisp -*-
-
-(require 'cl)
+;;;;
+;;;; Copyright (C) 2003 Lars Brinkhoff.
+;;;;
+;;;; This file implements operators in chapter 11, Packages.
 
 (defstruct (package (:constructor mk-package ())
 		    (:predicate packagep)
