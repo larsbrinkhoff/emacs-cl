@@ -159,12 +159,12 @@
     (t
      (error "type error"))))
 
-(defun bignum/ (x y)
+(defun integer-truncate (x y)
   (cond
     ((and (integerp x) (integerp y))
      (if (and (eql x MOST-NEGATIVE-FIXNUM) (eql y -1))
-	 (vector 'bignum MOST-NEGATIVE-FIXNUM 0)
-	 (/ x y)))
+	 (VALUES (vector 'bignum MOST-NEGATIVE-FIXNUM 0) nil)
+	 (VALUES (/ x y) (not (zerop (% x y))))))
     ((and (INTEGERP x) (INTEGERP y))
      (let ((sign 1)
 	   (q 0)
@@ -184,50 +184,63 @@
 	   (setq q (LOGIOR q 1))
 	   (setq r (binary- r y)))
 	 (decf i))
-       (binary* sign q)))
+       (VALUES (binary* sign q) (not (ZEROP r)))))
     (t
      (error "type error"))))
 
 (defun* FLOOR (number &optional (divisor 1))
-  (let ((quotient (cl:/ number divisor)))
+  (let (quotient remainder)
     (cond
-      ((INTEGERP quotient))
-      ((floatp quotient)
-       (setq quotient (floor quotient)))
-      ((cl::ratiop quotient)
-       (setq quotient (bignum/ (NUMERATOR quotient) (DENOMINATOR quotient)))
-       (when (MINUSP quotient)
-	 (setq quotient (binary- quotient 1))))
+      ((or (floatp number) (floatp divisor))
+       (setq quotient (ceiling (FLOAT number) (FLOAT divisor))))
+      ((or (cl::ratiop number) (cl::ratiop divisor))
+       (MULTIPLE-VALUE-SETQ (quotient remainder)
+	 (integer-truncate
+	  (binary* (NUMERATOR number) (DENOMINATOR divisor))
+	  (binary* (DENOMINATOR number) (NUMERATOR divisor)))))
+      ((and (INTEGERP number) (INTEGERP divisor))
+       (MULTIPLE-VALUE-SETQ (quotient remainder)
+	 (integer-truncate number divisor)))
       (t
        (error "type error")))
+    (when (and remainder (MINUSP quotient))
+      (setq quotient (binary- quotient 1)))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
 
 ;;; TODO: ffloor
 
 (defun* CEILING (number &optional (divisor 1))
-  (let ((quotient (cl:/ number divisor)))
+  (let (quotient remainder)
     (cond
-      ((INTEGERP quotient))
-      ((floatp quotient)
-       (setq quotient (floor quotient)))
-      ((cl::ratiop quotient)
-       (setq quotient (bignum/ (NUMERATOR quotient) (DENOMINATOR quotient)))
-       (when (PLUSP quotient)
-	 (setq quotient (binary+ quotient 1))))
+      ((or (floatp number) (floatp divisor))
+       (setq quotient (ceiling (FLOAT number) (FLOAT divisor))))
+      ((or (cl::ratiop number) (cl::ratiop divisor))
+       (MULTIPLE-VALUE-SETQ (quotient remainder)
+	 (integer-truncate
+	  (binary* (NUMERATOR number) (DENOMINATOR divisor))
+	  (binary* (DENOMINATOR number) (NUMERATOR divisor)))))
+      ((and (INTEGERP number) (INTEGERP divisor))
+       (MULTIPLE-VALUE-SETQ (quotient remainder)
+	 (integer-truncate number divisor)))
       (t
        (error "type error")))
+    (when (and remainder (PLUSP quotient))
+      (setq quotient (binary+ quotient 1)))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
 
 ;;; TODO: fceiling
 
 (defun* TRUNCATE (number &optional (divisor 1))
-  (let ((quotient (cl:/ number divisor)))
+  (let (quotient)
     (cond
-      ((INTEGERP quotient))
-      ((floatp quotient)
-       (setq quotient (truncate quotient)))
-      ((cl::ratiop quotient)
-       (setq quotient (bignum/ (NUMERATOR quotient) (DENOMINATOR quotient))))
+      ((or (floatp number) (floatp divisor))
+       (setq quotient (truncate (FLOAT number) (FLOAT divisor))))
+      ((or (cl::ratiop number) (cl::ratiop divisor))
+       (setq quotient (integer-truncate
+		       (binary* (NUMERATOR number) (DENOMINATOR divisor))
+		       (binary* (DENOMINATOR number) (NUMERATOR divisor)))))
+      ((and (INTEGERP number) (INTEGERP divisor))
+       (setq quotient (integer-truncate number divisor)))
       (t
        (error "type error")))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
@@ -538,7 +551,12 @@
 	(while (not (zerop y))
 	  (psetq y (% x y) x y))
 	(abs x))
-      0))
+      (progn
+	(when (cl:> y x)
+	  (psetq x y y x))
+	(while (not (ZEROP y))
+	  (psetq y (REM x y) x y))
+	(ABS x))))
 
 (cl:defmacro INCF (place &optional delta)
   (unless delta
@@ -643,17 +661,17 @@
 
 (defun cl::ratio (num den)
   (unless (and (INTEGERP num) (INTEGERP den))
-    (error))
+    (error "type error"))
   (if (and (eq x MOST-NEGATIVE-FIXNUM) (eq y -1))
       (vector 'bignum MOST-NEGATIVE-FIXNUM 0)
       (let* ((gcd (GCD num den))
-	     (num (/ num gcd))
-	     (den (/ den gcd)))
+	     (num (binary/ num gcd))
+	     (den (binary/ den gcd)))
 	(cond
 	  ((eq den 1)
 	   num)
-	  ((minusp den)
-	   (vector 'ratio (cl:- num) den))
+	  ((MINUSP den)
+	   (vector 'ratio (cl:- num) (cl:- den)))
 	  (t
 	   (vector 'ratio num den))))))
 
