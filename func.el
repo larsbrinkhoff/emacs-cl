@@ -7,6 +7,8 @@
   (FDEFINITION name))
 
 (defmacro cl:defun (name lambda-list &rest body)
+  (when byte-compile-warnings
+    (byte-compile-log-1 (format "cl:defun %s" name)))
   `(progn
      (fset ',name (cl:lambda ,lambda-list ,@body))
      ',name))
