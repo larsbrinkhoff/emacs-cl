@@ -240,7 +240,7 @@
     ((VECTORP sequence)
      (MAP-INTO sequence
 	       #'IDENTITY
-	       (SORT (MAP 'LIST #'IDENTITY sequence) predicate :key key)))
+	       (SORT (MAP 'LIST #'IDENTITY sequence) predicate (kw KEY) key)))
     (t
      (error "type error"))))
 
