@@ -5,6 +5,25 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+(defmacro* with-fresh-context (&body body)
+  `(let ((*next-register* *registers*)
+	 (*free* nil))
+     ,@body))
+
+(defun COMPILE (name &optional definition)
+  (when (null definition)
+    (if (fboundp name)
+	(setq definition (fdefinition name))
+	(setq definition (symbol-macro name))))
+  (with-fresh-context
+    (let* ((compiled (compile-form definition *global-environment*))
+	   (function (byte-compile compiled)))
+      (when name
+	(setf (fdefinition name) function))
+      (VALUES (subst-free compiled) nil nil))))
+
+
+
 (defvar *registers* (list (gensym)))
 (defvar *next-register* nil)
 
@@ -15,11 +34,6 @@
 
 (defvar *unbound* nil)
 (defvar *closure-slot* nil)
-
-(defmacro* with-fresh-context (&body body)
-  `(let ((*next-register* *registers*)
-	 (*free* nil))
-     ,@body))
 
 (defun symbol-register (sym)
   (gethash sym *variables*))
@@ -61,18 +75,6 @@
      (cons (subst-free (car fn)) (subst-free (cdr fn))))
     (t
      fn)))
-
-(defun COMPILE (name &optional definition)
-  (when (null definition)
-    (if (fboundp name)
-	(setq definition (fdefinition name))
-	(setq definition (symbol-macro name))))
-  (with-fresh-context
-    (let* ((compiled (compile-form definition *global-environment*))
-	   (function (byte-compile compiled)))
-      (when name
-	(setf (fdefinition name) function))
-      (VALUES (subst-free compiled) nil nil))))
 
 (defun lambda-expr-p (form)
   (and (consp form)
@@ -460,3 +462,15 @@
 (define-compiler UNWIND-PROTECT (protected &rest cleanups) env
   `(unwind-protect ,(compile-form protected env)
      ,@(compile-forms cleanups env)))
+
+(define-compiler VALUES (&rest forms) env
+  (let ((n (length forms)))
+    (case n
+      (0	`(setq nvals 0 mvals nil))
+      (1	`(progn
+		   (setq nvals 1 mvals nil)
+		   ,(compile-form (car forms) env)))
+      (t	`(progn
+		   (setq nvals ,n
+		         mvals ',(compile-args (cdr forms) env))
+		   ,(compile-form (car forms) env))))))
