@@ -31,10 +31,6 @@
 (defun FILE-AUTHOR (pathspec)
   (user-login-name (nth 2 (file-attributes pathspec))))
 
-;;; Difference between Unix time and Common Lisp universal time is 70 years.
-;;; TODO: Make this more exact.
-(defconst universal-time-offset (cl:* 3600 24 365 70))
-
 (defun FILE-WRITE-DATE (pathspec)
   (let* ((x (nth 5 (file-attributes pathspec)))
 	 (y (first x))
