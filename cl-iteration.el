@@ -18,7 +18,7 @@
 	       `(,(first var) ,(third var))))
 	   vars))
 
-(defun expand-do (vars test result body let setq)
+(defun expand-do (let setq vars test result body)
   (with-gensyms (block start)
     `(,let ,(var-inits vars)
        (BLOCK ,block
@@ -30,10 +30,10 @@
 	   (GO ,start))))))
 
 (cl:defmacro DO (vars (test &rest result) &body body)
-  (expand-do vars test result body 'LET 'PSETQ))
+  (expand-do 'LET 'PSETQ vars test result body))
 
 (cl:defmacro DO* (vars (test &rest result) &body body)
-  (expand-do vars test result body 'LET* 'SETQ))
+  (expand-do 'LET* 'SETQ vars test result body))
 
 (cl:defmacro DOTIMES ((var count &optional result) &body body)
   (with-gensyms (end)
