@@ -17,10 +17,12 @@
 ;;; Definitions for all special operators follows.
 
 (define-special-operator BLOCK (tag &rest forms) env
-  ;; TODO: proper implementation
-  (let (lastval)
-    (dolist (form forms lastval)
-      (setq lastval (eval-with-env form env)))))
+  (let* (lastval
+	 (catch-tag (gensym))
+	 (new-env (augment-environment env :block (cons tag catch-tag))))
+    (catch catch-tag
+      (dolist (form forms lastval)
+	(setq lastval (eval-with-env form new-env))))))
 
 (define-special-operator CATCH (tag &rest forms) env
   (catch (eval-with-env tag env)
@@ -117,7 +119,11 @@
 (define-special-operator QUOTE (form) env
   (VALUES form))
 
-;;; TODO: RETURN-FROM
+(define-special-operator RETURN-FROM (tag &optional form) env
+  (let ((info (block-information tag env)))
+    (if info
+	(throw (cdr info) (eval-with-env form env))
+	(error "syntax error"))))
 
 (define-special-operator SETQ (&rest forms) env
   (when (oddp (length forms))
@@ -182,14 +188,19 @@
 	  (member fn (aref env 5))
 	  nil))
 
+(defun block-information (tag env)
+  (when env
+    (assoc tag (aref env 6))))
+
 (defun* augment-environment (env &key variable symbol-macro function
-				      macro declare)
+				      macro declare block)
   (unless env
     (setq env *global-environment*))
   (let ((var-info (aref env 1))
 	(var-local (aref env 2))
 	(fn-info (aref env 4))
-	(fn-local (aref env 5)))
+	(fn-local (aref env 5))
+	(block-info (aref env 6)))
     (setq var-info (reduce (lambda (env var) (acons var :lexical env))
 			   variable
 			   :initial-value var-info))
@@ -204,7 +215,9 @@
 			  macro
 			  :initial-value fn-info))
     (setq fn-local (append function fn-local))
-  (vector 'environment var-info var-local (aref env 3) fn-info fn-local)))
+    (setq block-info (cons block block-info))
+  (vector 'environment var-info var-local (aref env 3) fn-info fn-local
+	               block-info)))
 
 (defun enclose (lambda-exp &optional env)
   (unless env

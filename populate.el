@@ -105,7 +105,7 @@ WRITE-LINE WRITE-STRING ZEROP))
       (set sym nil))
 
     (setq *global-environment*
-	  (vector 'environment nil nil nil nil nil))
+	  (vector 'environment nil nil nil nil nil nil))
 
     (dolist (sym '(&ALLOW-OTHER-KEYS &AUX &BODY &ENVIRONMENT &KEY &OPTIONAL
 &REST &WHOLE * ** *** *BREAK-ON-SIGNALS* *COMPILE-FILE-PATHNAME*
