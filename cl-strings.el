@@ -60,8 +60,8 @@
   (NSTRING-DOWNCASE (COPY-SEQ (STRING string)) (kw START) START (kw END) END))
 
 (cl:defun STRING-CAPITALIZE (string &KEY (START 0) (END (LENGTH string)))
-  (NSTRING-CAPITALIZE (COPY-SEQ (STRING string)) 
-		      kw START) START (kw END) END))
+  (NSTRING-CAPITALIZE (COPY-SEQ (STRING string))
+		      (kw START) START (kw END) END))
 
 (cl:defun NSTRING-UPCASE (string &KEY (START 0) END)
   (setq string (STRING string))
