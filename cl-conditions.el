@@ -80,8 +80,11 @@
 ;; TODO: inherit from SIMPLE-CONDITION
 (DEFINE-CONDITION SIMPLE-ERROR (ERROR) (format args))
 
-;;; TODO: INVALID-METHOD-ERROR
-;;; TODO: METHOD-COMBINATION-ERROR
+(defun INVALID-METHOD-ERROR (method format &rest args)
+  (apply #'ERROR format args))
+
+(defun METHOD-COMBINATION-ERROR (format &rest args)
+  (apply #'ERROR format args))
 
 (defvar *condition-handler-alist* nil)
 
