@@ -511,6 +511,26 @@
     `(let ((,vals (MULTIPLE-VALUE-LIST ,form)))
        (SETQ ,@(mapcar (lambda (var) `(,var (nth ,(incf n) ,vals))) vars)))))
 
+(DEFINE-SETF-EXPANDER VALUES (&rest forms)
+  (let ((temporaries nil)
+	(values nil)
+	(vars nil)
+	(setters nil)
+	(getters nil))
+    (dolist (form forms)
+      (MULTIPLE-VALUE-BIND (temps vals variables setter getter)
+	  (GET-SETF-EXPANSION form nil) ;TODO: env
+	(setq temporaries (append temps temporaries))
+	(setq values (append vals values))
+	(push (first variables) vars)
+	(push setter setters)
+	(push getter getters))
+    (cl:values temporaries
+	       values
+	       (nreverse vars)
+	       `(PROGN ,@(nreverse setters))
+	       `(VALUES ,@(nreverse getters))))))
+
 (defun VALUES (&rest vals)
   (VALUES-LIST vals))
 
@@ -628,6 +648,16 @@
     (T
      (error "type error"))))
 
+(DEFINE-SETF-EXPANDER THE (type form)
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION form nil) ;TODO: env
+    (with-gensyms (val)
+      (cl:values temps
+		 values
+		 (list val)
+		 `(LET ((,(first variables) (THE ,type ,val))) ,setter)
+		 getter))))
+
 (defun GET-SETF-EXPANSION (place &optional env)
   (setq place (MACROEXPAND place))
   (cond
@@ -661,21 +691,21 @@
 (cl:defmacro SETF (place value &rest more) ;TODO: &environment
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
       (GET-SETF-EXPANSION place env)
-    `(LET* (,@(MAPCAR #'list temps values)
-	    (,(first variables) ,value))
-       ,setter
-       ,@(when more
-	   `((SETF ,@more))))))
+    `(LET* ,(MAPCAR #'list temps values)
+       (MULTIPLE-VALUE-BIND ,variables ,value
+	 ,setter
+	 ,@(when more
+	    `((SETF ,@more)))))))
 
 (cl:defmacro PSETF (place value &rest more) ;TODO: &environment
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
       (GET-SETF-EXPANSION place env)
-    `(LET* (,@(MAPCAR #'list temps values)
-	    (,(first variables) ,value))
-       ,@(when more
-	   `((SETF ,@more)))
-       ,setter
-       nil)))
+    `(LET* ,(MAPCAR #'list temps values)
+       (MULTIPLE-VALUE-BIND ,variables ,value
+	 ,@(when more
+	     `((SETF ,@more)))
+	 ,setter
+	 nil))))
 
 (cl:defmacro SHIFTF (place x &rest more) ;TODO: &environment
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)

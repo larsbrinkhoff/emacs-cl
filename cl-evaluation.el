@@ -123,6 +123,8 @@
      ,@(mapcar (lambda (decl) `(PROCLAIM (QUOTE ,decl)))
 	       declarations)))
 
+;;; THE setf expansion defined in cl-flow.el.
+
 (defun SPECIAL-OPERATOR-P (symbol)
   (member symbol
 	  '(BLOCK CATCH EVAL-WHEN FLET FUNCTION GO IF LABELS LET LET*
