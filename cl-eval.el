@@ -39,7 +39,7 @@
 	(lastval nil))
     (dolist (fn fns)
       (setf (lexical-function (first fn) new-env)
-	    (enclose `(LAMBDA ,@(rest fn)) env)))
+	    (enclose `(LAMBDA ,@(rest fn)) env (first fn))))
     (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
       (dolist (form body lastval)
 	(setq lastval (eval-with-env form new-env))))))
@@ -59,7 +59,7 @@
       ((SYMBOLP form)		(lexical-or-global-function form env))
       ((ATOM form)		(not-function-name-error form))
       ((case (first form)
-	 (LAMBDA		(enclose form env))
+	 (LAMBDA		(enclose form env form))
 	 (SETF			(lexical-or-global-function form env))
 	 (t			(not-function-name-error form)))))))
 
@@ -79,7 +79,7 @@
 	(lastval nil))
     (dolist (fn fns)
       (setf (lexical-function (first fn) new-env)
-	    (enclose `(LAMBDA ,@(rest fn)) new-env)))
+	    (enclose `(LAMBDA ,@(rest fn)) new-env (first fn))))
     (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
       (dolist (form body lastval)
 	(setq lastval (eval-with-env form new-env))))))
@@ -144,7 +144,8 @@
       (setf (MACRO-FUNCTION (first macro) new-env)
 	    (enclose `(LAMBDA (form env)
 		        ;; TODO: destructuring-bind
-		        (APPLY (LAMBDA ,@(rest macro)) (CDR form))))))
+		        (APPLY (LAMBDA ,@(rest macro)) (CDR form)))
+		     env (first macro))))
     (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
       (dolist (form body lastval)
 	(setq lastval (eval-with-env form new-env))))))
@@ -319,13 +320,44 @@
 	               fn-info fn-local (aref env 6)
 	               block-info tagbody-info)))
 
-(defun enclose (lambda-exp &optional env)
+(cl:defun enclose (lambda-exp &optional env (name ""))
   (unless env
     (setq env *global-environment*))
-  (vector 'INTERPRETED-FUNCTION lambda-exp env))
+  (vector 'INTERPRETED-FUNCTION lambda-exp env name))
 
 (defun INTERPRETED-FUNCTION-P (object)
   (vector-and-typep object 'INTERPRETED-FUNCTION))
+
+(defun function-name (fn)
+  (cond
+    ((INTERPRETED-FUNCTION-P fn)
+     (aref fn 3))
+    ((byte-code-function-p fn)
+     "")
+    ((subrp fn)
+     (let ((string (prin1-to-string fn)))
+       (substring string 7 (1- (length string)))))
+    ((listp fn)
+     "")
+    (t
+     (type-error fn 'FUNCTION))))
+
+(defsetf function-name set-function-name)
+
+(DEFSETF function-name set-function-name)
+
+(defun set-function-name (fn name)
+  (cond
+    ((INTERPRETED-FUNCTION-P fn)
+     (setf (aref fn 3) name))
+    ((byte-code-function-p fn)
+     name)
+    ((subrp fn)
+     name)
+    ((listp fn)
+     name)
+    (t
+     (type-error fn 'FUNCTION))))
 
 
 

@@ -357,7 +357,7 @@
     (enclose '(LAMBDA (*STANDARD-OUTPUT* &REST args)
 	        (APPLY (FUNCTION FORMAT) T format args)
 	        nil)
-	     env)))
+	     env (format "\"formatter \"%s\"\"" format))))
 
 (defun FORMAT (stream-designator format &rest args)
   (let ((stream (or (and (eq stream-designator 'T) *STANDARD-OUTPUT*)

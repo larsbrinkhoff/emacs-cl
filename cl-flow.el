@@ -25,6 +25,8 @@
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
      (SETF (FDEFINITION (QUOTE ,name))
            (FUNCTION (LAMBDA ,lambda-list (BLOCK ,name ,@body))))
+     (SETF (function-name (FDEFINITION (QUOTE ,name)))
+	   (QUOTE ,name))
      (QUOTE ,name)))
 
 (defun setf-name-p (name)
@@ -324,12 +326,14 @@
 (defun COMPLEMENT (fn)
   (let ((env (augment-environment nil :variable '(fn))))
     (setf (lexical-value 'fn env) fn)
-    (enclose '(LAMBDA (x) (NOT (FUNCALL fn x))) env)))
+    (enclose '(LAMBDA (x) (NOT (FUNCALL fn x))) env
+	     (format "\"complement of %s\"" (PRIN1-TO-STRING fn)))))
 
 (defun CONSTANTLY (value)
   (let ((env (augment-environment nil :variable '(value))))
     (setf (lexical-value 'value env) value)
-    (enclose '(LAMBDA (&rest x) value) env)))
+    (enclose '(LAMBDA (&rest x) value) env
+	     (format "\"constantly %s\"" (PRIN1-TO-STRING value)))))
 
 (defun* EVERY (predicate &rest sequences)
   (apply #'mapcar
