@@ -256,10 +256,18 @@
       ((ATOM l) r)
     (if (>= i n) (POP r))))
 
-(defun MAPCAR (fn &rest seqs)
-  (if (null (cdr seqs))
-      (mapcar fn (car seqs))
-      (cl-mapcar-many fn seqs)))
+(defun MAPC (fn &rest lists)
+  (let ((result (first lists)))
+    (while (not (some #'null lists))
+      (APPLY fn (mapcar #'car lists))
+      (setq lists (mapcar #'cdr lists)))
+    result))
+
+(defun MAPCAR (fn &rest lists)
+  (if (some #'null lists)
+      nil
+      (cons (APPLY fn (mapcar #'car lists))
+	    (apply #'MAPCAR fn (mapcar #'cdr lists)))))
 
 (defun MAPCAN (fn &rest seqs)
   (apply #'nconc
