@@ -473,8 +473,11 @@
       (ERROR 'READER-ERROR))
     (PARSE-NAMESTRING string)))
 
-;;; TODO:
-(defun sharp-equal-reader (stream char n) nil)
+(defun sharp-equal-reader (stream char n)
+  (unless-read-suppress-let (object (READ stream T nil T))
+    ;; TODO: remember label "n" for this object
+    object))
+
 ;;; TODO:
 (defun sharp-sharp-reader (stream char n) nil)
 
