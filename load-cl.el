@@ -16,9 +16,9 @@
   (load "cl-strings")
   (load "cl-symbols")
   (load "cl-packages")
+  (load "cl-typep")
   (load "cl-streams")
 
-  (load "cl-typep")
   (load "cl-types")
   (load "cl-subtypep")
 

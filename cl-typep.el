@@ -71,7 +71,7 @@
        (star-or size (eql size (length object)))))
 
 (define-typep (object BOOLEAN env)
-  (or (NULL object) (eq object T)))
+  (or (null object) (eq object T)))
 
 ;;; broadcast-stream (atomic only)
 ;;; built-in-class (atomic only)
@@ -162,14 +162,14 @@
 (define-typep (object (MOD n) env :compound-only)
   (TYPEP object `(INTEGER 0 ,(1- (second type))) env))
 
-(define-typep (object NIL env)
-  NIL)
+(define-typep (object nil env)
+  nil)
 
 (define-typep (object (NOT type) env)
   (not (TYPEP object type env)))
 
 (define-typep (object NULL env)
-  (NULL object))
+  (null object))
 
 (define-typep (object NUMBER env)
   (NUMBERP object))

@@ -9,7 +9,7 @@
 (IN-PACKAGE "CL")
 
 (defvar *types*
-  '(NIL COMPLEX NUMBER NULL BOOLEAN KEYWORD SYMBOL CONS LIST CHARACTER))
+  '(nil COMPLEX NUMBER NULL BOOLEAN KEYWORD SYMBOL CONS LIST CHARACTER))
 
 (defvar *objects*
   (list (COMPLEX 0 1) 0 nil T (make-symbol "") (cons nil nil)

@@ -13,17 +13,17 @@
      (error "invalid character designator"))))
 
 (defun CHARACTERP (char)
-  (cl-truth (vector-and-typep char 'character)))
+  (vector-and-typep char 'character))
 
 (defun ALPHA-CHAR-P (char)
-  (OR (cl:<= 65 (CHAR-CODE char) 90)
+  (or (cl:<= 65 (CHAR-CODE char) 90)
       (cl:<= 97 (CHAR-CODE char) 122)))
 
 (defun ALPHANUMERICP (char)
-  (OR (DIGIT-CHAR-P char) (ALPHA-CHAR-P char)))
+  (or (DIGIT-CHAR-P char) (ALPHA-CHAR-P char)))
 
 (defun* DIGIT-CHAR (weight &optional (radix 10))
-  (WHEN (cl:< weight radix)
+  (when (cl:< weight radix)
     (CODE-CHAR (if (< weight 10)
 		   (+ 48 weight)
 		   (+ 65 weight -10)))))
@@ -35,14 +35,14 @@
 	      ((cl:<= 65 code 90) (- code 65 -10))
 	      ((cl:<= 95 code 122) (- code 95 -10))
 	      (t 99))))
-    (if (< n radix) n NIL)))
+    (if (< n radix) n nil)))
 
 (DEFCONSTANT CHAR-CODE-LIMIT 256)
 
 (defun CODE-CHAR (code)
   (if (and (integerp code) (< code CHAR-CODE-LIMIT))
       (vector 'character code)
-      NIL))
+      nil))
 
 (defun CHAR-CODE (char)
   ;;(CHECK-TYPE char 'character)
@@ -54,12 +54,12 @@
   (EQ (CHAR-CODE ch1) (CHAR-CODE ch2)))
 
 (defun CHAR-UPCASE (char)
-  (IF (LOWER-CASE-P char)
+  (if (LOWER-CASE-P char)
       (CODE-CHAR (- (CHAR-CODE char) 32))
       char))
 
 (defun CHAR-DOWNCASE (char)
-  (IF (UPPER-CASE-P char)
+  (if (UPPER-CASE-P char)
       (CODE-CHAR (+ (CHAR-CODE char) 32))
       char))
 

@@ -30,9 +30,3 @@
 (defun vector-and-typep (object type)
   (and (vectorp object)
        (eq (aref object 0) type)))
-
-(defmacro cl-truth (val)
-  `(or ,val 'NIL))
-
-(defmacro el-truth (val)
-  `(not (eq ,val 'NIL)))

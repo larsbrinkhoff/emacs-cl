@@ -30,7 +30,7 @@
 	((STRINGP x)	(values x (1- (incf *GENSYM-COUNTER*))))
 	((INTEGERP x)	(values "G" x))
 	(t		(error "type error")))
-    (MAKE-SYMBOL (FORMAT NIL "~S~D" prefix suffix))))
+    (MAKE-SYMBOL (FORMAT nil "~S~D" prefix suffix))))
 
 (defvar *GENSYM-COUNTER* 1)
 
@@ -39,7 +39,7 @@
 (defun* GENTEMP (&optional (prefix "T") (package-designator *PACKAGE*))
   (loop
    (multiple-value-bind (symbol found)
-       (INTERN (FORMAT NIL "~S~D" prefix *gentemp-counter*) package)
+       (INTERN (FORMAT nil "~S~D" prefix *gentemp-counter*) package)
      (unless found
        (return-from GENTEMP symbol))
      (incf *gentemp-counter*))))
@@ -49,7 +49,10 @@
 (defsetf SYMBOL-FUNCTION (symbol) (fn)
   `(fset ,symbol ,fn))
 
-(fset 'SYMBOL-NAME (symbol-function 'symbol-name))
+(defun SYMBOL-NAME (symbol)
+  (if symbol
+      (symbol-name symbol)
+      "NIL"))
 
 (defvar *symbol-package-table* (make-hash-table :test 'eq :weakness t))
 
@@ -88,4 +91,3 @@
 (fset 'MAKUNBOUND (symbol-function 'makunbound))
 
 (fset 'SET (symbol-function 'set))
-

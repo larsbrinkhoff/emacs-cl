@@ -40,18 +40,18 @@
   (cond
     ((and (or (integerp num1) (floatp num1))
 	  (or (integerp num2) (floatp num2)))
-     (cl-truth (= num1 num2)))
-    ((OR (COMPLEXP num1) (COMPLEXP num2))
-     (AND (binary= (REALPART num1) (REALPART num2))
+     (= num1 num2))
+    ((or (COMPLEXP num1) (COMPLEXP num2))
+     (and (binary= (REALPART num1) (REALPART num2))
 	  (binary= (IMAGPART num1) (IMAGPART num2))))
     ((or (cl::ratiop num1) (cl::ratiop num2))
-     (AND (binary= (NUMERATOR num1) (NUMERATOR num2))
+     (and (binary= (NUMERATOR num1) (NUMERATOR num2))
 	  (binary= (DENOMINATOR num1) (DENOMINATOR num2))))
     ((and (cl::bignump num1) (cl::bignump num2))
-     (AND (= (length num1) (length num2))
+     (and (= (length num1) (length num2))
 	  (every #'eql num1 num2)))
-    ((AND (NUMBERP num1) (NUMBERP num2))
-     NIL)
+    ((and (NUMBERP num1) (NUMBERP num2))
+     nil)
     (t
      (error "type error: = %s %s" num1 num2))))
 
@@ -64,18 +64,18 @@
 (defun cl:< (number &rest numbers)
   (if (null numbers)
       T
-      (AND (binary< number (first numbers))
+      (and (binary< number (first numbers))
 	   (apply #'cl:< (first numbers) (rest numbers)))))
 
 (defun binary< (num1 num2)
   (cond
     ((and (or (integerp num1) (floatp num1))
 	  (or (integerp num2) (floatp num2)))
-     (cl-truth (< num1 num2)))
+     (< num1 num2))
     ((or (cl::ratiop num1) (cl::ratiop num2))
      ;; TODO
-     (cl-truth (< (/ (float (NUMERATOR num1)) (DENOMINATOR num1))
-	       (/ (float (NUMERATOR num2)) (DENOMINATOR num2)))))
+     (< (/ (float (NUMERATOR num1)) (DENOMINATOR num1))
+	(/ (float (NUMERATOR num2)) (DENOMINATOR num2))))
     ((or (cl::bignump num1) (cl::bignump num2))
      (MINUSP (binary- num1 num2)))
     (t
@@ -84,27 +84,27 @@
 (defun cl:> (number &rest numbers)
   (if (null numbers)
       T
-      (AND (binary< (first numbers) number)
+      (and (binary< (first numbers) number)
 	   (apply #'cl:> (first numbers) (rest numbers)))))
 
 (defun cl:<= (number &rest numbers)
   (if (null numbers)
       T
-      (AND (binary<= number (first numbers))
+      (and (binary<= number (first numbers))
 	   (apply #'cl:<= (first numbers) (rest numbers)))))
 
 (defun binary<= (num1 num2)
   (cond
     ((and (or (integerp num1) (floatp num1))
 	  (or (integerp num2) (floatp num2)))
-     (cl-truth (<= num1 num2)))
+     (<= num1 num2))
     ((or (cl::ratiop num1) (cl::ratiop num2))
      ;; TODO
-     (cl-truth (<= (/ (float (NUMERATOR num1)) (DENOMINATOR num1))
-		(/ (float (NUMERATOR num2)) (DENOMINATOR num2)))))
+     (<= (/ (float (NUMERATOR num1)) (DENOMINATOR num1))
+	 (/ (float (NUMERATOR num2)) (DENOMINATOR num2))))
     ((or (cl::bignump num1) (cl::bignump num2))
      (let ((diff (binary- num1 num2)))
-       (OR (MINUSP diff) (ZEROP diff))))
+       (or (MINUSP diff) (ZEROP diff))))
     (t
      (error "type error: = %s %s" num1 num2))))
 
@@ -127,35 +127,35 @@
 (defun MINUSP (num)
   (cond
     ((or (integerp num) (floatp num))
-     (cl-truth (minusp num)))
+     (minusp num))
     ((cl::bignump num)
-     (cl-truth (minusp (aref num (1- (length num))))))
+     (minusp (aref num (1- (length num)))))
     ((cl::ratiop num)
-     (cl-truth (minusp (NUMERATOR num))))
+     (minusp (NUMERATOR num)))
     (t
      (error "type error"))))
 
 (defun PLUSP (num)
   (cond
     ((or (integerp num) (floatp num))
-     (cl-truth (plusp num)))
+     (plusp num))
     ((cl::bignump num)
-     (cl-truth (plusp (aref num (1- (length num))))))
+     (plusp (aref num (1- (length num)))))
     ((cl::ratiop num)
-     (cl-truth (plusp (NUMERATOR num))))
+     (plusp (NUMERATOR num)))
     (t
      (error "type error"))))
 
 (defun ZEROP (num)
   (cond
     ((or (integerp num) (floatp num))
-     (cl-truth (zerop num)))
+     (zerop num))
     ((cl::ratiop num)
-     (cl-truth (zerop (NUMERATOR num))))
+     (zerop (NUMERATOR num)))
     ((COMPLEXP num)
-     (AND (ZEROP (REALPART num)) (ZEROP (IMAGPART num))))
+     (and (ZEROP (REALPART num)) (ZEROP (IMAGPART num))))
     ((cl::bignump num)
-     NIL)
+     nil)
     (t
      (error "type error"))))
 
@@ -175,7 +175,7 @@
 	 (setq sign (- sign)))
        (dotimes (i (if (integerp x) 28 (* 28 (1- (length x)))))
 	 (setq r (ASH r 1))
-	 (WHEN (LOGBITP i x)
+	 (when (LOGBITP i x)
 	   (setq r (cl:1+ r)))
 	 (setq q (ASH q 1))
 	 (when (cl:>= r y)
@@ -545,7 +545,7 @@
 	(vector 'complex realpart imagpart))))
 
 (defun COMPLEXP (object)
-  (cl-truth (vector-and-typep object 'complex)))
+  (vector-and-typep object 'complex))
 
 (defun CONJUGAGE (num)
   (COMPLEX (REALPART num) (- (IMAGPART num))))
@@ -603,19 +603,19 @@
 ;;; TODO: rationalize
 
 (defun RATIONALP (num)
-  (OR (INTEGERP num) (cl-truth (cl::ratiop num))))
+  (or (INTEGERP num) (cl::ratiop num)))
 
 (defun ASH (num shift)
   (cond
-    ((el-truth (ZEROP shift))
+    ((ZEROP shift)
      num)
-    ((el-truth (MINUSP shift))
+    ((MINUSP shift)
      (cond
        ((integerp num)
 	(ash num shift))
        ((cl::bignump num)
 	(let ((new (copy-sequence num)))
-	  (while (el-truth (MINUSP shift))
+	  (while (MINUSP shift)
 	    (shift-right new)
 	    (incf shift))
 	  (canonical-bignum new)))
@@ -641,7 +641,7 @@
       (decf i))))
 
 (defun INTEGER-LENGTH (num)
-  (WHEN (MINUSP num)
+  (when (MINUSP num)
     (setq num (cl:- num)))
   0)
 
@@ -649,7 +649,7 @@
   (vector-and-typep num 'bignum))
 
 (defun INTEGERP (num)
-  (cl-truth (or (integerp num) (cl::bignump num))))
+  (or (integerp num) (cl::bignump num)))
 
 (defun* PARSE-INTEGER (string &key (start 0) (end (length string))
 			      (radix 10) junk-allowed)
@@ -661,7 +661,7 @@
       (incf i)
       (when (= i end)
 	(if junk-allowed
-	    (return-from PARSE-INTEGER (values NIL i))
+	    (return-from PARSE-INTEGER (values nil i))
 	    (error))))
     (setq char (CHAR string i))
     (when (find char "+-")
@@ -670,10 +670,10 @@
       (incf i)
       (when (= i end)
 	(if junk-allowed
-	    (return-from PARSE-INTEGER (values NIL i))
+	    (return-from PARSE-INTEGER (values nil i))
 	    (error)))
       (setq char (CHAR string i)))
-    (while (el-truth (setq digit (DIGIT-CHAR-P char radix)))
+    (while (setq digit (DIGIT-CHAR-P char radix))
 ;     (print (format "before: %s %s" (cl:* integer 10) digit))
       (setq integer (cl:+ (cl:* integer radix) digit))
 ;     (PRINT integer)
@@ -815,18 +815,18 @@
      (error "type error"))))
 
 (defun LOGCOUNT (num)
-  (WHEN (MINUSP num)
+  (when (MINUSP num)
     (setq num (cl:- num)))
   (let ((len 0))
     (cond
       ((integerp num)
        (dotimes (i 28)
-	 (WHEN (LOGBITP i num)
+	 (when (LOGBITP i num)
 	   (incf len))))
       (t
        (dotimes (i (1- (length num)))
 	 (dotimes (j 28)
-	   (WHEN (LOGBITP i num)
+	   (when (LOGBITP i num)
 	     (incf len))))))
     len))
 

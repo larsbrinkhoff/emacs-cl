@@ -60,7 +60,7 @@
         '(&allow-other-keys &aux &body &environment &key &optional
 	  &rest &whole))
 
-(defvar *constants* '(NIL T PI))
+(defvar *constants* '(nil T PI))
 
 (defmacro* DEFCONSTANT (name initial-value &optional documentation)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
@@ -102,32 +102,28 @@
 		    ,@(expand-tagbody-forms body start end))))))
       nil)))
 
-(DEFCONSTANT NIL 'NIL)
-
-(defun NOT (x)
-  (if (eq x 'NIL) 'T 'NIL))
+(fset 'NOT (symbol-function 'not))
 
 (DEFCONSTANT T 'T)
 
-(defun EQ (x y)
-  (or (eq x y) NIL))
+(fset 'EQ (symbol-function 'eq))
 
 (defun EQL (x y)
   (or (eq x y)
       (cond
-	((el-truth (AND (CHARACTERP x) (CHARACTERP y)))
-	 (EQ (CHAR-CODE x) (CHAR-CODE y)))
+	((and (CHARACTERP x) (CHARACTERP y))
+	 (eq (CHAR-CODE x) (CHAR-CODE y)))
 	((and (cl::bignump x) (cl::bignump y))
 	 (and (eq (length x) (length y))
 	      (every #'eq x y)))
 	((and (cl::ratiop x) (cl::ratiop y))
 	 (and (EQL (numerator x) (numerator y))
 	      (EQL (denominator x) (denominator y))))
-	((el-truth (AND (COMPLEXP x) (COMPLEXP y)))
-	 (AND (EQL (REALPART x) (REALPART y))
+	((and (COMPLEXP x) (COMPLEXP y))
+	 (and (EQL (REALPART x) (REALPART y))
 	      (EQL (IMAGPART x) (IMAGPART y))))
 	(t
-	 NIL))))
+	 nil))))
 
 (defun EQUAL (x y)
   (or (EQL x y)
@@ -137,44 +133,30 @@
 	      (EQUAL (cdr x) (cdr y))))
 	((and (STRINGP x) (STRINGP y))
 	 (and (eq (LENGTH x) (LENGTH y))
-	      (EVERY #'eq x y)))
+	      (every #'eq x y)))
 	((and (BIT-STRING-P x) (BIT-STRING-P y))
 	 (and (eq (LENGTH x) (LENGTH y))
-	      (EVERY #'eq x y)))
+	      (every #'eq x y)))
 	;; TODO: pathnames
 	(t
-	 NIL))))
+	 nil))))
 
 (defmacro AND (&rest forms)
-  (if (null forms)
-      T
-      (let ((val (gensym)))
-	`(let ((,val ,(first forms)))
-	  (if (eq ,val NIL)
-	      NIL
-	      (AND ,@(rest forms)))))))
+  `(and ,@forms))
 
 ;;; TODO: cond
 
 (defmacro IF (condition then &optional else)
-  (let ((val (gensym)))
-    `(let ((,val ,condition))
-      (if (eq ,val NIL) ,else ,then))))
+  `(if ,condition ,then ,else))
 
 (defmacro OR (&rest forms)
-  (if (null forms)
-      NIL
-      (let ((val (gensym)))
-	`(let ((,val ,(first forms)))
-	  (if (eq ,val NIL)
-	      (OR ,@(rest forms))
-	      ,val)))))
+  `(or ,@forms))
 
 (defmacro* WHEN (condition &body body)
-  `(IF ,condition (progn ,@body)))
+  `(if ,condition (progn ,@body)))
 
 (defmacro* UNLESS (condition &body body)
-  `(IF ,condition NIL (progn ,@body)))
+  `(if ,condition nil (progn ,@body)))
 
 ;; (defvar *multiple-values-variable* nil)
 

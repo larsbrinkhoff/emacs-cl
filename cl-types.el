@@ -11,7 +11,7 @@
 
 (defun TYPE-OF (object)
   (case object
-    ((NIL)		'NULL)
+    ((nil)		'NULL)
     ((T)		'BOOLEAN)
     (t
      (let ((type (type-of object)))

@@ -21,7 +21,7 @@
 (defun CAR (object)
   (cond
     ((consp object)	(car object))
-    ((NULL object)	'NIL)
+    ((null object)	nil)
     (t			(error "type error"))))
 
 (defsetf CAR (cons) (car)
@@ -30,7 +30,7 @@
 (defun CDR (object)
   (cond
     ((consp object)	(cdr object))
-    ((NULL object)	'NIL)
+    ((null object)	nil)
     (t			(error "type error"))))
 
 (defsetf CDR (cons) (car)
@@ -68,12 +68,11 @@
 
 (defun ENDP (object)
   (cond
-    ((eq object 'NIL)	'T)
-    ((consp object)	'NIL)
+    ((null object)	'T)
+    ((consp object)	nil)
     (t			(error "type error"))))
 
-(defun NULL (x)
-  (if (eq x 'NIL) 'T 'NIL))
+(fset 'NULL (symbol-function 'null))
 
 (defun MAPCAR (fn &rest seqs)
   (if (null (cdr seqs))
