@@ -26,8 +26,9 @@
 	(setq definition (FDEFINITION name))
 	(setq definition (MACRO-FUNCTION name))))
   (when (INTERPRETED-FUNCTION-P definition)
-    (setq definition
-	  (byte-compile (compile1 (FUNCTION-LAMBDA-EXPRESSION definition)))))
+    (setq definition (FUNCTION-LAMBDA-EXPRESSION definition)))
+  (when (consp definition)
+    (setq definition (compile1 definition)))
   (if name
       (progn
 	(if (FBOUNDP name)
