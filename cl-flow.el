@@ -196,6 +196,6 @@
 (defmacro* SETF (place value &environment env)
   (multiple-value-bind (temps values variables setter getter)
       (GET-SETF-EXPANSION place env)
-    `(let* ,(cl:mapcar #'list temps values)
+    `(let* ,(MAPCAR #'list temps values)
       (let ((,(first variables) ,value))
 	,setter))))

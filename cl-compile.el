@@ -1,10 +1,9 @@
 ;;;; -*- emacs-lisp -*-
-;;;;
-;;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;;
-;;;; This file implements the compiler.
+;;;
+;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; This file implements the compiler.
 
-(require 'cl)
+(IN-PACKAGE "CL")
 
 (defvar *registers* (list (gensym)))
 (defvar *next-register* nil)
@@ -271,10 +270,10 @@
     (do* ((forms body (cdr forms))
 	  (form #1=(first forms) #1#))
 	 ((or (atom form) (not (eq (first form) 'declare)))
-	  `(let ,(cl:mapcar (lambda (var init)
-			      `(,(symbol-register var)
-				,(compile-form init)))
-			    (nreverse vars) (nreverse inits))
+	  `(let ,(MAPCAR (lambda (var init)
+			   `(,(symbol-register var)
+			     ,(compile-form init)))
+			 (nreverse vars) (nreverse inits))
 	    ,@(compile-forms forms)))
       (compile-declare form))))
 
@@ -296,10 +295,10 @@
     (do* ((forms body (cdr forms))
 	  (form #1=(first forms) #1#))
 	 ((or (atom form) (not (eq (first form) 'declare)))
-	  `(let* ,(cl:mapcar (lambda (var init)
-			       `(,(symbol-register var)
-				 ,(compile-form init)))
-			     (nreverse vars) (nreverse inits))
+	  `(let* ,(MAPCAR (lambda (var init)
+			    `(,(symbol-register var)
+			      ,(compile-form init)))
+			  (nreverse vars) (nreverse inits))
 	    ,@(compile-forms forms)))
       (compile-declare form))))
 
