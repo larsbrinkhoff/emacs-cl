@@ -99,7 +99,7 @@
 (define-typep (object (CONS &optional (car-type star) (cdr-type star)) env)
   (and (consp object)
        (star-or car-type (TYPEP (car object) car-type env))
-       (star-or cdr-type (TYPEP (car object) cdr-type env))))
+       (star-or cdr-type (TYPEP (cdr object) cdr-type env))))
 
 ;;; control-error (atomic only)
 ;;; division-by-zero (atomic only)
