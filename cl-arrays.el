@@ -86,7 +86,7 @@
     ((vector-and-typep array 'VECTOR)
      (aref (aref array 2) (just-one subscripts)))
     ((vector-and-typep array 'ARRAY)
-     (aref (aref array 2) (apply #'ARRAY-ROW-MAJOR-INDEX subscripts)))
+     (aref (aref array 2) (apply #'ARRAY-ROW-MAJOR-INDEX array subscripts)))
     (t
      (type-error array 'ARRAY))))
 
@@ -114,7 +114,9 @@
     ((vector-and-typep array 'VECTOR)
      (aset (aref array 2) (just-one subscripts) object))
     ((vector-and-typep array 'ARRAY)
-     (aset (aref array 2) (apply #'ARRAY-ROW-MAJOR-INDEX subscripts) object))
+     (aset (aref array 2)
+	   (apply #'ARRAY-ROW-MAJOR-INDEX array subscripts)
+	   object))
     (t
      (type-error array 'ARRAY))))
 
