@@ -6,6 +6,12 @@
 
 (defvar *setf-definitions* (make-hash-table))
 
+;;; TODO: apply
+
+(defmacro* (DEFUN name lambda-list &body body)
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (setf (fdefinition ,name) (function* (lambda ,lambda-list ,@body)))))
+
 (defun fdefinition (name)
   (cond
     ((symbop name)
@@ -32,6 +38,10 @@
      (apply (fdefinition fn) args))
     (t
      (error))))
+
+(defvar lambda-list-keywords
+        '(&allow-other-keys &aux &body &environment &key &optional
+	  &rest &whole))
 
 (defun expand-tagbody-forms (body start end)
   (do ((clauses nil)
