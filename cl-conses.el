@@ -22,9 +22,15 @@
 (defsetf CAR (cons) (car)
   `(setcar ,cons ,car))
 
+(DEFSETF CAR (cons) (car)
+  `(setcar ,cons ,car))
+
 (fset 'CDR (symbol-function 'cdr-safe))
 
 (defsetf CDR (cons) (car)
+  `(setcdr ,cons ,cdr))
+
+(DEFSETF CDR (cons) (car)
   `(setcdr ,cons ,cdr))
 
 (defun build-cxr (string index)
@@ -415,7 +421,7 @@
       `(LET* ((,obj ,object)
 	      ,@(MAPCAR #'list temps values)
 	      (,(first variables) (ADJOIN ,obj ,getter :test ,test)))
-	 ,setter)))
+	 ,setter))))
 
 (defun* SET-DIFFERENCE (list1 list2 &key (key #'IDENTITY) test test-not)
   (when (and test test-not)
