@@ -111,17 +111,21 @@
   (cond
     ((symbolp object)
      (FORMAT stream
-	     "~&~S is an ~A symbol in ~S."
-	     object
-	     (NTH-VALUE 1 (FIND-SYMBOL (SYMBOL-NAME object)
-				       (SYMBOL-PACKAGE object)))
-	     (SYMBOL-PACKAGE object))
+	     "~&~S is an ~:[internal~;external~] symbol in ~S."
+	     object (external-symbol-p object) (SYMBOL-PACKAGE object))
+     (FORMAT stream "~%It is also accessible in packages ~{~A~^, ~}"
+	     (let ((name (SYMBOL-NAME object))
+		   (home (SYMBOL-PACKAGE object))
+		   (packages nil))
+	       (dolist (p *all-packages* packages)
+		 (MULTIPLE-VALUE-BIND (sym found) (FIND-SYMBOL name p)
+		   (when (and found (not (eq p home)))
+		     (push (PACKAGE-NAME p) packages))))))
      (when (SPECIAL-OPERATOR-P object)
        (FORMAT stream "~%It is a special operator."))
      (when (boundp object)
-       (FORMAT stream "~%~AValue: ~S"
-	       (if (CONSTANTP object) "Constant " "")
-	       (symbol-value object)))
+       (FORMAT stream "~%~:[Constant ~]Value: ~S"
+	       (not (CONSTANTP object)) (symbol-value object)))
      (when (fboundp object)
        (FORMAT stream "~%Function: ~S" (symbol-function object)))
      (when (MACRO-FUNCTION object)
@@ -137,6 +141,11 @@
      (FORMAT stream "~&~A is a ratio." object)
      (FORMAT stream "~%Numerator: ~D" (NUMERATOR object))
      (FORMAT stream "~%Denominator: ~D" (DENOMINATOR object)))
+    ((floatp object)
+     ;; TODO: better description
+     (FORMAT stream "~&~A is a float." object))
+    ((COMPLEXP object)
+     (FORMAT stream "~&~A is a complex." object))
     ((INTERPRETED-FUNCTION-P object)
      (FORMAT stream "~&~A is an interpreted function." object)
      (FORMAT stream "~%Lambda expression: ~S"
@@ -169,6 +178,26 @@
 	     (length (PACKAGE-SHADOWING-SYMBOLS object)))
      (FORMAT stream "~%Use list: ~S" (PACKAGE-USE-LIST object))
      (FORMAT stream "~%Used by list: ~S" (PACKAGE-USED-BY-LIST object)))
+    ((BIT-VECTOR-P object)
+     (FORMAT stream "~&~S is a bit vector of length ~D."
+	     object (LENGTH object))
+     (unless (SIMPLE-VECTOR-P object)
+       (FORMAT stream "~%Fill pointer: ~A" (FILL-POINTER object))))
+    ((STRINGP object)
+     (FORMAT stream "~&~S is a string of length ~D." object (LENGTH object))
+     (unless (SIMPLE-VECTOR-P object)
+       (FORMAT stream "~%Fill pointer: ~A" (FILL-POINTER object))))
+    ((VECTORP object)
+     (FORMAT stream "~&~S is a vector of length ~D." object (LENGTH object))
+     (unless (SIMPLE-VECTOR-P object)
+       (FORMAT stream "~%Fill pointer: ~A" (FILL-POINTER object))))
+    ((ARRAYP object)
+     (FORMAT stream "~&~S is an array with dimensions ~A."
+	     object (ARRAY-DIMENSIONS object))
+     (FORMAT stream "~@[~%It is specialized to hold ~A.~]"
+	     (case (aref object 0)
+	       (bit-array "bits")
+	       (char-array "characters"))))
     ((arrayp object)
      ;; TODO:
      (FORMAT stream "~&FIXME: This is a fall-back description.")
