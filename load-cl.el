@@ -11,6 +11,7 @@
   (load "cl-arrays")
   (load "cl-sequences")
   (load "cl-structures")
+  (load "cl-evaluation")
 
   (load "cl-characters")
   (load "cl-strings")
@@ -24,7 +25,6 @@
 
   (load "cl-reader")
   (load "cl-printer")
-  (load "cl-evaluation")
   (load "cl-environment")
   (load "cl-system")
   (load "interaction")
