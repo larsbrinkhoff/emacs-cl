@@ -429,10 +429,7 @@
 (cl:defun MAKE-STRING-INPUT-STREAM (string &OPTIONAL (start 0) end)
   (mk-STRING-STREAM
    (kw direction) (kw INPUT)
-   (kw string) (let ((substr (substring string start end)))
-		 (if (> (length substr) 0)
-		     substr
-		     :eof))
+   (kw string) (if (> (length string) 0) string :eof)
    (kw position) start
    (kw end) (or end (LENGTH string))
    (kw read-fn)

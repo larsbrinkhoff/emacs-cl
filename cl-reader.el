@@ -35,7 +35,8 @@
   (SET-MACRO-CHARACTER char #'dispatch-reader non-terminating-p readtable)
   T)
 
-(defun* read1 (stream eof-error-p eof-value recursive-p preserve-whitespace)
+(defun* read1 (stream eof-error-p eof-value recursive-p preserve-whitespace
+	       &optional return-when-nothing)
   (let (char
 	(escape nil)
 	(package nil)
@@ -54,7 +55,9 @@
 	 (let* ((fn (GET-MACRO-CHARACTER char))
 		(list (MULTIPLE-VALUE-LIST (funcall fn stream char))))
 	   (if (null list)
-	       (go STEP-1)
+	       (if return-when-nothing
+		   (return-from read1 (cl:values nil t))
+		   (go STEP-1))
 	       (return-from read1 (cl:values (first list))))))
 	(:single-escape
 	 (setq escape t)
@@ -160,9 +163,10 @@
 (cl:defun READ-FROM-STRING (string &OPTIONAL (eof-error-p T) eof-value
 			           &KEY (START 0) END PRESERVE-WHITESPACE)
   (let ((stream (MAKE-STRING-INPUT-STREAM string START END)))
-    (if PRESERVE-WHITESPACE
-	(READ-PRESERVING-WHITESPACE stream eof-error-p eof-value)
-	(READ stream eof-error-p eof-value))))
+    (cl:values (if PRESERVE-WHITESPACE
+		   (READ-PRESERVING-WHITESPACE stream eof-error-p eof-value)
+		   (READ stream eof-error-p eof-value))
+	       (STREAM-position stream))))
 
 ;;; READTABLE-CASE defined by defstruct.
 
@@ -337,23 +341,23 @@
 
 (defun* left-paren-reader (stream char)
   (do ((list nil)
-;      (char #1=(PEEK-CHAR T stream) #1#))
        (char (PEEK-CHAR T stream) (PEEK-CHAR T stream)))
       ((ch= char 41)
        (READ-CHAR stream)
        (cl:values (nreverse list)))
-    (unless-read-suppress-let (object (READ stream T nil T))
-      (if (and (symbolp object) (string= (SYMBOL-NAME object) "."))
-	  (let ((cdr (READ stream T nil T)))
-	    (unless (ch= (READ-CHAR stream) 41)
-	      (error "syntax error"))
-	    (return-from left-paren-reader
-	      (cl:values (append (nreverse list) cdr))))
-	  (push object list)))))
+    (MULTIPLE-VALUE-BIND (object nothingp) (read1 stream t nil t t t)
+      (unless (or *READ-SUPPRESS* nothingp)
+	(if (and (symbolp object) (string= (SYMBOL-NAME object) "."))
+	    (let ((cdr (READ stream T nil T)))
+	      (unless (ch= (READ-CHAR stream) 41)
+		(ERROR 'READER-ERROR))
+	      (return-from left-paren-reader
+		(cl:values (nreverse (cons cdr list)))))
+	    (push object list))))))
 
 (defun right-paren-reader (stream char)
   (unless *READ-SUPPRESS*
-    (error "unbalanced '%c'" char)))
+    (ERROR "unbalanced '~A'" char)))
 
 (defun comma-reader (stream char)
   (unless (or (plusp *backquote-level*) *READ-SUPPRESS*)
@@ -553,7 +557,7 @@
     ((eq (first expr) (kw OR))
      (some #'eval-feature-test (rest expr)))
     (t
-     (error "syntax error"))))
+     (ERROR 'READER-ERROR))))
 
 (defun sharp-plus-reader (stream char n)
   (no-param (ch 43) n)
