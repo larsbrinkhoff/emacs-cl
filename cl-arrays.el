@@ -98,6 +98,21 @@
      (t
       (error))))
 
+(DEFSETF AREF (array &rest subscripts) (obj)
+  `(COND
+     ((BIT-VECTOR-P ,array)
+      (SETF (BIT ,array (first ',subscripts))) ,obj)
+     ((STRINGP ,array)
+      (SETF (CHAR ,array (first ',subscripts))) ,obj)
+     ((vector-and-typep ,array 'SIMPLE-VECTOR)
+      (SETF (SVREF ,array ,(first subscripts)) ,obj))
+     ((vector-and-typep ,array 'VECTOR)
+      (ASET (aref ,array 2) (first ',subscripts) ,obj))
+     ((vector-and-typep ,array 'ARRAY)
+      (aset (aref ,array 2) (ARRAY-ROW-MAJOR-INDEX ,@subscripts) ,obj))
+     (t
+      (error))))
+
 (defun ARRAY-DIMENSION (array axis)
   (cond
     ((VECTORP array)		(LENGTH array))
@@ -122,9 +137,10 @@
     (t					(error))))
 
 (defun ARRAY-HAS-FILL-POINTER-P (array)
+  (unless (ARRAYP array)
+    (ERROR 'TYPE-ERROR))
   (and (VECTORP array)
-       (not (SIMPLE-VECTOR-P array))
-       (aref array 1)))
+       (not (SIMPLE-VECTOR-P array))))
 
 (defun ARRAY-IN-BOUNDS-P (array &rest subscripts)
   (and (not (some #'MINUSP subscripts))
@@ -144,9 +160,14 @@
 	     ((bit-array char-array array) T)))))
 
 (defun FILL-POINTER (vector)
+  (unless (ARRAY-HAS-FILL-POINTER-P vector)
+    (ERROR 'TYPE-ERROR))
   (aref vector 1))
 
 (defsetf FILL-POINTER (vector) (fill-pointer)
+  `(aset ,vector 1 ,fill-pointer))
+
+(DEFSETF FILL-POINTER (vector) (fill-pointer)
   `(aset ,vector 1 ,fill-pointer))
 
 (defun ROW-MAJOR-AREF (array index)
@@ -214,13 +235,15 @@
   (let* ((storage (aref vector 2))
 	 (len (length storage))
 	 (ptr (FILL-POINTER vector)))
-    (when (eql ptr len)
-      (let ((new-storage (make-vector (+ len (or extension (length storage)))
-				      nil)))
+    (when (eq ptr len)
+      (let ((new-storage (make-vector (+ len (or extension len)) nil)))
 	(dotimes (i len)
-	  (aset new-storage i (aref (aref vector 2) i)))
+	  (aset new-storage i (aref storage i)))
 	(aset vector 2 (setq storage new-storage))))
-    (aset storage ptr new-element)
+    (aset storage ptr (ecase (aref vector 0)
+			(BIT-VECTOR		(if new-element 1 0))
+			(STRING		(CHAR-CODE new-element))
+			(VECTOR		new-element)))
     (aset vector 1 (1+ ptr))))
 
 (defun VECTORP (object)
