@@ -24,7 +24,7 @@
 
 (defvar unbound (make-symbol "unbound"))
 
-(defun* simplify-lambda-list (lambda-list)
+(defun* simplify-lambda-list (lambda-list &optional env)
   (let ((result nil)
 	(state :required))
     (dolist (x lambda-list)
@@ -37,7 +37,7 @@
 	 (setq state x)
 	 (push (cdr (assq x '((&OPTIONAL . &optional)))) result))
 	((symbolp x)
-	 (push x result))
+	 (push (if env (lexical-value x env) x) result))
 	((consp x)
 	 (when (eq state :required)
 	   (error "required parameters must be symbols"))
@@ -164,16 +164,16 @@
 			 (setq ,var ,default))))
 		   vars defaults)))))
 
-(defun expand-lambda (lambda-list body)
+(defun expand-lambda (lambda-list body &optional env)
   (dolist (k '(&optional &rest &key &aux &allow-other-keys))
     (when (memq k lambda-list)
       (error "Emacs Lisp lambda list keywords not allowed")))
   (if (and (every 'symbolp lambda-list)
 	   (notany (lambda (x) (member x '(&KEY))) lambda-list))
       ;; Easy case: no defaults, suppliedp, or keyword arguments.
-      `(lambda ,(simplify-lambda-list lambda-list) ,@body)
+      `(lambda ,(simplify-lambda-list lambda-list env) ,@body)
       ;; Difficult case:
-      `(lambda ,(simplify-lambda-list lambda-list)
+      `(lambda ,(simplify-lambda-list lambda-list env)
 	(let* ,(lambda-list-bindings lambda-list)
 	  ,@(keyword-bindings lambda-list)
 	  ,@body))))
