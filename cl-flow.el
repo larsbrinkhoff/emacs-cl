@@ -30,10 +30,13 @@
     (t
      (apply #'APPLY (FDEFINITION fn) args))))
 
-(cl:defmacro DEFUN (name lambda-list &body body)
-  `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
-     (cl-defun (QUOTE ,name) (FUNCTION (LAMBDA ,lambda-list
-			                 (BLOCK ,name ,@body))))))
+(cl:defmacro DEFUN (name lambda-list &body forms)
+  (MULTIPLE-VALUE-BIND (body decls doc) (parse-body forms t)
+    `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
+      (cl-defun (QUOTE ,name) (LAMBDA ,lambda-list
+				,@(when doc `(,doc))
+				,@decls
+				(BLOCK ,name ,@body))))))
 
 (defun cl-defun (name fn)
   (setf (FDEFINITION name) fn)
