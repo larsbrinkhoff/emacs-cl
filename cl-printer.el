@@ -156,7 +156,7 @@
        (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
       ((restartp object)
        (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
-         (PRIN1 (RESTART-name object) stream)
+         (PRIN1 (RESTART-NAME object) stream)
 	 (when (RESTART-condition object)
 	   (WRITE-STRING " " stream)
 	   (PRIN1 (RESTART-condition object) stream))))
