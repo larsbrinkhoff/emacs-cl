@@ -425,7 +425,7 @@
 (defun ACONS (key datum alist)
   (CONS (CONS key datum) alist))
 
-(defun* ASSOC (item alist &key (key #'IDENTITY) test test-not)
+(cl:defun ASSOC (item alist &key (key #'IDENTITY) test test-not)
   (when (and test test-not)
     (error))
   (when test-not
@@ -444,7 +444,7 @@
 (cl:defun ASSOC-IF-NOT (predicate alist &key (key #'IDENTITY))
   (dolist (pair alist)
     (when (and pair (not (FUNCALL predicate (FUNCALL key (car pair)))))
-      (return-from ASSOC-IF pair))))
+      (return-from ASSOC-IF-NOT pair))))
 
 (defun COPY-ALIST (alist)
   (mapcar (lambda (pair) (CONS (CAR pair) (CDR pair)))))
