@@ -257,58 +257,40 @@
 
 (defun SIN (x)
   (cond
-    ((REALP x)
-     (sin (FLOAT x)))
-    ((COMLEXP x)
-     (error "TODO"))
-    (t
-     (error "type error"))))
+    ((REALP x)		(sin (FLOAT x)))
+    ((COMLEXP x)	(error "TODO"))
+    (t			(error "type error"))))
 
 (defun COS (x)
   (cond
-    ((REALP x)
-     (cos (FLOAT x)))
-    ((COMLEXP x)
-     (error "TODO"))
-    (t
-     (error "type error"))))
+    ((REALP x)		(cos (FLOAT x)))
+    ((COMLEXP x)	(error "TODO"))
+    (t			(error "type error"))))
 
 (defun TAN (x)
   (cond
-    ((REALP x)
-     (tan (FLOAT x)))
-    ((COMLEXP x)
-     (error "TODO"))
-    (t
-     (error "type error"))))
+    ((REALP x)		(tan (FLOAT x)))
+    ((COMLEXP x)	(error "TODO"))
+    (t			(error "type error"))))
 
 (defun ASIN (x)
   (cond
-    ((REALP x)
-     (asin (FLOAT x)))
-    ((COMLEXP x)
-     (error "TODO"))
-    (t
-     (error "type error"))))
+    ((REALP x)		(asin (FLOAT x)))
+    ((COMLEXP x)	(error "TODO"))
+    (t			(error "type error"))))
 
 (defun ACOS (x)
   (cond
-    ((REALP x)
-     (acos (FLOAT x)))
-    ((COMLEXP x)
-     (error "TODO"))
-    (t
-     (error "type error"))))
+    ((REALP x)		(acos (FLOAT x)))
+    ((COMLEXP x)	(error "TODO"))
+    (t			(error "type error"))))
 
 (defun* ATAN (x &optional y)
   (when y (error "TODO"))
   (cond
-    ((REALP x)
-     (atan (FLOAT x)))
-    ((COMLEXP x)
-     (error "TODO"))
-    (t
-     (error "type error"))))
+    ((REALP x)		(atan (FLOAT x)))
+    ((COMLEXP x)	(error "TODO"))
+    (t			(error "type error"))))
 
 (DEFCONSTANT PI 3.141592653589793)
 
@@ -607,12 +589,9 @@
 
 (defun EXP (num)
   (cond
-    ((REALP num)
-     (exp (FLOAT num)))
-    ((COMPLEXP num)
-     (error "TODO"))
-    (t
-     (error "type error"))))
+    ((REALP num)	(exp (FLOAT num)))
+    ((COMPLEXP num)	(error "TODO"))
+    (t			(error "type error"))))
 
 (defun EXPT (base power)
   (cond
@@ -665,19 +644,50 @@
 		   `(,(INTERN "-" *cl-package*) ,getter ,delta))))
 	 ,setter))))
 
-;;; TODO: LCM
+(defun LCM (&rest numbers)
+  (if (null numbers)
+      1
+      (reduce #'binary-lcm numbers)))
 
-;;; TODO: LOG
+(defun binary-lcm (x y)
+  (if (or (ZEROP x) (ZEROP y))
+      0
+      (integer-truncate (ABS (binary* x y)) (GCD x y))))
 
+(defun* LOG (number &optional (base (exp 1)))
+  (cond
+    ((and (REALP number) (REALP base))
+     (log (FLOAT number) (FLOAT base)))
+    ((and (NUMBERP number) (NUMBERP base))
+     (error "TODO"))
+    (t
+     (error "type error"))))
+  
 (defun MOD (number divisor)
   (NTH-VALUE 1 (FLOOR number divisor)))
 
 (defun REM (number divisor)
   (NTH-VALUE 1 (TRUNCATE number divisor)))
 
-;;; TODO: SIGNUM
+(defun SIGNUM (number)
+  (cond
+    ((RATIONALP number) (cond ((PLUSP number) 1)
+			      ((ZEROP number) 0)
+			      ((MINUSP number) -1)))
+    ((floatp number)	(cond ((plusp number) 1.0)
+			      ((zerop number) 0.0)
+			      ((minusp number) -1.0)))
+    ((COMPLEXP number)	(error "TODO"))
+    (t			(error "type error"))))
 
-;;; TODO: SQRT, ISQRT
+(defun SQRT (number)
+  (cond
+    ((REALP number)	(sqrt (FLOAT number)))
+    ((COMPLEXP number)	(error "TODO"))
+    (t			(error "type error"))))
+
+(defun ISQRT (number)
+  (VALUES (FLOOR (SQRT number))))
 
 ;;; TODO: MAKE-RANDOM-STATE
 
@@ -816,7 +826,7 @@
 (defun INTEGER-LENGTH (num)
   (when (MINUSP num)
     (setq num (cl:- num)))
-  0)
+  (error "TODO"))
 
 (defun cl::bignump (num)
   (vector-and-typep num 'bignum))
