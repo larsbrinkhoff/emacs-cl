@@ -142,11 +142,11 @@
 	       candidates (kw KEY) #'LENGTH))))
 
 (defun slashp (char)
-  (eq (CHAR-CODE char) 47))
+  (ch= char 47))
 
 (defun parse-dir (string)
   (when string
-    (when (eq (CHAR-CODE (CHAR string 0)) 126)
+    (when (ch= (CHAR string 0) 126)
       (setq string (expand-file-name string)))
     (let* ((start 0)
 	   (dir (if (slashp (CHAR string 0))
@@ -177,9 +177,9 @@
       (cond
 	((STRING= string "")		(kw NEWEST))
 	((STRING= string "~")		(kw PREVIOUS))
-	((and (eq (CHAR-CODE (CHAR string 0)) 46)
-	      (eq (CHAR-CODE (CHAR string 1)) 126)
-	      (eq (CHAR-CODE (CHAR string (1- (LENGTH string)))) 126))
+	((and (ch= (CHAR string 0) 46)
+	      (ch= (CHAR string 1) 126)
+	      (ch= (CHAR string (1- (LENGTH string))) 126))
 					(PARSE-INTEGER string (kw START) 2
 						       (kw JUNK-ALLOWED) t))
 	(t				(error "invalid version")))))

@@ -68,7 +68,7 @@
 
       STEP-8a
       (cond
-	((CHAR= char (CODE-CHAR 58))
+	((ch= char 58)
 	 (incf colons)
 	 (when (or (and package (not (zerop (length token))))
 		   (> colons 2))
@@ -233,21 +233,21 @@
     (setf (aref (READTABLE-SYNTAX-TYPE readtable) 92) :single-escape)
     (setf (aref (READTABLE-SYNTAX-TYPE readtable) 124) :multiple-escape)
     (dolist (char (mapcar #'CODE-CHAR '(9 10 12 13)))
-      (SET-SYNTAX-FROM-CHAR char (CODE-CHAR 32) readtable readtable))
+      (SET-SYNTAX-FROM-CHAR char (ch 32) readtable readtable))
 
     (setf (READTABLE-MACRO-TABLE readtable) (make-vector 256 nil))
-    (SET-MACRO-CHARACTER (CODE-CHAR 34) #'double-quote-reader nil readtable)
-    (MAKE-DISPATCH-MACRO-CHARACTER (CODE-CHAR 35) T readtable)
-    (SET-MACRO-CHARACTER (CODE-CHAR 39) #'quote-reader nil readtable)
-    (SET-MACRO-CHARACTER (CODE-CHAR 40) #'left-paren-reader nil readtable)
-    (SET-MACRO-CHARACTER (CODE-CHAR 41) #'right-paren-reader nil readtable)
-    (SET-MACRO-CHARACTER (CODE-CHAR 44) #'comma-reader nil readtable)
-    (SET-MACRO-CHARACTER (CODE-CHAR 59) #'semicolon-reader nil readtable)
-    (SET-MACRO-CHARACTER (CODE-CHAR 96) #'backquote-reader nil readtable)
+    (SET-MACRO-CHARACTER (ch 34) #'double-quote-reader nil readtable)
+    (MAKE-DISPATCH-MACRO-CHARACTER (ch 35) T readtable)
+    (SET-MACRO-CHARACTER (ch 39) #'quote-reader nil readtable)
+    (SET-MACRO-CHARACTER (ch 40) #'left-paren-reader nil readtable)
+    (SET-MACRO-CHARACTER (ch 41) #'right-paren-reader nil readtable)
+    (SET-MACRO-CHARACTER (ch 44) #'comma-reader nil readtable)
+    (SET-MACRO-CHARACTER (ch 59) #'semicolon-reader nil readtable)
+    (SET-MACRO-CHARACTER (ch 96) #'backquote-reader nil readtable)
 
     (setf (READTABLE-DISPATCH-TABLE readtable) (make-hash-table :test #'equal))
     (macrolet ((sharp-macro (n fn)
-		 `(SET-DISPATCH-MACRO-CHARACTER (CODE-CHAR 35) (CODE-CHAR ,n)
+		 `(SET-DISPATCH-MACRO-CHARACTER (ch 35) (CODE-CHAR ,n)
 		                                ,fn readtable)))
       (sharp-macro 92 #'sharp-backslash-reader)
       (sharp-macro 39 #'sharp-quote-reader)
@@ -319,13 +319,13 @@
 (defun* left-paren-reader (stream char)
   (do ((list nil)
        (char #1=(PEEK-CHAR T stream) #1#))
-      ((EQL char (CODE-CHAR 41))
+      ((ch= char 41)
        (READ-CHAR stream)
        (VALUES (nreverse list)))
     (unless-read-suppress-let (object (READ stream T nil T))
       (if (and (symbolp object) (string= (SYMBOL-NAME object) "."))
 	  (let ((cdr (READ stream T nil T)))
-	    (unless (EQL (READ-CHAR stream) (CODE-CHAR 41))
+	    (unless (ch= (READ-CHAR stream) 41)
 	      (error "syntax error"))
 	    (return-from left-paren-reader
 	      (VALUES (append (nreverse list) cdr))))
@@ -341,10 +341,10 @@
   (let ((next-char (READ-CHAR stream T nil T)))
     (let ((*backquote-level* (1- *backquote-level*)))
       (cond
-	((EQL next-char (CODE-CHAR 64))
+	((ch= next-char 64)
 	 (unless-read-suppress-let (object (READ stream T nil T))
 	   (VALUES (list 'COMMA-AT object))))
-	((EQL next-char (CODE-CHAR 46))
+	((ch= next-char 46)
 	 (unless-read-suppress-let (object (READ stream T nil T))
 	   (VALUES (list 'COMMA-DOT object))))
 	(t
@@ -354,7 +354,7 @@
 
 (defun semicolon-reader (stream ch)
   (do ()
-      ((CHAR= (READ-CHAR stream nil (CODE-CHAR 10) T) (CODE-CHAR 10))
+      ((ch= (READ-CHAR stream nil (ch 10) T) 10)
        (VALUES))))
 
 (defun backquote-reader (stream char)
@@ -365,12 +365,12 @@
 
 (defun sharp-backslash-reader (stream char n)
   (do ((string "")
-       (char #1=(READ-CHAR stream nil (CODE-CHAR 32) T) #1#))
+       (char #1=(READ-CHAR stream nil (ch 32) T) #1#))
       ((not (constituentp char))
        (UNREAD-CHAR char stream)
        (VALUES (cond
 		 (*READ-SUPPRESS*	 nil)
-		 ((= (length string) 1)	 (CODE-CHAR (aref string 0)))
+		 ((= (length string) 1)	 (CHAR string 0))
 		 (t			 (NAME-CHAR string)))))
     (unless *READ-SUPPRESS*
       (setq string (concat string (list (CHAR-CODE char)))))))
@@ -380,7 +380,7 @@
     (VALUES (list 'FUNCTION object))))
 
 (defun sharp-left-paren-reader (stream char n)
-  (unless-read-suppress-let (list (READ-DELIMITED-LIST (CODE-CHAR 41) stream))
+  (unless-read-suppress-let (list (READ-DELIMITED-LIST (ch 41) stream))
     (VALUES (CONCATENATE 'VECTOR list))))
 
 (defun bit-vector (contents)
@@ -391,7 +391,7 @@
 
 (defun sharp-asterisk-reader (stream char n)
   (do ((contents nil)
-       (char #1=(READ-CHAR stream nil (CODE-CHAR 32) T) #1#))
+       (char #1=(READ-CHAR stream nil (ch 32) T) #1#))
       ((not (constituentp char))
        (UNREAD-CHAR char stream)
        (VALUES (unless *READ-SUPPRESS* (bit-vector (nreverse contents)))))
@@ -400,7 +400,7 @@
 
 (defun sharp-colon-reader (stream char n)
   (do ((string "")
-       (char #1=(READ-CHAR stream nil (CODE-CHAR 32) T) #1#))
+       (char #1=(READ-CHAR stream nil (ch 32) T) #1#))
       ((not (constituentp char))
        (UNREAD-CHAR char stream)
        (VALUES (unless *READ-SUPPRESS* (make-symbol string))))
@@ -474,9 +474,9 @@
       ((= level 0)
        (UNREAD-CHAR char stream)
        (VALUES))
-    (when (and (EQL last (CODE-CHAR 35)) (EQL char (CODE-CHAR 124)))
+    (when (and (ch= last 35) (ch= char 124))
       (incf level))
-    (when (and (EQL last (CODE-CHAR 124)) (EQL char (CODE-CHAR 35)))
+    (when (and (ch= last 124) (ch= char 35))
       (decf level))
     (setq last char)))
 
@@ -587,12 +587,12 @@
 	       (< end (LENGTH string))
 	       (FIND (CHAR string end) ".DEFLSdefls"))
       (if (and (eq (1+ end) (LENGTH string))
-	       (eq (CHAR-CODE (CHAR string end)) 46))
+	       (ch= (CHAR string end) 46))
 	  (return-from parse-number (VALUES integer))
 	  (let ((fraction 0)
 		(exponent 0)
 		(end2 end))
-	    (when (eq (CHAR-CODE (CHAR string end)) 46)
+	    (when (ch= (CHAR string end) 46)
 	      (MULTIPLE-VALUE-SETQ (fraction end2)
 		(PARSE-INTEGER string (kw RADIX) 10 (kw START) (incf end)
 			       (kw JUNK-ALLOWED) T)))
@@ -621,7 +621,7 @@
     (cond
       ((= end (LENGTH string))
        (return-from parse-number (VALUES integer)))
-      ((CHAR= (CHAR string end) (CODE-CHAR 47))
+      ((ch= (CHAR string end) 47)
        (MULTIPLE-VALUE-BIND (denumerator end2)
 	   (PARSE-INTEGER string (kw RADIX) *READ-BASE*
 			  (kw START) (1+ end) (kw JUNK-ALLOWED) T)

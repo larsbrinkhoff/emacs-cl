@@ -89,7 +89,7 @@
 
 (defun TERPRI (&optional stream-designator)
   (let ((stream (output-stream stream-designator)))
-    (WRITE-CHAR (CODE-CHAR 10) stream))
+    (WRITE-CHAR (ch 10) stream))
   nil)
 
 (defun FRESH-LINE (&optional stream-designator)
@@ -108,7 +108,7 @@
     (unless fn
       (stream-error stream))
     (funcall fn (CHAR-CODE char) stream)
-    (setf (STREAM-fresh-line-p stream) (eq (CHAR-CODE char) 10))
+    (setf (STREAM-fresh-line-p stream) (ch= char 10))
     char))
 
 (defun* READ-LINE (&optional stream-designator (eof-error-p T)
@@ -121,7 +121,7 @@
 	 ((eq char eof-value)
 	  (return-from READ-LINE
 	    (VALUES (if (= (length line) 0) eof-value line) t)))
-	 ((eq (CHAR-CODE char) 10)
+	 ((ch= char 10)
 	  (return-from READ-LINE (VALUES line nil))))
        (setq line (concat line (list (CHAR-CODE char))))))))
 

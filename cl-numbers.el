@@ -971,7 +971,7 @@
 	      (ERROR 'PARSE-ERROR))))
       (setq char (CHAR string i))
       (when (find (CHAR-CODE char) "+-")
-	(when (CHAR= char (CODE-CHAR 45))
+	(when (ch= char 45)
 	  (setq sign -1))
 	(incf i)
 	(when (= i end)

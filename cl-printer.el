@@ -266,7 +266,7 @@
 (defun PRINT (object &optional stream)
   (TERPRI stream)
   (PRIN1 object stream)
-  (WRITE-CHAR (CODE-CHAR 32) stream)
+  (WRITE-CHAR (ch 32) stream)
   object)
 
 ;;; TODO:

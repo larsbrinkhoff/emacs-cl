@@ -82,3 +82,9 @@
 
 (defun type-error (datum type)
   (ERROR 'TYPE-ERROR (kw DATUM) datum (kw EXPECTED-TYPE) type))
+
+(defmacro ch (code)
+  (vector 'CHARACTER code))
+
+(defmacro ch= (char code)
+  `(eq (aref ,char 1) ,code))

@@ -12,7 +12,7 @@
 	(i 0))
     (while (< i (LENGTH format))
       (let ((char (CHAR format i)))
-	(if (eq (CHAR-CODE char) 126)
+	(if (ch= char 126)
 	    (case (CHAR-CODE (CHAR format (incf i)))
 	      (37	(TERPRI))
 	      (65	(PRINC (pop args) stream))
