@@ -42,11 +42,12 @@
 	   (GO ,start))))))
 
 (cl:defmacro DOTIMES ((var count &optional result) &body body)
-  `(DO ((,var 0 (1+ ,var))
-	(,end ,count))
-       ((EQL ,var ,end)
-	,result)
-     ,@body))
+  (with-gensyms (end)
+    `(DO ((,var 0 (,(INTERN "1+" "CL") ,var))
+	  (,end ,count))
+         ((EQL ,var ,end)
+	  ,result)
+       ,@body)))
 
 (cl:defmacro DOLIST ((var list &optional result) &body body)
 ;   (with-gensyms (x)
