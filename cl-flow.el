@@ -59,7 +59,7 @@
     ((FUNCTIONP fn)
      (apply fn args))
     (t
-     (apply (FDEFINITION fn) args)))
+     (apply (FDEFINITION fn) args))))
 
 ;;; TODO: function
 
