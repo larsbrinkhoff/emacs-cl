@@ -282,8 +282,8 @@
   (setq lambda-list (copy-list lambda-list))
   (remf lambda-list '&environment)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-    (setf (gethash ',access-fn *setf-expanders*)
-          (lambda ,lambda-list ,@body))))
+     (setf (gethash ',access-fn *setf-expanders*)
+           (lambda ,lambda-list ,@body))))
 
 (defun GET-SETF-EXPANSION (place &optional env)
   (let ((fn (gethash (first place) *setf-expanders*)))
@@ -291,15 +291,22 @@
 	(apply fn (rest place))
 	(let ((temps (mapcar (lambda (x) (gensym)) (rest place)))
 	      (var (gensym)))
-	  (values temps
+	  (VALUES temps
 		  (rest place)
 		  (list var)
 		  `(FUNCALL '(SETF ,(first place)) ,var ,@temps)
 		  ())))))
 
 (defmacro* SETF (place value &environment env)
-  (multiple-value-bind (temps values variables setter getter)
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
       (GET-SETF-EXPANSION place env)
     `(let* ,(MAPCAR #'list temps values)
-      (let ((,(first variables) ,value))
-	,setter))))
+       (let ((,(first variables) ,value))
+	 ,setter))))
+
+(cl:defmacro SETF (place value &environment env)
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION place env)
+    `(LET* ,(MAPCAR #'list temps values)
+       (LET ((,(first variables) ,value))
+	 ,setter))))
