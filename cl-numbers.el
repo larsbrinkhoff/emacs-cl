@@ -13,14 +13,25 @@
 	  (134217727		1			[bignum -134217728 0])
 	  (-134217728		-1			[bignum 134217727 -1])
 	  (-134217728		-134217728		[bignum 0 -1])
+	  ([bignum -1 0]	[bignum -1 0]		[bignum -2 1])
+	  ([bignum 0 -1]	[bignum 0 -1]		[bignum 0 -2])
 	  ([bignum 0 2]		[bignum 0 -1]		[bignum 0 1])
 	  ([bignum 0 -1]	[bignum 0 2]		[bignum 0 1])
 	  ([bignum 0 1]		[bignum 0 -2]		[bignum 0 -1])
 	  ([bignum 0 -2]	[bignum 0 1]		[bignum 0 -1])
 	  ([bignum 2 2]		[bignum -1 -3]		1)
-	  ([bignum 2 2]		[bignum -3 -3]		-1))
+	  ([bignum 2 2]		[bignum -3 -3]		-1)
+	  ([bignum -54323701 6]	[bignum 16292363 17]	[bignum -38031338 23])
+	  ([bignum 119720045 12408]
+				[bignum 38283770 30621]
+						    [bignum -110431641 43029])
+	  ([bignum -134217728 2] -1			[bignum 134217727 2])
+	  ([bignum 0 100000000]	[bignum 0 100000000]	[bignum 0 -68435456 0])
+	  ([bignum -24181363 103035877]
+				[bignum -24181363 103035877]
+					       [bignum -48362726 -62363701 0]))
 	do (unless (equal (cl:+ x y) z)
-	     (princ (format "%s + %s /= %s" x y z)))))
+	     (princ (format "%s + %s /= %s\n" x y z)))))
 
 (defun cl:= (number &rest numbers)
   (every (lambda (n) (binary= number n)) numbers))
@@ -66,7 +77,7 @@
      (< (/ (float (numerator num1)) (denominator num1))
 	(/ (float (numerator num2)) (denominator num2))))
     ((or (cl::bignump num1) (cl::bignump num2))
-     (cl:minusp (cl:- num1 num2)))
+     (cl:minusp (binary- num1 num2)))
     (t
      (error "type error: = %s %s" num1 num2))))
 
@@ -92,7 +103,7 @@
      (<= (/ (float (numerator num1)) (denominator num1))
 	 (/ (float (numerator num2)) (denominator num2))))
     ((or (cl::bignump num1) (cl::bignump num2))
-     (let ((diff (cl:- num1 num2)))
+     (let ((diff (binary- num1 num2)))
        (or (minusp diff) (zerop diff))))
     (t
      (error "type error: = %s %s" num1 num2))))
@@ -140,15 +151,30 @@
     (t
      (error "type error"))))
 
-;;; TODO: FLOOR, FFLOOR, CEILING, FCEILING, TRUNCATE, FTRUNCATE, ROUND, FROUND
+;;; TODO: floor, ffloor, ceiling, fceiling
 
-;;; TODO: SIN, COS, TAN
+(defun* cl:truncate (number &optional (divisor 1))
+  (let ((quotient (cl:/ number divisor)))
+    (cond
+      ((cl:integerp quotient))
+      ((floatp quotient)
+       (setq quotient (truncate quotient)))
+      ((cl::ratiop quotient)
+       ;; TODO: bignum
+       (setq quotient (/ (numerator quotient) (denominator quotient))))
+      (t
+       (error "type error")))
+    (values quotient (cl:- number (cl:* quotient divisor)))))
 
-;;; TODO: ASIN, ACOS, ATAN
+;;; TODO: ftruncate, round, fround
+
+;;; TODO: sin, cos, tan
+
+;;; TODO: asin, acos, atan
 
 ;;; TODO: (defconstast pi ...)
 
-;;; TODO: SINH, COSH, TANH, ASINH, ACOSH, ATANH
+;;; TODO: sinh, cosh, tanh, asinh, acosh, atanh
 
 (defun cl:* (&rest numbers)
   (reduce #'binary* numbers :initial-value 1))
@@ -157,13 +183,14 @@
 
 (defun binary* (x y)
   (cond
-    ((and (integerp x)
-	  (< x multiplication-limit)
-	  (> x (- multiplication-limit))
-	  (integerp y)
-	  (< y multiplication-limit)
-	  (> y (- multiplication-limit)))
-     (* x y))
+    ((and (integerp x) (integerp y))
+     (if (and (< x multiplication-limit)
+	      (> x (- multiplication-limit))
+	      (< y multiplication-limit)
+	      (> y (- multiplication-limit)))
+	 (* x y)
+	 (bignum* (vector 'bignum x (if (minusp x) -1 0))
+		  (vector 'bignum y (if (minusp y) -1 0)))))
     ((or (complexp x) (complexp y))
      (complex (binary- (binary* (realpart x) (realpart y))
 		       (binary* (imagpart x) (imagpart y)))
@@ -178,7 +205,7 @@
 	 (error)
 	 (cl::ratio (binary* (numerator x) (denominator y))
 		    (binary* (denominator x) (numerator y)))))
-    ((or (cl::bignump x) (cl::bignump y))
+    ((or (cl:integerp x) (cl:integerp y))
      (when (integerp x)
        (setq x (vector 'bignum x (if (minusp x) -1 0))))
      (when (integerp y)
@@ -188,7 +215,26 @@
      (error "TODO"))))
 
 (defun bignum* (x y)
-  0)
+  (cond
+    ((equal x [bignum 1 0])
+     (canonical-bignum y))
+    ((equal y [bignum 10 0])
+     (setq x (canonical-bignum x))
+;    (print (format "(bignum* %s %s)" x y))
+     (let* ((2x (binary+ x x))
+	    (4x (binary+ 2x 2x))
+	    (5x (binary+ 4x x)))
+;      (print (format "%s %s %s" 2x 4x 5x))
+       (binary+ 5x 5x)))
+    (t
+     (error "TODO"))))
+;   (let ((sign 1))
+;     (when (minusp x)
+;       (setq x (cl:- x)
+; 	    sign -1))
+;     (when (minusp y)
+;       (setq y (cl:- y)
+; 	    sign (- sign)))
 
 (defun cl:+ (&rest numbers)
   (reduce #'binary+ numbers :initial-value 0))
@@ -216,6 +262,7 @@
 			 (binary* (denominator x) (numerator y)))
 		(binary* (denominator x) (denominator y))))
     ((or (cl::bignump x) (cl::bignump y))
+;    (print (format "%s %s" x y))
      (cond
        ((integerp x)	(bignum+fixnum y x))
        ((integerp y)	(bignum+fixnum x y))
@@ -232,12 +279,14 @@
 ;   (print y)
 ;   (print sum)
     (cond
-      ((or (and (>= x0 0) (>= y 0) (minusp sum))
-	   (and (minusp x0) (>= y 0) (>= sum 0)))
+      ;; negative + positive -> positive: carry
+      ((and (minusp x0) (>= y 0) (>= sum 0))
        (bignum+bignum new [bignum 0 1]))
-      ((or (and (minusp x0) (minusp y) (>= sum 0))
-	   (and (>= x0 0) (minusp y) (minusp sum)))
+      ;; positive + negative -> negative: borrow
+      ((and (>= x0 0) (minusp y) (minusp sum))
        (bignum+bignum new [bignum 0 -1]))
+      ;; positive + positive -> negative: no overflow
+      ;; negative + negative -> positive: no overflow
       (t
        (canonical-bignum new)))))
 
@@ -297,14 +346,19 @@
 	    (y0 (car y))
 	    (sum (+ x0 y0 carry)))
 ;      (print (format "x0=%s y0=%s sum=%s" x0 y0 sum))
-       (cons sum
-	     (bignum+
-	      (rest x)
-	      (rest y)
-	      (if (or (and (minusp x0) (>= y0 0) (>= sum 0) (rest x))
-		      (and (>= x0 0) (minusp y0) (>= sum 0) (rest y))
-		      (and (minusp x0) (minusp y0) (>= sum 0)))
-		  1 0)))))))
+       (if (and (null (rest x)) (null (rest y))
+		(>= x0 0) (>= y0 0) (minusp sum))
+	   ;; Last number wrapped from positive to negative.
+	   ;; Need a final zero.
+	   (cons sum '(0))
+	   (cons sum
+		 (bignum+
+		  (rest x)
+		  (rest y)
+		  (if (or (and (minusp x0) (>= y0 0) (>= sum 0) (rest x))
+			  (and (>= x0 0) (minusp y0) (>= sum 0) (rest y))
+			  (and (minusp x0) (minusp y0) (rest x) (rest y)))
+		      1 0))))))))
 
 (defun cl:- (number &rest numbers)
   (if (null numbers)
@@ -334,15 +388,15 @@
 	 (vector 'ratio 1 number))
 	((floatp number)
 	 (/ 1.0 number))
+	((cl::bignump number)
+	 (vector 'ratio 1 number))
 	((cl::ratiop number)
 	 (cl::ratio (denominator number) (numerator number)))
 	((complexp number)
 	 (let* ((r (realpart number))
 		(i (imagpart number))
-		(x (cl:- (cl:* r r) (cl:* i i))))
-	   (complex (cl:/ r x) (cl:+ (cl:/ i) x))))
-	((cl::bignump number)
-	 0)
+		(x (binary- (binary* r r) (binary* i i))))
+	   (complex (binary/ r x) (binary+ (binary/ i x)))))
 	(t
 	 (error)))
       (dolist (num numbers number)
@@ -350,34 +404,31 @@
 
 (defun binary/ (x y)
   (cond
-    ((and (integerp x) (integerp y))
-     (if (or (and (eql x most-negative-fixnum) (eql y -1))
-	     (and (eql y most-negative-fixnum) (eql x -1)))
-	 (vector 'bignum 0)
-	 (/ x y)))
+    ((and (cl:integerp x) (cl:integerp y))
+     (cl::ratio x y))
     ((or (complexp x) (complexp y))
      (let* ((rx (realpart x))
 	    (ry (realpart y))
 	    (ix (imagpart x))
 	    (iy (imagpart y))
-	    (div (cl:+ (cl:* ry ry) (cl:* iy iy))))
-       (complex (cl:/ (cl:+ (cl:* rx ry) (cl:* ix iy)) div)
-		(cl:/ (cl:- (cl:* ix ry) (cl:* rx iy)) div))))
+	    (div (binary+ (binary* ry ry) (binary* iy iy))))
+       (complex (binary/ (binary+ (binary* rx ry) (binary* ix iy)) div)
+		(binary/ (binary- (binary* ix ry) (binary* rx iy)) div))))
     ((floatp x)
      (/ x (cl:float y)))
     ((floatp y)
      (/ (cl:float x) y))
     ((or (cl::ratiop x) (cl::ratiop y))
-     (cl::ratio (cl:* (numerator x) (denominator y))
-	    (cl:* (denominator x) (numerator y))))
-    ;; bignum
-    (t 0)))
+     (cl::ratio (binary* (numerator x) (denominator y))
+		(binary* (denominator x) (numerator y))))
+    (t
+     (error "type error"))))
   
 (defun cl:1+ (number)
-  (cl:+ number 1))
+  (binary+ number 1))
 
 (defun cl:1- (number)
-  (cl:- number 1))
+  (binary- number 1))
 
 (defun cl:abs (number)
   (cond
@@ -427,7 +478,15 @@
 
 ;;; TODO: MAKE-RANDOM-STATE
 
-;;; TODO: RANDOM
+(defun cl:random (limit &optional random-state)
+  (cond
+    ((integerp limit)
+     (random limit))
+    ((floatp limit)
+     (/ (* limit (random most-positive-fixnum)) most-positive-fixnum))
+    ((cl:bignump limit)
+     ;; TODO
+     0)))
 
 ;;; TODO: RANDOM-STATE-P
 
@@ -483,16 +542,18 @@
 (defun cl::ratio (num den)
   (unless (and (cl:integerp num) (cl:integerp den))
     (error))
-  (let* ((gcd (gcd num den))
-	 (num (cl:/ num gcd))
-	 (den (cl:/ den gcd)))
-    (cond
-      ((eql den 1)
-	num)
-      ((minusp den)
-       (vector 'ratio (cl:- num) den))
-      (t
-       (vector 'ratio num den)))))
+  (if (and (eql x most-negative-fixnum) (eql y -1))
+      (vector 'bignum most-negative-fixnum 0)
+      (let* ((gcd (gcd num den))
+	     (num (/ num gcd))
+	     (den (/ den gcd)))
+	(cond
+	  ((eql den 1)
+	   num)
+	  ((minusp den)
+	   (vector 'ratio (cl:- num) den))
+	  (t
+	   (vector 'ratio num den))))))
 
 (defun cl::ratiop (num)
   (vector-and-typep num 'ratio))
@@ -549,7 +610,21 @@
 	      first nil))
       (decf i))))
 
-;;; TODO: integer-length
+(defun integer-length (num)
+  (when (cl:minusp num)
+    (setq num (cl:- num)))
+  (let ((len 0))
+    (cond
+      ((integerp num)
+       (dotimes (i 28)
+	 (when (logbitp i num)
+	   (incf i))))
+      (t
+       (dotimes (i (1- (length num)))
+	 (dotimes (j 28)
+	   (when (logbitp i num)
+	     (incf i))))))
+    len))
 
 (defun cl::bignump (num)
   (vector-and-typep num 'bignum))
@@ -580,18 +655,22 @@
 	    (error)))
       (setq char (char string i)))
     (while (setq digit (digit-char-p char radix))
-      (setq integer (+ (* integer radix) digit))
+;     (print (format "before: %s %s" (cl:* integer 10) digit))
+      (setq integer (cl:+ (cl:* integer radix) digit))
+;     (cl:print integer)
+;     (print (format "after: %s" integer))
       (incf i)
       (when (= i end)
-	(return-from parse-integer (values (* sign integer) i)))
+;	(print (format "int: %s" integer))
+	(return-from parse-integer (values (cl:* sign integer) i)))
       (setq char (char string i)))
     (cond
       (junk-allowed
-       (values (* sign integer) i))
+       (values (cl:* sign integer) i))
       (t
        (do ((j i (1+ j)))
 	   ((= j end)
-	    (values (* sign integer) i))
+	    (values (cl:* sign integer) i))
 	 (unless (whitespacep (char string j))
 	   (error)))))))
 
@@ -697,8 +776,24 @@
     ((and (cl::bignump x) (cl::bignump y))
      0)))
 
-
-;;; TODO: logbitp
+(defun logbitp (index integer)
+  (unless (integerp index)
+    (error "TODO"))
+  (when (minusp index)
+    (error "type error"))
+  (cond
+    ((integerp integer)
+     (if (>= index 28)
+	 (minusp integer)
+	 (not (zerop (logand integer (ash 1 index))))))
+    ((cl::bignump integer)
+     (if (>= index (* 28 (1- (length integer))))
+	 (cl:minusp integer)
+	 (let ((i (1+ (/ index 28)))
+	       (j (% index 28)))
+	   (not (zerop (logand (aref integer i) (ash 1 j)))))))
+    (t
+     (error "type error"))))
 
 ;;; TODO: logcount
 
