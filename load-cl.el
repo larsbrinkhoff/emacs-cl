@@ -15,4 +15,9 @@
   (load "cl-typep")
   (load "cl-types")
   (load "cl-subtypep")
+
+  (load "cl-arrays")
+  (load "cl-conses")
+  (load "cl-sequences")
+  (load "cl-printer")
   nil)
