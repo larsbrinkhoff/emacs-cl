@@ -109,8 +109,40 @@
 
 (DEFCONSTANT T 'T)
 
-(defun EQ (x y)
-  (eq x y))
+(setf (symbol-function 'EQ) (symbol-function 'eq))
+
+(defun EQL (x y)
+  (or (eq x y)
+      (cond
+	((and (characterp x) (characterp y))
+	 (eq (char-code x) (char-code y)))
+	((and (cl::bignump x) (cl::bignump y))
+	 (and (eq (length x) (length y))
+	      (every #'eq x y)))
+	((and (cl::ratiop x) (cl::ratiop y))
+	 (and (EQL (numerator x) (numerator y))
+	      (EQL (denominator x) (denominator y))))
+	((and (complexp x) (complexp y))
+	 (and (EQL (realpart x) (realpart y))
+	      (EQL (imagpart x) (imagpart y))))
+	(t
+	 NIL))))
+
+(defun EQUAL (x y)
+  (or (EQL x y)
+      (cond
+	((and (consp x) (consp y))
+	 (and (EQUAL (car x) (car y))
+	      (EQUAL (cdr x) (cdr y))))
+	((and (STRINGP x) (STRINGP y))
+	 (and (eq (LENGTH x) (LENGTH y))
+	      (EVERY #'eq x y)))
+	((and (BIT-STRING-P x) (BIT-STRING-P y))
+	 (and (eq (LENGTH x) (LENGTH y))
+	      (EVERY #'eq x y)))
+	;; TODO: pathnames
+	(t
+	 NIL))))
 
 ;; (defvar *multiple-values-variable* nil)
 

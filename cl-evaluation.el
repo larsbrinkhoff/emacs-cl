@@ -86,7 +86,7 @@
   (cond
     ((atom form)
      (cond
-       ((KEYWORDP form)		t)
+       ((KEYWORDP form)		T)
        ((symbolp form)		(member form *constants*))
-       (t			t)))
+       (t			T)))
     (t				(eq (first form) 'QUOTE))))
