@@ -97,9 +97,16 @@
 
 ;;; TODO: symbol-macrolet
 
-(defvar *MACROEXPAND-HOOK* #'FUNCALL)
+(defvar *MACROEXPAND-HOOK* 'FUNCALL)
 
-;;;
+(defun PROCLAIM (&rest declarations)
+  nil)
+
+(cl:defmacro DECLAIM (&rest declarations)
+  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
+	       ,(keyword "LOAD-TOPLEVEL")
+	       ,(keyword "EXECUTE"))
+     (PROCLAIM ',declarations)))
 
 (defun SPECIAL-OPERATOR-P (symbol)
   (member symbol
