@@ -635,8 +635,7 @@
   (setq lambda-list (copy-list lambda-list))
   (remf lambda-list '&ENVIRONMENT)
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
-     (SETF (GETHASH ',access-fn *setf-expanders*)
-           (LAMBDA ,lambda-list ,@body))
+     (puthash ',access-fn (LAMBDA ,lambda-list ,@body) *setf-expanders*)
      (QUOTE ,access-fn)))
 
 (DEFSETF FDEFINITION (name) (fn)
