@@ -10,6 +10,7 @@
 (defvar *identity-counter* 12345)
 
 (defun object-identity (object)
+  ;; TODO: Perhaps flush a non-weak hash table occasionally.
   (or (gethash object *object-identities*)
       (setf (gethash object *object-identities*) (incf *identity-counter*))))
 
@@ -173,9 +174,12 @@
       (16	(WRITE-STRING "#x" stream))
       (t	(WRITE-STRING "#" stream)
 		(let* ((base *PRINT-BASE*) (*PRINT-BASE* 10)) (PRIN1 base)))))
-  (when (MINUSP number)
-    (WRITE-STRING "-" stream)
-    (setq number (cl:- number)))
+  (cond
+    ((ZEROP number)
+     (WRITE-STRING "0" stream))
+    ((MINUSP number)
+     (WRITE-STRING "-" stream)
+     (setq number (cl:- number))))
   (print-digits number stream)
   (when (and *PRINT-RADIX* (eq *PRINT-BASE* 10))
     (WRITE-STRING "." stream)))
