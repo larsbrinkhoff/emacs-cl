@@ -31,7 +31,7 @@
 (defsetf schar (string index) (char)
   `(aset ,string ,index (char-code ,char)))
 
-(defun cl:string (x)
+(defun STRING (x)
   (cond
     ((STRINGP x)	x)
     ((symbolp x)	(symbol-name x))

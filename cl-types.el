@@ -10,7 +10,7 @@
   t)
 
 (defmacro* check-type (place type &optional string &environment env)
-  `(unless (cl:typep ,place ,type ,env)
+  `(unless (TYPEP ,place ,type ,env)
     (error ,string)))
 
 (defun cl:type-of (object)

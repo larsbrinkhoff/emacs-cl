@@ -71,7 +71,7 @@
   (cl:<= 65 (char-code char) 90))
 
 (defun name-char (name)
-  (let ((string (cl:string name)))
+  (let ((string (STRING name)))
     (cond
       ((equalp string "Backspace")	(code-char 8))
       ((equalp string "Tab")		(code-char 9))

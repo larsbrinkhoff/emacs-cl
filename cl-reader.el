@@ -125,7 +125,7 @@
 		  (list (char-code
 			 (if (eq (char-syntx char) :single-escape)
 			     (READ-CHAR stream t nil t)
-			     char))))))
+			     char)))))))
 
 (defun sharp-reader (stream char1)
   (let* ((char2 (READ-CHAR stream t nil t))
@@ -185,7 +185,7 @@
   (values (list 'FUNCTION (cl:read stream t nil t))))
 
 (defun sharp-left-paren-reader (stream char n)
-  (values (CONCATENATE 'vector (read-delimited-list (code-char 41) stream))))
+  (values (CONCATENATE 'VECTOR (read-delimited-list (code-char 41) stream))))
 
 (defun sharp-asterisk-reader (stream char n) nil)
 

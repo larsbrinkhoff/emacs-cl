@@ -98,15 +98,23 @@
 	  (dovector (,var ,seq ,result) ,@body)))))
 
 (defun CONCATENATE (type &rest sequences)
-  (unless (eq type 'vector)
-    (error "TODO"))
-  (let ((vector (make-vector (1+ (reduce #'+ (mapcar #'LENGTH sequences)))
-			     'simple-vector))
-	(i 0))
-    (dolist (seq sequences)
-      (dosequence (x seq)
-	(aset vector (incf i) x)))
-    vector))
+  (ecase type
+    (VECTOR
+     (let ((vector (make-vector (1+ (reduce #'+ (mapcar #'LENGTH sequences)))
+				'simple-vector))
+	   (i 0))
+       (dolist (seq sequences)
+	 (dosequence (x seq)
+	   (aset vector (incf i) x)))
+       vector))
+    (STRING
+     (let ((string
+	    (make-string (reduce #'+ (mapcar #'LENGTH sequences)) 0))
+	   (i -1))
+       (dolist (seq sequences)
+	 (dosequence (x seq)
+	   (aset string (incf i) (char-code x))))
+       string))))
 
 ;;; ...
 

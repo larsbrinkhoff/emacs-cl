@@ -32,7 +32,7 @@
 (defun FIND-PACKAGE (name)
   (if (packagep name)
       name
-      (let ((string (cl:string name)))
+      (let ((string (STRING name)))
 	(find-if 
 	 (lambda (p)
 	   (or (string= string (package-name p))
@@ -40,7 +40,7 @@
 	 *all-packages*))))
 
 (defun FIND-ALL-SYMBOLS (name)
-  (let ((string (cl:string name))
+  (let ((string (STRING name))
 	(syms nil))
     (dolist (p *all-packages* syms)
       (multiple-value-bind (sym status) (FIND-SYMBOL string p)
@@ -67,7 +67,7 @@
   (let ((package (mk-package))
 	(use-packages (mapcar (lambda (p) (FIND-PACKAGE p)) use)))
     (setf (package-table package) (make-hash-table :test 'equal)
-	  (package-name package) (cl:string name)
+	  (package-name package) (STRING name)
 	  (package-nicknames package) nicknames
 	  (package-use-list package) use-packages)
     (dolist (p use-packages)
@@ -182,7 +182,7 @@
 	    LOGEQV LOGIOR LOGNAND LOGNOR LOGNOT LOGORC1 LOGORC2 LOGXOR
 	    MAKE-ARRAY MAKE-PACKAGE MAX MIN MINUSP NUMBERP PEEK-CHAR PRINT
 	    RANDOM READ-CHAR READ-LINE SETF SIMPLE-BIT-VECTOR-P SIMPLE-VECTOR-P
-	    STRINGP SUBTYPEP SYMBOL-PACKAGE TYPEP UNREAD-CHAR UNUSE-PACKAGE
-	    UPGRADED-ARRAY-ELEMENT-TYPE USE-PACKAGE UNINTERN VECTORP WRITE-CHAR
-	    WRITE-LINE WRITE-STRING QUOTE ZEROP))
+	    STRING STRINGP SUBTYPEP SYMBOL-PACKAGE TYPEP UNREAD-CHAR
+	    UNUSE-PACKAGE UPGRADED-ARRAY-ELEMENT-TYPE USE-PACKAGE UNINTERN
+	    VECTORP WRITE-CHAR WRITE-LINE WRITE-STRING QUOTE ZEROP))
   (setf (SYMBOL-PACKAGE sym) (FIND-PACKAGE "COMMON-LISP")))

@@ -151,7 +151,7 @@
   (remf lambda-list '&environment)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     (setf (gethash ',access-fn *setf-expanders*)
-          (lambda ,lambda-list ,@body)))))
+          (lambda ,lambda-list ,@body))))
 
 (defun GET-SETF-EXPANSION (place &optional env)
   (let ((fn (gethash (first place) *setf-expanders*)))
@@ -170,4 +170,4 @@
       (GET-SETF-EXPANSION place env)
     `(let* ,(cl:mapcar #'list temps values)
       (let ((,(first variables) ,value))
-	,setter)))))
+	,setter))))

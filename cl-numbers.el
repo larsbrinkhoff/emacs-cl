@@ -855,7 +855,7 @@
   (LOGAND (ASH integer (cl:- (byte-position bytespec)))
 	  (cl:1- (ASH 1 (byte-size bytespec)))))
 
-(define-setf-expander ldb (bytespec integer &environment env)
+(DEFINE-SETF-EXPANDER ldb (bytespec integer &environment env)
   (multiple-value-bind (temps values variables setter getter)
       (get-setf-method integer env)
     (let ((byte (gensym))
