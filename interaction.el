@@ -38,7 +38,6 @@
   (when (>= (point) emacs-cl-prompt-marker)
     (goto-char (point-max))
     (when (> (point) emacs-cl-prompt-marker)
-      (insert "\n")
       (let ((+-sym (nth-value 0 (INTERN "+" "CL")))
 	    (--sym (nth-value 0 (INTERN "-" "CL")))
 	    (*-sym (nth-value 0 (INTERN "*" "CL")))
