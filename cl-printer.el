@@ -117,6 +117,12 @@
 	    (WRITE-STRING (string 34) stream)
 	    (WRITE-STRING (STREAM-content object) stream)
 	    (WRITE-STRING (string 34) stream)))))
+      ((TYPEP object 'SIMPLE-ERROR)
+       (PRINT-UNREADABLE-OBJECT (object stream)
+         (PRINC (apply #'FORMAT nil (SIMPLE-ERROR-FORMAT-CONTROL object)
+		       (SIMPLE-ERROR-FORMAT-ARGUMENTS object)))))
+      ((TYPEP object 'CONDITION)
+       (PRINT-UNREADABLE-OBJECT (object stream)))
       (t
        (error))))
   (VALUES object))
