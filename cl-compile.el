@@ -76,14 +76,23 @@
   (with-fresh-context
     (compile-form form *global-environment*)))
 
+(defun compiler-macroexpand (form env)
+  (let ((exp1 t) (exp2 t))
+    (while (or exp1 exp2)
+      (MULTIPLE-VALUE-SETQ (form exp1) (MACROEXPAND form env))
+      (let ((fn (COMPILER-MACRO-FUNCTION (car form) env)))
+	(when fn
+	  (let ((new (funcall fn form env)))
+	    (setq exp2 (not (eq form new))
+		  form new)))))))
+
 (defun* compile-form (form &optional env &key (values 1))
-  (when (and (consp form)
-	     (symbolp (first form)))
+  (when (and (consp form) (symbolp (first form)))
     (let* ((name (first form))
 	   (fn (gethash name *form-compilers*)))
       (when fn
 	(return-from compile-form (apply fn env (rest form))))))
-  (setq form (cl:values (MACROEXPAND form env)))
+  (setq form (compiler-macroexpand form env))
   (cond
     ((symbolp form)
      (unless (eq values 0)
@@ -336,47 +345,48 @@
 	new-env)
       env))
 
-(defvar *toplevel-lambda* t)
+(defun create-environment-p (env)
+  (every (lambda (var) (not (variable-bound-p var env)))
+	 (mapcar #'car *free*)))
 
-(defun* compile-lambda (form env)
+(defun initial-environment (env)
+  (mapcar (lambda (var)
+	    (when (variable-bound-p (car var) env)
+	      (cdr var)))
+	  *free*))
+
+(defun compile-environment (body env)
+  (let ((i -1))
+    (dolist (var *free*)
+      (setq body (NSUBST `(aref env ,(incf i)) (cdr var) body))))
+  `((let ((env (vector ,@(initial-environment env))))
+      ,@body)))
+
+(defun compile-trampoline (body env)
+  (let ((inits nil))
+    (dolist (var *free*)
+      (when (and (memq (car var) vars)
+		 (eq (compile-variable (car var) env) (cdr var)))
+	(let ((reg (new-register)))
+	  (setf (lexical-value (car var) env) reg)
+	  (setq inits `(,(cdr var) ,reg ,@inits)))))
+    (when inits
+      (setq body `((setf ,@inits) ,@body))))
+  `(trampoline ,(expand-lambda vars body env) env))
+
+(defun compile-lambda (form env)
   (MULTIPLE-VALUE-BIND (body decls) (cddr form)
     (let* ((vars (second form))
-	   (new-env (env-with-vars env vars decls)))
-      (let ((compiled-body (let ((*toplevel-lambda* nil))
-			     (compile-body body new-env))))
-	(cond
-	  ((null *free*)
-	   (expand-lambda vars compiled-body new-env))
-	  (*toplevel-lambda*
-	   (let ((i -1))
-	     (dolist (var *free*)
-	       (NSUBST `(aref env ,(incf i)) (cdr var) compiled-body)))
-	   (expand-lambda
-	    vars
-	    `((let ((env (vector
-			  ,@(mapcar
-			     (lambda (var)
-			       (when (variable-bound-p (car var) new-env)
-				 (cdr var)))
-			     *free*))))
-		,@compiled-body))
-	    new-env))
-	  (t
-	   (let ((foo nil))
-	     (dolist (var *free*)
-	       (when (and (memq (car var) vars)
-			  (eq (compile-variable (car var) new-env) (cdr var)))
-		 (let ((reg (new-register)))
-		   (setf (lexical-value (car var) new-env) reg)
-		   (setq foo (append `(,(cdr var) ,reg) foo)))))
-	     `(trampoline ,(expand-lambda
-			    vars
-			    (if foo
-				`((setf ,@foo)
-				  ,@compiled-body)
-				compiled-body)
-			    new-env)
-	                  env))))))))
+	   (new-env (env-with-vars env vars decls))
+	   (compiled-body (compile-body body new-env)))
+      (cond
+	((null *free*)
+	 (expand-lambda vars compiled-body new-env))
+	((create-environment-p env)
+	 (expand-lambda
+	  vars (compile-environment compiled-body new-env) new-env))
+	(t
+	 (compile-trampoline compiled-body new-env)))))))
 
 (defun partition-bindings (bindings env)
   (let ((local-bindings nil)
