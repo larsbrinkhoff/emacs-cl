@@ -38,6 +38,7 @@
 
   "cl-loop"
   "cl-format"
+  "cl-conditions"
 
   "populate"))
 
