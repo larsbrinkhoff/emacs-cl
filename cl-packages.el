@@ -65,12 +65,13 @@
 (cl:defun MAKE-PACKAGE (name &key NICKNAMES USE)
   (let ((package (make-vector 8 'PACKAGE))
 	(use-packages (mapcar #'FIND-PACKAGE USE)))
-    (aset package 1 (STRING name))
-    (aset package 2 (mapcar #'STRING NICKNAMES))
-    (aset package 3 nil)
-    (aset package 4 use-packages)
-    (aset package 6 (make-hash-table :test 'equal))
-    (aset package 7 nil)
+    (aset package 1 (STRING name))			;name
+    (aset package 2 (mapcar #'STRING NICKNAMES))	;nicknames
+    (aset package 3 nil)				;shadowing symbols
+    (aset package 4 use-packages)			;use-list
+    (aset package 5 nil)				;used-by-list
+    (aset package 6 (make-hash-table :test 'equal))	;table
+    (aset package 7 nil)				;exported symbols
     (dolist (p use-packages)
       (push package (aref p 5)))
     (push package *all-packages*)
