@@ -46,4 +46,4 @@
        ;; For now, throw an error on these.
        ((buffer char-table frame marker overlay process
 	 subr window window-configuration)
-			(error "Unknown type: %s" (type-of object))))))))
+			(error "Unknown type: %s" (type-of object)))))))

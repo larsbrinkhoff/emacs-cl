@@ -58,7 +58,7 @@
        (cond
 	 ;; A lambda list keyword is passed
 	 ;; through unchanged.
-	 ((member param lambda-list-keywords)
+	 ((member param LAMBDA-LIST-KEYWORDS)
 	  (setq required nil)
 	  param)
 	 ;; A required argument is passed

@@ -26,9 +26,9 @@
   (load "cl-printer")
   (load "cl-evaluation")
   (load "cl-environment")
-
-  (load "interaction"))
+  (load "cl-system")
+  (load "interaction")
+  (load "cl-eval"))
 
 (IN-PACKAGE "CL-USER")
-
-;(maphash (lambda (k v) (unintern k)) (package-table *common-lisp-package*))
+(populate-packages)

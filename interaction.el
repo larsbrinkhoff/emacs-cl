@@ -1,20 +1,20 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
 ;;; Copyright (C) 2003 Lars Brinkhoff.
-;;; A major mode implementing a Lisp listener.
+;;; A major mode implementing a Lisp listener for Emacs CL.
 
-(defvar emacs-cl-prompt-position nil
+(defvar emacs-cl-prompt-marker nil
   "Position of last prompt.")
 
 (defun emacs-cl ()
   "Starts an Emacs CL listener."
   (interactive)
-  (make-variable-buffer-local 'emacs-cl-prompt-position)
+  (make-variable-buffer-local 'emacs-cl-prompt-marker)
   (switch-to-buffer (generate-new-buffer "*Emacs CL*"))
   (emacs-cl-mode)
   (setq *STANDARD-OUTPUT* (make-buffer-output-stream (current-buffer)))
   (insert "Emacs CL> ")
-  (setq emacs-cl-prompt-position (point)))
+  (setq emacs-cl-prompt-marker (point-marker)))
 
 (defun emacs-cl-mode ()
   "Starts an Emacs CL listener."
@@ -35,9 +35,9 @@
 
 (defun emacs-cl-newline ()
   (interactive)
-  (when (>= (point) emacs-cl-prompt-position)
+  (when (>= (point) emacs-cl-prompt-marker)
     (goto-char (point-max))
-    (when (> (point) emacs-cl-prompt-position)
+    (when (> (point) emacs-cl-prompt-marker)
       (insert "\n")
       (let ((+-sym (nth-value 0 (INTERN "+" "CL")))
 	    (--sym (nth-value 0 (INTERN "-" "CL")))
@@ -46,7 +46,7 @@
 	(setq +++ ++ ++ (SYMBOL-VALUE +-sym))
 	(set +-sym (SYMBOL-VALUE --sym))
 	(set --sym (READ-FROM-STRING
-		    (buffer-substring emacs-cl-prompt-position (point))))
+		    (buffer-substring emacs-cl-prompt-marker (point))))
 	(setq /// // // (SYMBOL-VALUE /-sym))
 	(if debug-on-error
 	    (set /-sym (list (EVAL (SYMBOL-VALUE --sym))))
@@ -60,4 +60,4 @@
 	  (princ "\n")
 	  (PRINT x))))
     (insert "\nEmacs CL> ")
-    (setq emacs-cl-prompt-position (point))))
+    (setq emacs-cl-prompt-marker (point-marker))))
