@@ -390,7 +390,7 @@
 	   (cons ,val mvals)))))
 
 (cl:defmacro MULTIPLE-VALUE-LIST (form)
-  `(MULTIPLE-VALUE-CALL #'LIST ,form))
+  `(MULTIPLE-VALUE-CALL (FUNCTION LIST) ,form))
 
 ;;; MULTIPLE-VALUE-PROG1 is a special operator.
 
