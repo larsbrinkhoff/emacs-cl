@@ -163,3 +163,10 @@
   (when list
     (cons (funcall fn (first list) (second list))
 	  (mapcar2 fn (cddr list)))))
+
+(defun tree-count (object tree) ; &KEY TEST KEY
+  (cond
+    ((eq object tree)	1)
+    ((atom tree)	0)
+    (t			(+ (tree-count object (car tree))
+			   (tree-count object (cdr tree))))))
