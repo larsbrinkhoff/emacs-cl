@@ -10,7 +10,7 @@ and XEmacs 21.4.
 To start an interactive session, type "M-x emacs-cl".
 
 To compile the files, type "M-x compile-cl".  (Loading compiled files
-is not tested frequently, so may not work.)
+is not tested frequently, so may not work.)  A Makefile is also included.
 
 With the emacs-cl script, it's also possible to run Emacs Common Lisp
 in batch mode.
