@@ -79,7 +79,6 @@
 	 (ver (maybe-empty (PATHNAME-VERSION pathname))))
     (concat
      dir
-     (if (or (zerop (length dir)) (zerop (length name))) "" "/")
      name
      (if (or (zerop (length name)) (zerop (length type))) "" ".")
      type ver)))
@@ -91,18 +90,56 @@
 (defun DIRECTORY-NAMESTRING (pathname-designator)
   (let* ((pathname (PATHNAME pathname-designator))
 	 (dir (PATHNAME-DIRECTORY pathname))
-	 (string (if (and (consp dir)
-			  (eq (first dir) (kw ABSOLUTE)))
+	 (string (if (and (consp dir) (eq (first dir) (kw ABSOLUTE)))
 		     "/" "")))
-    (setq string (concat string (second dir)))
-    (dolist (x (cddr dir) string)
-      (setq string (concat string "/" x)))))
+    (dolist (x (rest dir) string)
+      (setq string
+	    (concat string
+		    (cond
+		      ((STRINGP x)	x)
+		      ((eq x (kw UP))	"..")
+		      ((eq x (kw BACK))	(ERROR 'ERROR))
+		      (t		(type-error
+					 x `(OR STRING
+					     (MEMBER ,(kw UP) ,(kw BACK))))))
+		    "/")))))
 
 (defun HOST-NAMESTRING (pathname-designator)
   (let* ((pathname (PATHNAME pathname-designator)))
     (maybe-empty (PATHNAME-HOST pathname))))
 
-;;; TODO: ENOUGH-NAMESTRING
+(defun dir-subtract (dir1 dir2)
+  (cond
+    ((null dir1)
+     (cons (kw RELATIVE) dir2))
+    ((null dir2)
+     nil)
+    ((EQUAL (first dir1) (first dir2))
+     (dir-subtract (rest dir1) (rest dir2)))))
+
+(cl:defun ENOUGH-NAMESTRING (pathname-designator &optional
+			     (defaults *DEFAULT-PATHNAME-DEFAULTS*))
+  ;; It is required that
+  ;;   (merge-pathnames (enough-namestring pathname defaults) defaults)
+  ;;   == (merge-pathnames (parse-namestring pathname nil defaults) defaults)
+  (let ((pathname (PATHNAME pathname-designator)))
+    (let ((candidates (list (NAMESTRING pathname)))
+	  (shortest nil))
+      (when (and (EQUAL (PATHNAME-HOST pathname) (PATHNAME-HOST defaults))
+		 (EQUAL (PATHNAME-DEVICE pathname) (PATHNAME-DEVICE defaults))
+		 (consp (PATHNAME-DIRECTORY pathname))
+		 (eq (first (PATHNAME-DIRECTORY pathname)) (kw ABSOLUTE)))
+	(let ((dir (dir-subtract (PATHNAME-DIRECTORY defaults)
+				 (PATHNAME-DIRECTORY pathname))))
+	  (when dir
+	    (push (NAMESTRING (MAKE-PATHNAME (kw DIRECTORY) dir
+					     (kw DEFAULTS) pathname))
+		  candidates))))
+      (FIND-IF (lambda (len)
+		 (or (null shortest)
+		     (when (< len shortest)
+		       (setq shortest len))))
+	       candidates (kw KEY) #'LENGTH))))
 
 (defun slashp (char)
   (eq (CHAR-CODE char) 47))
@@ -151,9 +188,17 @@
     ((STRING= string "*")	(kw WILD))
     (t				string)))
 
-(cl:defun PARSE-NAMESTRING (thing &optional host default-pathname
-			          &key (start 0) end junk-allowed)
+(cl:defun PARSE-NAMESTRING (thing &optional host
+			    (default *DEFAULT-PATHNAME-DEFAULTS*)
+			    &key (start 0) end junk-allowed)
   (cond
+    ((STREAMP thing)
+     (PARSE-NAMESTRING (STREAM-filename thing) host default (kw START) start
+		       (kw END) end (kw JUNK-ALLOWED) junk-allowed))
+    ((PATHNAMEP thing)
+     (if (EQUAL (PATHNAME-HOST thing) host)
+	 (VALUES thing start)
+	 (ERROR 'ERROR)))
     ((STRINGP thing)
      ;; TODO: parse logical pathnames
      (let* ((string (SUBSEQ thing start end))
@@ -161,10 +206,12 @@
 	    (name+ver (file-name-nondirectory thing))
 	    (name-ver (file-name-sans-versions name+ver))
 	    (ver (parse-ver name-ver (substring name+ver (length name-ver))))
-	    (name (maybe-wild (file-name-sans-extension name+ver)))
+	    (name (maybe-wild (file-name-sans-extension name-ver)))
 	    (type (maybe-wild (file-name-extension name+ver))))
        (VALUES (mkpathname nil nil dir name type ver)
-	       (or end (LENGTH thing)))))))
+	       (or end (LENGTH thing)))))
+    (t
+     (type-error thing '(OR PATHNAME STRING STREAM)))))
 
 (defvar *DEFAULT-PATHNAME-DEFAULTS* (PARSE-NAMESTRING default-directory))
 
