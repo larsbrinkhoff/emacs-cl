@@ -21,11 +21,6 @@ Enter these functions at the interactive prompt:
     (declare (interactive "nEnter a number: "))
     (el:|message| (format nil "~D! is ~D" n (fac n))))
 
-Currently, you MUST compile the function, or else it won't become
-interactive:
-
-    (compile 'el:|my-fun|)
-
 Now, try it with "M-x my-fun".
 
 
