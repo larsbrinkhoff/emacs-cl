@@ -74,8 +74,8 @@
      (< num1 num2))
     ((or (cl::ratiop num1) (cl::ratiop num2))
      ;; TODO
-     (< (/ (float (NUMERATOR num1)) (DENOMINATOR num1))
-	(/ (float (NUMERATOR num2)) (DENOMINATOR num2))))
+     (< (/ (FLOAT (NUMERATOR num1)) (FLOAT (DENOMINATOR num1)))
+	(/ (FLOAT (NUMERATOR num2)) (FLOAT (DENOMINATOR num2)))))
     ((or (cl::bignump num1) (cl::bignump num2))
      (MINUSP (binary- num1 num2)))
     (t
@@ -100,8 +100,8 @@
      (<= num1 num2))
     ((or (cl::ratiop num1) (cl::ratiop num2))
      ;; TODO
-     (<= (/ (float (NUMERATOR num1)) (DENOMINATOR num1))
-	 (/ (float (NUMERATOR num2)) (DENOMINATOR num2))))
+     (<= (/ (FLOAT (NUMERATOR num1)) (FLOAT (DENOMINATOR num1)))
+	 (/ (FLOAT (NUMERATOR num2)) (FLOAT (DENOMINATOR num2)))))
     ((or (cl::bignump num1) (cl::bignump num2))
      (let ((diff (binary- num1 num2)))
        (or (MINUSP diff) (ZEROP diff))))
@@ -192,7 +192,8 @@
   (let (quotient remainder)
     (cond
       ((or (floatp number) (floatp divisor))
-       (setq quotient (ceiling (FLOAT number) (FLOAT divisor))))
+       ;; TODO: floor can only output an Emacs Lisp integer.
+       (setq quotient (floor (FLOAT number) (FLOAT divisor))))
       ((or (cl::ratiop number) (cl::ratiop divisor))
        (MULTIPLE-VALUE-SETQ (quotient remainder)
 	 (integer-truncate
@@ -215,6 +216,7 @@
   (let (quotient remainder)
     (cond
       ((or (floatp number) (floatp divisor))
+       ;; TODO: ceiling can only output an Emacs Lisp integer.
        (setq quotient (ceiling (FLOAT number) (FLOAT divisor))))
       ((or (cl::ratiop number) (cl::ratiop divisor))
        (MULTIPLE-VALUE-SETQ (quotient remainder)
@@ -238,6 +240,7 @@
   (let (quotient)
     (cond
       ((or (floatp number) (floatp divisor))
+       ;; TODO: truncate can only output an Emacs Lisp integer.
        (setq quotient (truncate (FLOAT number) (FLOAT divisor))))
       ((or (cl::ratiop number) (cl::ratiop divisor))
        (setq quotient (integer-truncate
@@ -299,7 +302,7 @@
 (defun cl:* (&rest numbers)
   (reduce #'binary* numbers :initial-value 1))
 
-(defconst multiplication-limit (ceiling (sqrt most-positive-fixnum)))
+(defconst multiplication-limit (floor (sqrt most-positive-fixnum)))
 
 (defun binary* (x y)
   (cond
@@ -332,7 +335,7 @@
        (setq y (vector 'bignum y (if (minusp y) -1 0))))
      (bignum* x y))
     (t
-     (error "TODO"))))
+     (error "type error"))))
 
 (defun bignum* (x y)
   (cond
@@ -569,7 +572,9 @@
     ((cl::ratiop number)
      (vector 'ratio (ABS (NUMERATOR number)) (DENOMINATOR number)))
     ((COMPLEXP number)
-     (sqrt (+ (expt (REALPART number) 2) (expt (IMAGPART number) 2))))
+     (let ((r (FLOAT (REALPART number)))
+	   (i (FLOAT (IMAGPART number))))
+       (sqrt (+ (* r r) (* i i)))))
     ((cl::bignump number)
      (if (MINUSP number)
 	 (cl:- number)
@@ -599,7 +604,7 @@
      (exact-expt base power))
     ((and (REALP base) (REALP power))
      (expt (FLOAT base) (FLOAT power)))
-    ((or (NUMBERP base) (NUMBERP power))
+    ((and (NUMBERP base) (NUMBERP power))
      (error "TODO"))
     (t
      (error "type error"))))
@@ -690,13 +695,14 @@
 
 (defun SIGNUM (number)
   (cond
-    ((RATIONALP number) (cond ((PLUSP number) 1)
-			      ((ZEROP number) 0)
-			      ((MINUSP number) -1)))
-    ((floatp number)	(cond ((plusp number) 1.0)
-			      ((zerop number) 0.0)
-			      ((minusp number) -1.0)))
-    ((COMPLEXP number)	(error "TODO"))
+    ((RATIONALP number) (cond ((PLUSP number)	1)
+			      ((ZEROP number)	0)
+			      ((MINUSP number)	-1)))
+    ((floatp number)	(cond ((plusp number)	1.0)
+			      ((zerop number)	0.0)
+			      ((minusp number)	-1.0)))
+    ((COMPLEXP number)	(if (ZEROP number)	number
+						(binary/ number (ABS number))))
     (t			(error "type error"))))
 
 (defun SQRT (number)
@@ -706,7 +712,7 @@
     (t			(error "type error"))))
 
 (defun ISQRT (number)
-  (VALUES (FLOOR (SQRT number))))
+  (VALUES (FLOOR (sqrt (FLOAT number)))))
 
 ;;; TODO: MAKE-RANDOM-STATE
 
@@ -734,21 +740,21 @@
 
 ;;; TODO: CIS
 
-(defun COMPLEX (realpart &optional imagpart)
-  (if (or (null imagpart) (ZEROP imagpart))
+(defun* COMPLEX (realpart &optional (imagpart 0))
+  (cond
+    ((floatp realpart)
+     (setq imagpart (float imagpart)))
+    ((floatp imagpart)
+     (setq realpart (float realpart))))
+  (if (eq imagpart 0)
       realpart
-      (progn
-	(when (floatp realpart)
-	  (setq imagpart (float realpart)))
-	(when (floatp imagpart)
-	  (setq realpart (float realpart)))
-	(vector 'complex realpart imagpart))))
+      (vector 'complex realpart imagpart)))
 
 (defun COMPLEXP (object)
   (vector-and-typep object 'complex))
 
 (defun CONJUGAGE (num)
-  (COMPLEX (REALPART num) (- (IMAGPART num))))
+  (COMPLEX (REALPART num) (cl:- (IMAGPART num))))
 
 (defun PHASE (num)
   (ATAN (IMAGPART num) (REALPART num)))
