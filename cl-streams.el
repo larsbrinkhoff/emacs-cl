@@ -15,6 +15,8 @@
 ;;; TODO: System Class TWO-WAY-STREAM
 
 (DEFSTRUCT (STREAM (:predicate STREAMP) (:copier nil))
+  (openp T)
+  (ELEMENT-TYPE 'CHARACTER)
   filename
   content
   index
@@ -52,15 +54,18 @@
 
 ;;; TODO: INTERACTIVE-STREAM-P
 
-;;; TODO: OPEN-STREAM-P
+(defun OPEN-STREAM-P (stream)
+  (STREAM-openp stream))
 
-;;; TODO: STREAM-ELEMENT-TYPE
+;;; STREAM-ELEMENT-TYPE defined by defstruct.
 
 ;;; STREAMP defined by defstruct.
 
-;;; TODO: READ-BYTE
+(defun READ-BYTE (&rest args)
+  (CHAR-CODE (apply #'READ-CHAR args)))
 
-;;; TODO: WRITE-BYTE
+(defun WRITE-BYTE (byte &rest args)
+  (apply #'WRITE-CHAR (CHAR-CODE byte) args))
 
 (defun* PEEK-CHAR (&optional peek-type stream (eof-error-p T)
 			     eof-value recursive-p)
@@ -220,7 +225,8 @@
 		     (goto-char (incf (STREAM-index stream)))
 		     (insert char)))))
 
-;;; TODO: stream-external-format
+(defun STREAM-EXTERNAL-FORMAT (stream)
+  (kw DEFAULT))
 
 (defmacro* WITH-OPEN-FILE ((stream filespec &rest options) &body body)
   `(WITH-OPEN-STREAM (,stream (OPEN ,filespec ,@options))
@@ -237,6 +243,7 @@
       (write-region 1 (1+ (buffer-size)) (STREAM-filename stream))))
   (when (bufferp (STREAM-content stream))
     (kill-buffer (STREAM-content stream)))
+  (setf (STREAM-openp stream) nil)
   T)
 
 (cl:defmacro WITH-OPEN-STREAM ((var stream) &body body)
@@ -258,9 +265,24 @@
 	 (not (sit-for 0))
 	 (not (eq (PEEK-CHAR nil stream :eof) :eof)))))
 
-;;; TODO: clear-input
+(defun CLEAR-INPUT (&optional stream-designator)
+  (let ((stream (input-stream stream-designator)))
+    (when (eq (STREAM-read-fn stream)
+	      (cl:function read-char-exclusive-ignoring-arg))
+      (while (LISTEN stream)
+	(READ-CHAR stream)))))
 
-;;; TODO: finish-output, force-output, clear-output
+(defun FINISH-OUTPUT (&optional stream-designator)
+  (let ((stream (output-stream stream-designator)))
+    nil))
+
+(defun FORCE-OUTPUT (&optional stream-designator)
+  (let ((stream (output-stream stream-designator)))
+    nil))
+
+(defun CLEAR-OUTPUT (&optional stream-designator)
+  (let ((stream (output-stream stream-designator)))
+    nil))
 
 (defun Y-OR-N-P (&optional format &rest args)
   (when format
@@ -317,7 +339,8 @@
 (defun TWO-WAY-STREAM-OUTPUT-STREAM (stream)
   (cdr (STREAM-content stream)))
 
-;;; TODO: echo-stream-input-stream, echo-stream-output-stream
+;;; TODO: echo-stream-input-stream
+;;; TODO: echo-stream-output-stream
 
 ;;; TODO: make-echo-stream
 
