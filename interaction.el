@@ -77,31 +77,38 @@
 	  (emacs-cl-eval-1 form)
 	(error (FORMAT T "~%Error: ~S" condition)))))
 
+(defun emacs-cl-get-line ()
+  (let ((line (buffer-substring emacs-cl-prompt-marker (point))))
+    (setf (nth 0 emacs-cl-history) line)
+    (HANDLER-BIND
+	((END-OF-FILE
+	  (lambda (c)
+	    (insert "\n")
+	    (throw 'read-continue nil)))
+	 (ERROR
+	  (lambda (c)
+	    (FORMAT T "~%Error: ~S" c)
+	    (throw 'read-error nil))))
+      (READ-FROM-STRING line))))
+
 (defun emacs-cl-newline ()
   (interactive)
-  (when (>= (point) emacs-cl-prompt-marker)
-    (goto-char (point-max))
-    (when (> (point) emacs-cl-prompt-marker)
-      (let ((line (buffer-substring emacs-cl-prompt-marker (point))))
-	(setf (nth 0 emacs-cl-history) line)
-	(dolist (x (catch 'error
-		     (emacs-cl-eval-interactively
-		      (HANDLER-BIND
-			  ((ERROR (lambda (c)
-				    (FORMAT T "~%Error: ~S" c)
-				    (throw 'error nil))))
-			(READ-FROM-STRING line)))))
+  (catch 'read-continue
+    (when (>= (point) emacs-cl-prompt-marker)
+      (goto-char (point-max))
+      (when (> (point) emacs-cl-prompt-marker)
+	(dolist (x (catch 'read-error
+		     (emacs-cl-eval-interactively (emacs-cl-get-line))))
 	  (let* ((start (1+ (point)))
 		 (ignore (PPRINT x))
 		 (end (point)))
-	    ;(put-text-property start end 'face 'underline)
 	    (put-text-property start end 'mouse-face 'modeline)
 	    ;(put-text-property start end 'keymap ...)
-	    (put-text-property start end 'emacs-cl-object x)))))
-    (insert "\n" (PACKAGE-NAME *PACKAGE*) "> ")
-    (setq emacs-cl-prompt-marker (point-marker))
-    (push "" emacs-cl-history)
-    (setq emacs-cl-history-index 0)))
+	    (put-text-property start end 'emacs-cl-object x))))
+      (insert "\n" (PACKAGE-NAME *PACKAGE*) "> ")
+      (setq emacs-cl-prompt-marker (point-marker))
+      (push "" emacs-cl-history)
+      (setq emacs-cl-history-index 0))))
 
 (defun emacs-cl-history-previous ()
   (interactive)
