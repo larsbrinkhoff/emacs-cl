@@ -69,7 +69,7 @@
 	  (setf (lexical-value binding new-env) nil)
 	  (setf (lexical-value (first binding) new-env)
 		(eval-with-env (second binding) env))))
-    (dolist (form forms (VALUES lastval))
+    (dolist (form forms lastval)
       (setq lastval (eval-with-env form new-env)))))
 
 (define-special-operator LET* (bindings &rest forms) env
@@ -81,7 +81,7 @@
 	      (eval-with-env (second binding) env)
 	      env (augment-environment env :variable (list (first binding))))))
   (let ((lastval nil))
-    (dolist (form forms (VALUES lastval))
+    (dolist (form forms lastval)
       (setq lastval (eval-with-env form env)))))
 
 ;;; TODO: LOAD-TIME-VALUE
@@ -105,7 +105,7 @@
 
 (define-special-operator PROGN (&rest forms) env
   (let (lastval)
-    (dolist (form forms (VALUES lastval))
+    (dolist (form forms lastval)
       (setq lastval (eval-with-env form env)))))
 
 ;;; TODO: PROGV
