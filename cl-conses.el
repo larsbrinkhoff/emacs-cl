@@ -10,9 +10,9 @@
 ;;; System Class CONS
 ;;; Type ATOM
 
-(mapc (lambda (to from) (fset to (symbol-function from)))
-      '(CONS CONSP ATOM)
-      '(cons consp atom))
+(dolist (sym '(cons consp atom))
+  (apply (lambda (to from) (fset to (symbol-function from)))
+	 (list (intern (upcase (symbol-name sym))) sym)))
 
 (defun RPLACA (cons object)
   (setcar cons object)
