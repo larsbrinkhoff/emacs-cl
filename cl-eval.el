@@ -50,7 +50,7 @@
 (defun lexical-or-global-function (name env)
   (multiple-value-bind (type localp decl) (function-information name env)
     (ecase type
-      ((nil)		(ERROR 'UNBOUND-FUNCTION (kw NAME) name))
+      ((nil)		(ERROR 'UNDEFINED-FUNCTION (kw NAME) name))
       (:function	(if localp
 			    (lexical-function name env)
 			    (FDEFINITION name)))
