@@ -56,11 +56,11 @@
 
 (cl:defmacro DEFMACRO (name lambda-list &body body)
   (with-gensyms (fvar evar)
-    (let ((env (getf lambda-list '&ENVIRONMENT))
+    (let ((env (memq '&ENVIRONMENT lambda-list))
 	  (form fvar))
-      (remf lambda-list '&ENVIRONMENT)
       (when env
-	(setq evar env))
+	(setq evar (second env))
+	(remf lambda-list '&ENVIRONMENT))
       (if (eq (first lambda-list) '&WHOLE)
 	  (push (GENSYM) (cddr lambda-list))
 	  (setq form `(CDR ,fvar)))
