@@ -28,6 +28,19 @@ array			[ARRAY <dimensions> <elements> <offset>]
 interpreted-function	[INTERPRETED-FUNCTION <fn> <env>]
 instance of type T	[T <slot> ...]
 
+
+
+Emacs features wish list:
+
+ * Hash tables.  Done in later versions.
+
+ * Weak hash tables.  Done in later versions.
+
+ * A function that returns the address of an object, for implementing
+   print-unreadable-object :identity t.
+
+ * A function that returns the amount of processor time used, for
+   implementing get-internal-run-time.
 
 
 
