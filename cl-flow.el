@@ -32,7 +32,7 @@
 
 (defun FDEFINITION (name)
   (cond
-    ((symbop name)
+    ((symbolp name)
      (symbol-function name))
     ((and (consp name) (eq (first name) 'SETF) (eq (cddr name) nil))
      (gethash (second name) *setf-definitions*))
