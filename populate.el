@@ -195,7 +195,7 @@ WRITE-STRING WRITE-TO-STRING Y-OR-N-P YES-OR-NO-P ZEROP))
 
     ;; Internal symbols.
     (dolist (sym '(BACKQUOTE COMMA COMMA-AT COMMA-DOT INTERPRETED-FUNCTION
-		   INTERPRETED-FUNCTION-P))
+		   INTERPRETED-FUNCTION-P INTERACTIVE))
       (setf (gethash (SYMBOL-NAME sym) emacs-cl-table) sym)
       (setf (SYMBOL-PACKAGE sym) *emacs-cl-package*))
 
