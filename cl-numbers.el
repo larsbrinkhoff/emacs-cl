@@ -4,7 +4,7 @@
 ;;;
 ;;; This file implements operators in chapter 12, Numbers.
 
-(IN-PACKAGE "CL")
+(IN-PACKAGE "EMACS-CL")
 
 ;;; Various test cases for bignum addition.
 (defun bignum-test ()

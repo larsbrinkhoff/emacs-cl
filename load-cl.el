@@ -1,4 +1,6 @@
 (require 'cl)
+
+;;; Fake an IN-PACKAGE macro.
 (defmacro IN-PACKAGE (name) nil)
 
 (let ((load-path (cons "~/src/emacs-cl" load-path))
@@ -28,7 +30,9 @@
   (load "cl-environment")
   (load "cl-system")
   (load "interaction")
-  (load "cl-eval"))
+  (load "cl-eval")
+
+  (load "populate"))
 
 (IN-PACKAGE "CL-USER")
 (populate-packages)

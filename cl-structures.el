@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 8, Structures.
 
-(IN-PACKAGE "CL")
+(IN-PACKAGE "EMACS-CL")
 
 ;;; A hash table keyed on a structure name.  The data is a cons which
 ;;; car is a list of structure names that are subtypes of the key.

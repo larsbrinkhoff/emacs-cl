@@ -6,7 +6,7 @@
 ;;; based on Henry Baker's paper A Decision Procedure for Common
 ;;; Lisp's SUBTYPEP Predicate.
 
-(IN-PACKAGE "CL")
+(IN-PACKAGE "EMACS-CL")
 
 (defvar *types*
   '(nil COMPLEX NUMBER NULL BOOLEAN KEYWORD SYMBOL CONS LIST CHARACTER))
@@ -14,8 +14,8 @@
 (defvar *objects*
   (list (COMPLEX 0 1) 0 nil T (make-symbol "") (cons nil nil)
 	;; Should really be an uninterned keyword.
-	(INTERN "reallyunlikelysymbolname" "KEYWORD")
-	;; This guarantees an unique character object.
+	(keyword "reallyunlikelysymbolname")
+	;; This guarantees a unique character object.
 	(vector 'character 0)))
 
 (defvar *type-val* (make-hash-table :test 'equal))

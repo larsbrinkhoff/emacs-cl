@@ -3,6 +3,8 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 14, Conses.
 
+(IN-PACKAGE "EMACS-CL")
+
 (defmacro* PRINT-UNREADABLE-OBJECT ((object stream &key identity) &body body)
   `(progn
     (WRITE-STRING "#<" stream)

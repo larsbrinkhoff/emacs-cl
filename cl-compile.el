@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements the compiler.
 
-(IN-PACKAGE "CL")
+(IN-PACKAGE "EMACS-CL")
 
 (defvar *registers* (list (gensym)))
 (defvar *next-register* nil)

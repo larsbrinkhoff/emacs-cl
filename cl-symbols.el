@@ -3,6 +3,8 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 10, Symbols.
 
+(IN-PACKAGE "EMACS-CL")
+
 ;;; Note that the Emacs Lisp symbol nil doubles as the Common Lisp
 ;;; symbol NIL.  This requires special attention in SYMBOL-NAME.
 

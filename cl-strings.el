@@ -1,8 +1,9 @@
 ;;;; -*- emacs-lisp -*-
-;;;;
-;;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;;
-;;;; This file implements operators in chapter 16, Strings.
+;;;
+;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; This file implements operators in chapter 16, Strings.
+
+(IN-PACKAGE "EMACS-CL")
 
 (defun SIMPLE-STRING-P (object)
   (stringp object))

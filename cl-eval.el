@@ -3,6 +3,8 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements EVAL and environment objects.
 
+(IN-PACKAGE "EMACS-CL")
+
 (defvar *special-operator-evaluators* (make-hash-table))
 
 (defmacro* define-special-operator (name (&rest args) env &body body)

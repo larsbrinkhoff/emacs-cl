@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements the TYPEP operator.
 
-(IN-PACKAGE "CL")
+(IN-PACKAGE "EMACS-CL")
 
 (defvar *atomic-typespecs* (make-hash-table))
 (defvar *compound-typespecs* (make-hash-table))

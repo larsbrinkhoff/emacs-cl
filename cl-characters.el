@@ -1,8 +1,9 @@
-;;; -*- emacs-lisp -*-
+;;;; -*- emacs-lisp -*-
 ;;;
 ;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;
 ;;; This file implements operators in chapter 13, Characters.
+
+(IN-PACKAGE "EMACS-CL")
 
 (defun CHARACTER (x)
   (cond

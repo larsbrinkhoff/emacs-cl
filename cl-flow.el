@@ -3,6 +3,8 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 5, Data and Control Flow.
 
+(IN-PACKAGE "EMACS-CL")
+
 (defvar *setf-definitions* (make-hash-table))
 
 (defun APPLY (fn &rest args)

@@ -3,6 +3,8 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 3, Evaluation and Compilation.
 
+(IN-PACKAGE "EMACS-CL")
+
 (defvar *compiler-macro-functions* (make-hash-table))
 
 (defvar *macro-functions* (make-hash-table))
@@ -39,9 +41,9 @@
 
 (cl:defmacro DEFMACRO (name lambda-list &body body)
   '(BACKQUOTE
-    (EVAL-WHEN ((COMMA (INTERN "COMPILE-TOPLEVEL" "KEYWORD"))
-		(COMMA (INTERN "COMPILE-TOPLEVEL" "KEYWORD"))
-		(COMMA (INTERN "COMPILE-TOPLEVEL" "KEYWORD")))
+    (EVAL-WHEN ((COMMA (keyword "COMPILE-TOPLEVEL"))
+		(COMMA (keyword "COMPILE-TOPLEVEL"))
+		(COMMA (keyword "COMPILE-TOPLEVEL")))
       (SETF (MACRO-FUNCTION (QUOTE (COMMA name)))
 	    (FUNCTION (LAMBDA (form env)
 		        (DESTRUCTURING-BIND (COMMA lambda-list) (CDR form)

@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 23, Reader.
 
-(IN-PACKAGE "CL")
+(IN-PACKAGE "EMACS-CL")
 
 (defvar *backquote-level* 0)
 
@@ -238,11 +238,11 @@
      (member expr *FEATURES*))
     ((atom expr)
      (error "syntax error"))
-    ((eq (first expr) (INTERN "NOT" *keyword-package*))
+    ((eq (first expr) (keyword "NOT"))
      (not (eval-feature-test (second expr))))
-    ((eq (first expr) (INTERN "AND" *keyword-package*))
+    ((eq (first expr) (keyword "AND"))
      (every #'eval-feature-test (rest expr)))
-    ((eq (first expr) (INTERN "OR" *keyword-package*))
+    ((eq (first expr) (keyword "OR"))
      (some #'eval-feature-test (rest expr)))
     (t
      (error "syntax error"))))
@@ -444,7 +444,7 @@
   (when (null package)
     (case colons
       (0 (setq package *PACKAGE*))
-      (1 (setq package "KEYWORD"))
+      (1 (setq package *keyword-package*))
       (2 (error "too many colons"))))
   (when (null token)
     (error "token terminated by colon"))

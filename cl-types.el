@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 4, Types and Classes.
 
-(IN-PACKAGE "CL")
+(IN-PACKAGE "EMACS-CL")
 
 (defun COERCE (object type)
   (cond
@@ -39,7 +39,7 @@
 	(expand-type (apply fn (rest type)))
 	orig-type)))
 
-(DEFTYPE LIST () `(OR CONS NULL))
+; (DEFTYPE LIST () `(OR CONS NULL))
 
 (defmacro* CHECK-TYPE (place type &optional string &environment env)
   `(unless (TYPEP ,place ,type ,env)

@@ -1,8 +1,9 @@
 ;;;; -*- emacs-lisp -*-
-;;;;
-;;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;;
-;;;; This file implements operators in chapter 21, Streams.
+;;;
+;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; This file implements operators in chapter 21, Streams.
+
+(IN-PACKAGE "EMACS-CL")
 
 (defvar *STANDARD-INPUT* nil)
 

@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 14, Conses.
 
-(IN-PACKAGE "CL")
+(IN-PACKAGE "EMACS-CL")
 
 (mapc (lambda (to from) (fset to (symbol-function from)))
       '(CONS CONSP ATOM)

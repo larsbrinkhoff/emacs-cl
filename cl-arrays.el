@@ -1,8 +1,9 @@
-;;; -*- emacs-lisp -*-
+;;;; -*- emacs-lisp -*-
 ;;;
 ;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;
 ;;; This file implements operators in chapter 15, Arrays.
+
+(IN-PACKAGE "EMACS-CL")
 
 (defun* MAKE-ARRAY (dimensions &key (element-type T) initial-element
 		    initial-contents adjustable fill-pointer
