@@ -87,7 +87,8 @@
 	(CODE-CHAR ch))))
 
 (cl:defun read-char-exclusive-ignoring-arg (arg)
-  (read-char-exclusive))
+  (let ((char (read-char-exclusive)))
+    (if (eq char 13) 10 char)))
 
 (cl:defun READ-CHAR-NO-HANG (&optional stream-designator (eof-error-p T)
 				       eof-value recursive-p)
@@ -126,18 +127,20 @@
 			       eof-value recursive-p)
   (let ((stream (input-stream stream-designator))
 	(line ""))
-    (loop
-     (let ((char (READ-CHAR stream eof-error-p eof-value recursive-p)))
-       (cond
-	 ((EQL char eof-value)
-	  (return-from READ-LINE
-	    (VALUES (if (= (length line) 0) eof-value line) t)))
-	 ((ch= char 10)
-	  (return-from READ-LINE (VALUES line nil))))
-       (setq line (concat line (list (CHAR-CODE char))))))))
+    (catch 'READ-LINE
+      (loop
+       (let ((char (READ-CHAR stream eof-error-p eof-value recursive-p)))
+	 (cond
+	   ((EQL char eof-value)
+	    (throw 'READ-LINE
+	      (VALUES (if (= (length line) 0) eof-value line) t)))
+	   ((ch= char 10)
+	    (throw 'READ-LINE (VALUES line nil))))
+	 (setq line (concat line (list (CHAR-CODE char)))))))))
 
-(cl:defun WRITE-STRING (string &optional stream-designator
-			&key (START 0) (END (LENGTH string)))
+(cl:defun WRITE-STRING (string &optional stream-designator &key (START 0) END)
+  (unless END
+    (setq END (LENGTH string)))
   (do ((stream (output-stream stream-designator))
        (i START (1+ i)))
       ((eq i END) string)
@@ -231,7 +234,35 @@
 
 ;;; TODO: finish-output, force-output, clear-output
 
-;;; TODO: y-or-n-p, yes-or-no-p
+(defun Y-OR-N-P (&optional format &rest args)
+  (when format
+    (FRESH-LINE *QUERY-IO*)
+    (apply #'FORMAT *QUERY-IO* format args))
+  (catch 'Y-OR-N-P
+    (loop
+     (let ((char (READ-CHAR *QUERY-IO*)))
+       (cond
+	 ((CHAR-EQUAL char (ch 89))
+	  (throw 'Y-OR-N-P T))
+	 ((CHAR-EQUAL char (ch 78))
+	  (throw 'Y-OR-N-P nil))
+	 (t
+	  (WRITE-LINE "Please answer 'y' or 'n'. ")))))))
+
+(defun YES-OR-NO-P (&optional format &rest args)
+  (when format
+    (FRESH-LINE *QUERY-IO*)
+    (apply #'FORMAT *QUERY-IO* format args))
+  (catch 'YES-OR-NO-P
+    (loop
+     (let ((line (READ-LINE *QUERY-IO*)))
+       (cond
+	 ((STRING-EQUAL line "yes")
+	  (throw 'YES-OR-NO-P T))
+	 ((STRING-EQUAL line "no")
+	  (throw 'YES-OR-NO-P nil))
+	 (t
+	  (WRITE-LINE "Please answer 'yes' or 'no'. ")))))))
 
 ;;; TODO: make-synonym-stream
 
@@ -246,10 +277,11 @@
 	       (kw index) 0
 	       (kw read-fn)
 	         (lambda (stream)
-		   (READ-CHAR (car (STREAM-content stream))))
+		   (CHAR-CODE (READ-CHAR (car (STREAM-content stream)))))
 	       (kw write-fn)
 	         (lambda (char stream)
-		   (WRITE-CHAR char (cdr (STREAM-content stream))))))
+		   (WRITE-CHAR (CODE-CHAR char)
+			       (cdr (STREAM-content stream))))))
 
 (defun TWO-WAY-STREAM-INPUT-STREAM (stream)
   (car (STREAM-content stream)))
