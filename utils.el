@@ -18,9 +18,6 @@
     ((cdr list)		(error))
     (t			(car list))))
 
-(defun ensure-list (x)
-  (if (listp x) x (list x)))
-
 (defun mappend (fn &rest lists)
   (apply #'append
    (if (null (cdr lists))
@@ -45,3 +42,9 @@
 	  ,(reduce (lambda (f1 f2) `(,f1 ,f2)) fns
 		   :from-end t :initial-value `(apply ',fn1 args))))
       #'identity))
+
+(defmacro* do-list-designator ((var list &optional result) &body body)
+  (let ((list-var (gensym)))
+    `(let ((,list-var ,list))
+      (dolist (,var (if (listp ,list-var) ,list-var (list ,list-var)) ,result)
+	,@body))))

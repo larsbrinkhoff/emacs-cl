@@ -31,11 +31,8 @@
 
 (defun* EXPORT (symbols &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
-    (unless (listp symbols)
-      (setq symbols (list symbols)))
-    (dolist (sym symbols 'T)
-      (multiple-value-bind (sym status)
-	  (FIND-SYMBOL (SYMBOL-NAME sym) package)
+    (do-list-designator (sym symbols 'T)
+      (multiple-value-bind (sym status) (FIND-SYMBOL (SYMBOL-NAME sym) package)
 	(when (eq status *:inherited*)
 	  (IMPORT sym package)))
       (pushnew sym (aref package 7)))))
@@ -107,16 +104,14 @@
 
 (defun* IMPORT (symbols &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
-    (unless (listp symbols)
-      (setq symbols (list symbols)))
-    (dolist (symbol symbols 'T)
+    (do-list-designator (symbol symbols 'T)
       (multiple-value-bind (sym found)
 	  (FIND-SYMBOL (SYMBOL-NAME symbol) package)
 	(when (and found (not (eq sym symbol)))
-	  (error "package error"))
-	(setf (gethash (SYMBOL-NAME symbol) (package-table package)) symbol)
-	(when (null (SYMBOL-PACKAGE symbol))
-	  (setf (SYMBOL-PACKAGE symbol) package))))))
+	  (error "package error")))
+      (setf (gethash (SYMBOL-NAME symbol) (package-table package)) symbol)
+      (when (null (SYMBOL-PACKAGE symbol))
+	(setf (SYMBOL-PACKAGE symbol) package)))))
 
 (defun LIST-ALL-PACKAGES ()
   (copy-list *all-packages*))
@@ -129,10 +124,21 @@
     (aset package 2 (mapcar #'STRING new-nicknames))))
 
 (defun* SHADOW (symbol-names &optional (package-designator *PACKAGE))
-  
+  (let ((package (FIND-PACKAGE package-designator)))
+    (do-list-designator (name symbol-names)
+      (multiple-value-bind (sym status) (FIND-SYMBOL name package)
+	(when (or (null status) (eq status *:inherited*))
+	  (setq sym (nth-value 0 (INTERN name package))))
+	(pushnew sym (aref package 3)))))
   'T)
 
-;;; shadowing-import
+(defun* SHADOWING-IMPORT (symbols &optional (package-designator *PACKAGE))
+  (let ((package (FIND-PACKAGE package-designator)))
+    (do-list-designator (symbol symbols)
+      (multiple-value-bind (sym found) (FIND-SYMBOL (SYMBOL-NAME sym package))
+	(when found
+	  (UNINTERN sym package)))
+      (IMPORT symbol package))))
 
 (defun DELETE-PACKAGE (package)
   (dolist (p (PACKAGE-USE-LIST package))
@@ -143,15 +149,18 @@
 
 ;;; unexport
 
-(defun* UNINTERN (symbol &optional (package *PACKAGE*))
-  (when (eq (SYMBOL-PACKAGE symbol) package)
-    (setf (SYMBOL-PACKAGE symbol) nil))
-  (let* ((table (package-table package))
-	 (name (symbol-name symbol))
-	 (sym (gethash name table not-found)))
-    (unless (eq sym not-found)
-      (remhash name table)
-      T)))
+(defun* UNINTERN (symbol &optional (package-designator *PACKAGE*))
+  (let ((package (FIND-PACKAGE package-designator)))
+    (when (eq (SYMBOL-PACKAGE symbol) package)
+      (setf (SYMBOL-PACKAGE symbol) nil))
+    (let* ((table (package-table package))
+	   (name (symbol-name symbol))
+	   (sym (gethash name table not-found)))
+      (unless (eq sym not-found)
+	(remhash name table)))
+    (aset package 3 (delete symbol (aref package 3)))
+    (aset package 7 (delete symbol (aref package 7))))
+  'T)
 
 (defmacro IN-PACKAGE (package)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
@@ -159,7 +168,7 @@
 
 (defun* UNUSE-PACKAGE (packages-to-unuse &optional (package *PACKAGE*))
   (let ((package (FIND-PACKAGE package)))
-    (dolist (p (ensure-list packages-to-unuse))
+    (do-list-designator (p packages-to-unuse)
       (let ((p (FIND-PACKAGE p)))
 	(aset package 4 (delete p (PACKAGE-USE-LIST package)))
 	(aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))))
@@ -167,7 +176,7 @@
 
 (defun* USE-PACKAGE (packages-to-use &optional (package *PACKAGE*))
   (let ((package (FIND-PACKAGE package)))
-    (dolist (p (ensure-list packages-to-use))
+    (do-list-designator (p packages-to-use)
       (aset package 4 (cons (FIND-PACKAGE p) (PACKAGE-USE-LIST package)))))
   T)
 
@@ -291,7 +300,7 @@ READ-DELIMITED-LIST READ-FROM-STRING READ-LINE
 READ-PRESERVING-WHITESPACE READTABLE READTABLE-CASE READTABLEP REAL
 REALP REALPART REMPROP RETURN-FROM RPLACA RPLACD SCHAR SET
 SET-DISPATCH-MACRO-CHARACTER SET-MACRO-CHARACTER SET-SYNTAX-FROM-CHAR
-SETF SETQ SHORT-FLOAT SIMPLE-BIT-VECTOR SIMPLE-BIT-VECTOR-P
+SETF SETQ SHADOW SHORT-FLOAT SIMPLE-BIT-VECTOR SIMPLE-BIT-VECTOR-P
 SIMPLE-STRING SIMPLE-STRING-P SIMPLE-VECTOR SIMPLE-VECTOR-P
 SINGLE-FLOAT SIGNED-BYTE SPECIAL-OPERATOR-P STANDARD-CHAR STRING=
 STRING STRINGP SUBTYPEP SYMBOL SYMBOL-FUNCTION SYMBOL-MACROLET
