@@ -163,7 +163,11 @@
 	 (PRIN1 (cdr object) stream))
        (WRITE-STRING ")" stream))
       ((FUNCTIONP object)
-       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
+       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
+         (when (subrp object)
+	   (let ((string (prin1-to-string object)))
+	     (WRITE-STRING string stream (kw START) 7
+			   (kw END) (1- (length string)))))))
       ((ratiop object)
        (WRITE (NUMERATOR object) stream)
        (WRITE-STRING "/" stream)
