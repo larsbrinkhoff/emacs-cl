@@ -51,6 +51,8 @@
   (setq emacs-cl-mode-map (make-keymap))
   (substitute-key-definition 'newline 'emacs-cl-newline
 			     emacs-cl-mode-map global-map)
+  (substitute-key-definition 'beginning-of-line 'emacs-cl-beginning-of-line
+			     emacs-cl-mode-map global-map)
   (define-key emacs-cl-mode-map "\M-p" 'emacs-cl-history-previous)
   (define-key emacs-cl-mode-map "\M-n" 'emacs-cl-history-next))
 
@@ -120,6 +122,7 @@
     (when (zerop emacs-cl-history-index)
       (setf (nth 0 emacs-cl-history)
 	    (buffer-substring emacs-cl-prompt-marker (point))))
+    (goto-char (point-max))
     (delete-region emacs-cl-prompt-marker (point))
     (incf emacs-cl-history-index)
     (insert (nth emacs-cl-history-index emacs-cl-history))))
@@ -128,6 +131,16 @@
   (interactive)
   (when (and (>= (point) emacs-cl-prompt-marker)
 	     (plusp emacs-cl-history-index))
+    (goto-char (point-max))
     (delete-region emacs-cl-prompt-marker (point))
     (decf emacs-cl-history-index)
     (insert (nth emacs-cl-history-index emacs-cl-history))))
+
+(defun emacs-cl-beginning-of-line ()
+  (interactive)
+  (if (< (point) emacs-cl-prompt-marker)
+      (beginning-of-line)
+      (progn
+	(beginning-of-line)
+	(when (< (point) emacs-cl-prompt-marker)
+	  (goto-char emacs-cl-prompt-marker)))))
