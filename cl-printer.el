@@ -32,7 +32,7 @@
 	       (let ((n (logand (ash num (* -4 (- 6 j))) 15)))
 		 (unless (and (zerop n) start)
 		   (setq start nil)
-		   (princ (string (aref "0123456789abcdef" n))))))))))
+		   (princ (string (aref "0123456789ABCDEF" n))))))))))
       ((bit-vector-p object)
        (princ "#*")
        (dotimes (i (cl:length object))
