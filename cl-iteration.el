@@ -50,17 +50,13 @@
        ,@body)))
 
 (cl:defmacro DOLIST ((var list &optional result) &body body)
-;   (with-gensyms (x)
-;     `(DO* ((,x ,list (CDR ,x)))
-;           ((NULL ,x)
-; 	   ,result)
-;        (LET ((,var (CAR ,x)))
-; 	 ,@body))))
   `(PROGN
-    (MAPC (LAMBDA (,var) ,@body) ,list)
-    ,result))
+     (MAPC (LAMBDA (,var) ,@body) ,list)
+     ,result))
 
 (cl:defmacro LOOP (&rest forms)
   (if (every #'consp forms)
       `(DO () (nil) (PROGN ,@forms))
       (error "TODO")))
+
+;;; TODO: LOOP-FINISH
