@@ -5,8 +5,7 @@
 
 (IN-PACKAGE "CL")
 
-(mapc (lambda (to from)
-	(fset to (symbol-function from)))
+(mapc (lambda (to from) (fset to (symbol-function from)))
       '(CONS CONSP ATOM)
       '(cons consp atom))
 
@@ -55,6 +54,15 @@
       (CONS (COPY-TREE (CAR tree)) (COPY-TREE (CDR tree)))
       tree))
 
+(defun* SUBLIS (alist tree &key key test test-not)
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (lambda (x) (not (funcall test x)))))
+  (if (funcall test (funcall key tree))
+      nil
+      nil))
+
 (fset 'COPY-LIST (symbol-function 'copy-list))
 
 (fset 'LIST (symbol-function 'list))
@@ -84,3 +92,17 @@
    (if (null (cdr seqs))
        (mapcar fn (car seqs))
        (cl-mapcar-many fn seqs))))
+
+(defun ACONS (key datum alist)
+  (CONS (CONS key datum) alist))
+
+(defun* ASSOC (item alist &key (key #'IDENTITY) test test-not)
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test #'EQL))
+  (dolist (pair alist)
+    (when (and pair (funcall test item (funcall key (car pair))))
+      (return-from ASSOC pair))))
