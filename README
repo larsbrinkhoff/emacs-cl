@@ -17,7 +17,9 @@ internals of the implementation follows:
 Mapping from Emacs Lisp object types to Common Lisp object types:
 
 EL type			CL type
+bit-vector		simple-bit-vector
 bool-vector		simple-bit-vector
+TODO: character
 compiled-function	compiled-function
 cons			cons
 float			single-float
