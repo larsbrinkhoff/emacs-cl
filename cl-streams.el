@@ -4,11 +4,11 @@
 ;;;;
 ;;;; This file implements operators in chapter 21, Streams.
 
-(defvar *standard-input* nil)
+(defvar *STANDARD-INPUT* nil)
 
-(defvar *standard-output* nil)
+(defvar *STANDARD-OUTPUT* nil)
 
-(defvar *terminal-io*)
+(defvar *TERMINAL-IO*)
 
 (defstruct (stream (:predicate streamp) (:copier nil))
   filename
@@ -17,7 +17,7 @@
   read-fn
   write-fn)
 
-(defun* PEEK-CHAR (&optional peek-type stream (eof-error-p t)
+(defun* PEEK-CHAR (&optional peek-type stream (eof-error-p T)
 			     eof-value recursive-p)
   (loop
    (let ((char (READ-CHAR stream eof-error-p eof-value recursive-p)))
@@ -32,22 +32,22 @@
 
 (defun resolve-input-stream-designator (designator)
   (case designator
-    ((nil)	*standard-input*)
-    ((t)	*terminal-io*)
+    ((nil)	*STANDARD-INPUT*)
+    ((t)	*TERMINAL-IO*)
     (t		designator)))
 
 (defun resolve-output-stream-designator (designator)
   (case designator
-    ((nil)	*standard-output*)
-    ((t)	*terminal-io*)
+    ((nil)	*STANDARD-OUTPUT*)
+    ((t)	*TERMINAL-IO*)
     (t		designator)))
 
-(defun* READ-CHAR (&optional stream-designator (eof-error-p t)
+(defun* READ-CHAR (&optional stream-designator (eof-error-p T)
 				eof-value recursive-p)
   (let* ((stream (resolve-input-stream-designator stream-designator))
 	 (ch (funcall (stream-read-fn stream) stream)))
     (if (eq ch :eof)
-	(if eof-error-p
+	(IF eof-error-p
 	    (error "end of file")
 	    eof-value)
 	(CODE-CHAR ch))))
@@ -62,7 +62,7 @@
     (funcall (stream-write-fn stream) char stream)
     char))
 
-(defun* READ-LINE (&optional stream-designator (eof-error-p t)
+(defun* READ-LINE (&optional stream-designator (eof-error-p T)
 			     eof-value recursive-p)
   (let ((stream (resolve-input-stream-designator stream-designator))
 	(line ""))

@@ -13,17 +13,17 @@
      (error "invalid character designator"))))
 
 (defun CHARACTERP (char)
-  (vector-and-typep char 'character))
+  (cl-truth (vector-and-typep char 'character)))
 
 (defun ALPHA-CHAR-P (char)
-  (or (cl:<= 65 (CHAR-CODE char) 90)
+  (OR (cl:<= 65 (CHAR-CODE char) 90)
       (cl:<= 97 (CHAR-CODE char) 122)))
 
 (defun ALPHANUMERICP (char)
-  (or (DIGIT-CHAR-P char) (ALPHA-CHAR-P char)))
+  (OR (DIGIT-CHAR-P char) (ALPHA-CHAR-P char)))
 
 (defun* DIGIT-CHAR (weight &optional (radix 10))
-  (when (< weight radix)
+  (WHEN (cl:< weight radix)
     (CODE-CHAR (if (< weight 10)
 		   (+ 48 weight)
 		   (+ 65 weight -10)))))
@@ -35,14 +35,14 @@
 	      ((cl:<= 65 code 90) (- code 65 -10))
 	      ((cl:<= 95 code 122) (- code 95 -10))
 	      (t 99))))
-    (if (< n radix) n nil)))
+    (if (< n radix) n NIL)))
 
 (DEFCONSTANT CHAR-CODE-LIMIT 256)
 
 (defun CODE-CHAR (code)
   (if (and (integerp code) (< code CHAR-CODE-LIMIT))
       (vector 'character code)
-      nil))
+      NIL))
 
 (defun CHAR-CODE (char)
   ;;(CHECK-TYPE char 'character)

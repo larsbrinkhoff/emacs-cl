@@ -17,7 +17,7 @@
 
 (defun top-level-loop ()
   (loop
-   (princ (format "%s> " (package-name *package*)))
+   (princ (format "%s> " (package-name *PACKAGE*)))
    (setq +++ ++
 	 ++ +
 	 + -

@@ -64,7 +64,7 @@
 (defun cl:< (number &rest numbers)
   (if (null numbers)
       T
-      (and (binary< number (first numbers))
+      (AND (binary< number (first numbers))
 	   (apply #'cl:< (first numbers) (rest numbers)))))
 
 (defun binary< (num1 num2)

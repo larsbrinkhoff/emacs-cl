@@ -36,7 +36,7 @@
 
 (defvar *gentemp-counter* 1)
 
-(defun* GENTEMP (&optional (prefix "T") (package-designator *package*))
+(defun* GENTEMP (&optional (prefix "T") (package-designator *PACKAGE*))
   (loop
    (multiple-value-bind (symbol found)
        (INTERN (FORMAT NIL "~S~D" prefix *gentemp-counter*) package)
