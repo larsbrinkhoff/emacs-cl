@@ -203,7 +203,7 @@
   T)
 
 (cl:defmacro WITH-STANDARD-IO-SYNTAX (&body body)
-  `(LET ((*PACKAGE*			*cl-package*)
+  `(LET ((*PACKAGE*			*cl-user-package*)
 	 (*PRINT-ARRAY*			T)
 	 (*PRINT-BASE*			10)
 	 (*PRINT-CASE*			(kw UPCASE))
@@ -214,7 +214,7 @@
 	 (*PRINT-LEVEL*			nil)
 	 (*PRINT-LINES*			nil)
 	 (*PRINT-MISER-WIDTH*		nil)
-;	 (*PRINT-PPRINT-DISPATCH*	#<The standard pprint dispatch table>)
+	 (*PRINT-PPRINT-DISPATCH*	*initial-pprint-dispatch*)
 	 (*PRINT-PRETTY*		nil)
 	 (*PRINT-RADIX*			nil)
 	 (*PRINT-READABLY*		T)
