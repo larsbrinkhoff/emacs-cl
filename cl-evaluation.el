@@ -46,6 +46,11 @@
        (setf (gethash ,name *macro-functions*) ,fn)
        (set-local-macro ,name ,fn ,env)))
 
+(DEFSETF MACRO-FUNCTION (name &optional env) (fn)
+  `(IF (NULL ,env)
+       (puthash ,name ,fn *macro-functions*)
+       (set-local-macro ,name ,fn ,env)))
+
 (defmacro* cl:defmacro (name lambda-list &body body)
   `(progn
      (setf (MACRO-FUNCTION ',name)
