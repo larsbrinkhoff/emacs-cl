@@ -111,6 +111,31 @@
   (STRING< string2 string1 :start1 start2 :end1 end2
 			   :start2 start1 :end2 end1))
 
+(defun* STRING-EQUAL (string1 string2 &key (start1 0) end1 (start2 0) end2)
+  (string= (substring (STRING-UPCASE string1) start1 end1)
+	   (substring (STRING-UPCASE string2) start2 end2)))
+
+(defun* STRING-NOT-EQUAL (string1 string2 &key (start1 0) end1 (start2 0) end2)
+  (not (STRING-EQUAL string1 string2 :start1 start1 :end1 end1
+				     :start2 start2 :end2 end2)))
+
+(defun* STRING-LESSP (string1 string2 &key (start1 0) end1 (start2 0) end2)
+  (STRING< (substring (STRING-UPCASE string1) start1 end1)
+	   (substring (STRING-UPCASE string1) start1 end1)))
+
+(defun* STRING-GREATERP (string1 string2 &key (start1 0) end1 (start2 0) end2)
+  (STRING> (substring (STRING-UPCASE string1) start1 end1)
+	   (substring (STRING-UPCASE string1) start1 end1)))
+
+(defun* STRING-NOT-GREATERP (string1 string2 &key (start1 0) end1
+						  (start2 0) end2)
+  (STRING<= (substring (STRING-UPCASE string1) start1 end1)
+	    (substring (STRING-UPCASE string1) start1 end1)))
+
+(defun* STRING-NOT-LESSP (string1 string2 &key (start1 0) end1 (start2 0) end2)
+  (STRING>= (substring (STRING-UPCASE string1) start1 end1)
+	    (substring (STRING-UPCASE string1) start1 end1)))
+
 ;;; TODO: STRING-EQUAL, STRING-NOT-EQUAL, STRING-LESSP,
 ;;; STRING-GREATERP, STRING-NOT-GREATERP, STRING-NOT-LESSP
 
