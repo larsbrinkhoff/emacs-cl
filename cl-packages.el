@@ -62,7 +62,7 @@
 	       (find string (PACKAGE-NICKNAMES p) :test 'equal)))
 	 *all-packages*))))
 
-(defun* MAKE-PACKAGE (name &key nicknames use)
+(cl:defun MAKE-PACKAGE (name &key nicknames use)
   (let ((package (make-vector 8 'PACKAGE))
 	(use-packages (mapcar #'FIND-PACKAGE use)))
     (aset package 1 (STRING name))
@@ -77,11 +77,12 @@
     package))
 
 (defvar *keyword-package* (MAKE-PACKAGE "KEYWORD"))
-(defvar *emacs-lisp-package* (MAKE-PACKAGE "EMACS-LISP" :nicknames '("EL")))
-(defvar *emacs-cl-package* (MAKE-PACKAGE "EMACS-CL" :nicknames '("E-CL")))
-(defvar *cl-package* (MAKE-PACKAGE "COMMON-LISP" :nicknames '("CL")))
-(MAKE-PACKAGE "COMMON-LISP-USER" :nicknames '("CL-USER")
-	      :use '("CL" "E-CL" "EL"))
+(defvar *emacs-lisp-package* (MAKE-PACKAGE "EMACS-LISP"
+					   (kw NICKNAMES) '("EL")))
+(defvar *emacs-cl-package* (MAKE-PACKAGE "EMACS-CL" (kw NICKNAMES) '("E-CL")))
+(defvar *cl-package* (MAKE-PACKAGE "COMMON-LISP" (kw NICKNAMES) '("CL")))
+(MAKE-PACKAGE "COMMON-LISP-USER" (kw NICKNAMES) '("CL-USER")
+	      (kw USE) '("CL" "E-CL" "EL"))
 
 (defconst not-found (cons nil nil))
 
@@ -284,19 +285,21 @@
   (maphash (lambda (k v) (FUNCALL fn k v)) hash))
 
 (defmacro* DO-SYMBOLS ((var &optional package result) &body body)
-  (with-gensyms (p1 p2 ignore)
+  (with-gensyms (p1 p2 p3 ignore)
     `(let* ((,p1 ,package)
 	    (,p2 (if ,p1 (FIND-PACKAGE ,p1) *PACKAGE*)))
-       (el-maphash (lambda (,ignore ,var) ,@body)
-	           (package-table ,p2))
+       (dolist (,p3 (cons ,p2 (PACKAGE-USE-LIST ,p2)))
+	 (el-maphash (lambda (,ignore ,var) ,@body)
+		     (package-table ,p3)))
        ,result)))
 
 (cl:defmacro DO-SYMBOLS ((var &optional package result) &body body)
-  (with-gensyms (p1 p2 ignore)
+  (with-gensyms (p1 p2 p3 ignore)
     `(LET* ((,p1 ,package)
 	    (,p2 (IF ,p1 (FIND-PACKAGE ,p1) *PACKAGE*)))
-       (el-maphash (LAMBDA (,ignore ,var) ,@body)
-	           (package-table ,p2))
+       (DOLIST (,p3 (CONS ,p2 (PACKAGE-USE-LIST ,p2)))
+	 (el-maphash (LAMBDA (,ignore ,var) ,@body)
+		     (package-table ,p3)))
        ,result)))
 
 (cl:defmacro DO-EXTERNAL-SYMBOLS ((var &optional package result) &body body)
