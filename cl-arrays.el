@@ -34,7 +34,10 @@
 				displaced-index-offset)))))
       (character
        (let ((string (or displaced-to
-			 (make-string size (char-code initial-element)))))
+			 (make-string size
+				      (if initial-element
+					  (char-code initial-element)
+					  0)))))
 	 (cond
 	   (simplep	string)
 	   (vectorp	(vector 'string fill-pointer string
@@ -199,7 +202,7 @@
   (aref array index))
 
 (defun bit-vector-p (object)
-  (or (simple-vector-p object)
+  (or (simple-bit-vector-p object)
       (vector-and-typep object 'bit-vector)))
 
 (defun simple-bit-vector-p (object)

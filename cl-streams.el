@@ -4,9 +4,9 @@
 ;;;;
 ;;;; This file implements operators in chapter 21, Streams.
 
-(defvar *standard-input*)
+(defvar *standard-input* nil)
 
-(defvar *standard-output*)
+(defvar *standard-output* nil)
 
 (defvar *terminal-io*)
 
