@@ -323,8 +323,8 @@
     ((or (cl::ratiop x) (cl::ratiop y))
      (if (ZEROP y)
 	 (error)
-	 (cl::ratio (binary* (NUMERATOR x) (DENOMINATOR y))
-		    (binary* (DENOMINATOR x) (NUMERATOR y)))))
+	 (cl::ratio (binary* (NUMERATOR x) (NUMERATOR y))
+		    (binary* (DENOMINATOR x) (DENOMINATOR y)))))
     ((or (INTEGERP x) (INTEGERP y))
      (when (integerp x)
        (setq x (vector 'bignum x (if (minusp x) -1 0))))
@@ -775,15 +775,16 @@
   (if (and (eq num MOST-NEGATIVE-FIXNUM) (eq den -1))
       (vector 'bignum MOST-NEGATIVE-FIXNUM 0)
       (let* ((gcd (GCD num den))
-	     (num (binary/ num gcd))
-	     (den (binary/ den gcd)))
-	(cond
-	  ((eq den 1)
-	   num)
-	  ((MINUSP den)
-	   (vector 'ratio (cl:- num) (cl:- den)))
-	  (t
-	   (vector 'ratio num den))))))
+	     (num (integer-truncate num gcd))
+	     (den (integer-truncate den gcd)))
+	(VALUES
+	 (cond
+	   ((eq den 1)
+	    num)
+	   ((MINUSP den)
+	    (vector 'ratio (cl:- num) (cl:- den)))
+	   (t
+	    (vector 'ratio num den)))))))
 
 (defun cl::ratiop (num)
   (vector-and-typep num 'ratio))
