@@ -126,7 +126,7 @@
     (type-error declaration `(CONS (MEMBER ,@*declarations*) LIST)))
   (case (first declaration)
     (SPECIAL
-     (dolist (var (rest declaraction))
+     (dolist (var (rest declaration))
        (pushnew var *specials*)))
     (INLINE)
     (NOTINLINE)
