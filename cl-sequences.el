@@ -108,11 +108,6 @@
     (t
      (type-error seq 'SEQUENCE))))
 
-(defsetf SUBSEQ (seq1 start &optional end) (seq2)
-  `(progn
-     (REPLACE ,seq1 ,seq2 ,(kw START1) ,start ,(kw END1) ,end)
-     ,seq2))
-
 (DEFSETF SUBSEQ (seq1 start &optional end) (seq2)
   `(PROGN
      (REPLACE ,seq1 ,seq2 ,(kw START1) ,start ,(kw END1) ,end)
