@@ -10,12 +10,19 @@
   `(let ,(mapcar (lambda (sym) `(,sym ',(gensym))) syms)
      ,@body))
 
+(defun cl:string (x)
+  (cond
+    ((stringp x)	x)
+    ((symbolp x)	(symbol-name x))
+    (t			(error "type error"))))
+
 (defun strcat (&rest string-designators)
-  (apply #'CONCATENATE 'STRING (mapcar #'STRING string-designators)))
+  (apply #'concat (mapcar #'cl:string string-designators)))
 
 (defun symcat (&rest string-designators)
   (let ((sym (intern (apply #'strcat string-designators))))
-    (setf (SYMBOL-PACKAGE sym) *PACKAGE*)
+    (when (fboundp 'SYMBOL-PACKAGE)
+      (setf (SYMBOL-PACKAGE sym) *PACKAGE*))
     sym))
 
 (defun just-one (list)
