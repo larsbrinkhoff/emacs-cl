@@ -1,7 +1,6 @@
-;;; -*- emacs-lisp -*-
+;;;; -*- emacs-lisp -*-
 ;;;
 ;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;
 ;;; This file implements operators in chapter 5, Data and Control Flow.
 
 (defvar *setf-definitions* (make-hash-table))
@@ -64,7 +63,8 @@
 (defmacro* DEFCONSTANT (name initial-value &optional documentation)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     (defvar ,name ,initial-value)
-    (pushnew ',name *constants*)))
+    (pushnew ',name *constants*)
+    ',name))
 
 (defun expand-tagbody-forms (body start end)
   (do ((clauses nil)
@@ -99,6 +99,18 @@
 		  (case ,pc
 		    ,@(expand-tagbody-forms body start end))))))
       nil)))
+
+(DEFCONSTANT NIL 'NIL)
+
+(defun NOT (x)
+  (if (eq x 'NIL)
+      'T
+      'NIL))
+
+(DEFCONSTANT T 'T)
+
+(defun EQ (x y)
+  (eq x y))
 
 ;; (defvar *multiple-values-variable* nil)
 
