@@ -1,3 +1,11 @@
+This is an implementation of Common Lisp, written in Emacs Lisp.  It
+does not yet purport to conform to the ANSI standard since CLOS, LOOP,
+and compilation are missing.
+
+See INSTALL for usage instructions.
+
+
+
 Mapping from Emacs Lisp object types to Common Lisp object types:
 
 EL type			CL type
