@@ -15,7 +15,8 @@ Common Lisp types not present in Emacs Lisp.  An Emacs Lisp vector
 should be converted to a Common Lisp vector (SIMPLE-VECTOR or VECTOR)
 when passed to a Common Lisp function.
 
-See INSTALL for usage instructions.
+See INSTALL for usage instructions.  See HOWTO for some hints on how
+to do common tasks.
 
 Some algorithms and messages have been inspired by SBCL.  Notes on the
 internals of the implementation follows:
