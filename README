@@ -2,14 +2,15 @@ Mapping from Emacs Lisp object types to Common Lisp object types:
 
 EL type			CL type
 bool-vector		simple-bit-vector
-float			single-float
-integer			fixnum
-string			simple-string
-vector			various, type in first element
 compiled-function	compiled-function
 cons			cons
+float			single-float
 hash-table		hash-table
+integer			fixnum
+string			simple-string
+subr			compiled-function
 symbol			symbol
+vector			various, type in first element
 
 Common Lisp objects represented by Emacs Lisp vectors:
 
@@ -24,4 +25,5 @@ bit-array		[bit-array <dimensions> <elements> <offset>]
 simple-vector		[SIMPLE-VECTOR <elt> ...]
 vector			[VECTOR <fill-pointer> <elements> <offset>]
 array			[ARRAY <dimensions> <elements> <offset>]
+interpreted-function	[INTERPRETED-FUNCTION <fn> <env>]
 instance of type T	[T <slot> ...]
