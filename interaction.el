@@ -51,7 +51,7 @@
     (setq *** ** ** (SYMBOL-VALUE *-sym))
     (set *-sym (first values))
     (dolist (x values)
-      (PRINT x))))
+      (PPRINT x))))
 
 (defun emacs-cl-newline ()
   (interactive)
