@@ -65,6 +65,35 @@
 (defun file-position (stream)
   (stream-index stream))
 
+(defun* open (filespec &key direction element-type if-exists
+		            if-does-not-exist external-format)
+  (make-stream :content (let ((buffer (create-file-buffer filespec)))
+			  (save-current-buffer
+			    (set-buffer buffer)
+			    (insert-file-contents-literally filespec))
+			  buffer)
+	       :index 0
+	       :read-fn (lambda (stream)
+			  (save-current-buffer
+			    (set-buffer (stream-content stream))
+			    (if (= (stream-index stream) (buffer-size))
+				:eof
+				(char-after (incf (stream-index stream))))))
+	       :write-fn nil))
+
+(defmacro* with-open-file ((stream filespec &rest options) &body body)
+  `(with-open-stream (,stream (open ,filespec ,@options))
+     ,@body))
+
+(defun* close (stream &key abort)
+  (kill-buffer (stream-content stream)))
+
+(defmacro* with-open-stream ((var stream) &body body)
+  `(let ((,var ,stream))
+    (unwind-protect
+	 (progn ,@body)
+      (close ,var))))
+
 (defun get-output-stream-string (stream)
   (stream-content stream))
 
