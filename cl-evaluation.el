@@ -37,6 +37,9 @@
 (defsetf MACRO-FUNCTION (name &optional env) (fn)
   `(setf (gethash ,name *macro-functions*) ,fn))
 
+(DEFMACRO LAMBDA (lambda-list &body body)
+  (LIST 'FUNCTION (LIST* 'LAMBDA lambda-list body)))
+
 (defun MACROEXPAND-1 (form &optional env)
   (cond
     ((consp form)
@@ -80,7 +83,9 @@
 	    MULTIPLE-VALUE-PROG1 PROGN PROGV QUOTE RETURN-FROM SETQ
 	    SYMBOL-MACROLET TAGBODY THE THROW UNWIND-PROTECT)))
 
-(defun CONSTANTP (form)
+(defun CONSTANTP (form &optional env)
+  (unless env
+    (setq env *global-environment*))
   (cond
     ((atom form)
      (cond
