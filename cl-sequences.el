@@ -156,7 +156,38 @@
 
 ;;; TODO: REDUCE
 
-;;; TODO: COUNT, COUNT-IF, COUNT-IF-NOT
+(cl:defun COUNT (obj seq &key from-end test test-not (start 0) end
+			      (key (cl:function IDENTITY)))
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test (cl:function EQL)))
+  (COUNT-IF (lambda (x) (FUNCALL test obj x)) seq
+	    (kw FROM-END) from-end (kw START) start
+	    (kw END) end (kw KEY) key))
+
+(cl:defun COUNT-IF (predicate seq &key from-end (start 0) end
+		                       (key (cl:function IDENTITY)))
+  (unless end
+    (setq end (LENGTH seq)))
+  (let ((n 0))
+    (if from-end
+	(do ((i (1- end) (1- i)))
+	    ((eq i (1- start)))
+	  (let ((elt (ELT seq i)))
+	    (when (FUNCALL predicate (FUNCALL key elt))
+	      (incf n))))
+	(do ((i start (1+ i)))
+	    ((eq i end))
+	  (let ((elt (ELT seq i)))
+	    (when (FUNCALL predicate (FUNCALL key elt))
+	      (incf n)))))
+    n))
+
+(cl:defun COUNT-IF-NOT (predicate &rest args)
+  (apply (cl:function COUNT-IF) (COMPLEMENT predicate) args))
 
 (defun LENGTH (sequence)
   (cond
@@ -191,12 +222,12 @@
 
 (cl:defun FIND (obj seq &key from-end test test-not (start 0) end
 		             (key (cl:function IDENTITY)))
-    (when (and test test-not)
-      (error))
-    (when test-not
-      (setq test (COMPLEMENT test-not)))
-    (unless test
-      (setq test (cl:function EQL)))
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test (cl:function EQL)))
   (FIND-IF (lambda (x) (FUNCALL test obj x)) seq
 	   (kw FROM-END) from-end (kw START) start
 	   (kw END) end (kw KEY) key))
@@ -217,17 +248,45 @@
 	      ((eq i end))
 	    (let ((elt (ELT seq i)))
 	      (when (FUNCALL predicate (FUNCALL key elt))
-		(throw 'FIND elt))))))))
+		(throw 'FIND elt)))))
+      nil)))
 
-(cl:defun FIND-IF-NOT (predicate seq &key from-end (start 0) end
-		                      (key (cl:function IDENTITY)))
-  (FIND-IF (COMPLEMENT predicate) seq
-	   (kw FROM-END) from-end (kw START) start
-	   (kw END) end (kw KEY) key))
+(cl:defun FIND-IF-NOT (predicate &rest args)
+  (apply (cl:function FIND-IF) (COMPLEMENT predicate) args))
 
-;;; TODO: POSITION
-;;; TODO: POSITION-IF
-;;; TODO: POSITION-IF-NOT
+(cl:defun POSITION (obj seq &key from-end test test-not (start 0) end
+				 (key (cl:function IDENTITY)))
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test (cl:function EQL)))
+  (POSITION-IF (lambda (x) (FUNCALL test obj x)) seq
+	       (kw FROM-END) from-end (kw START) start
+	       (kw END) end (kw KEY) key))
+
+(cl:defun POSITION-IF (predicate seq &key from-end (start 0) end
+		                          (key (cl:function IDENTITY)))
+  (let ((len (LENGTH seq)))
+    (unless end
+      (setq end len))
+    (catch 'POSITION
+      (if from-end
+	  (do ((i (1- end) (1- i)))
+	      ((eq i -1))
+	    (let ((elt (ELT seq i)))
+	      (when (FUNCALL predicate (FUNCALL key elt))
+		(throw 'FIND i))))
+	  (do ((i start (1+ i)))
+	      ((eq i end))
+	    (let ((elt (ELT seq i)))
+	      (when (FUNCALL predicate (FUNCALL key elt))
+		(throw 'FIND elt)))))
+      nil)))
+
+(cl:defun POSITION-IF-NOT (predicate &rest args)
+  (apply (cl:function FIND-IF) (COMPLEMENT predicate) args))
 
 (defun subseq-p (seq1 start1 end1 seq2 start2 end2 test key)
   (catch 'subseq-p
@@ -268,10 +327,15 @@
 ;;; TODO: REPLACE
 ;;; TODO: SUBSTITUTE
 ;;; TODO: SUBSTITUTE-IF
-;;; TODO: SUBSTITUTE-IF-NOT
+
+(cl:defun SUBSTITUTE-IF-NOT (predicate &rest args)
+  (apply (cl:function COUNT-IF) (COMPLEMENT predicate) args))
+
 ;;; TODO: NSUBSTITUTE
 ;;; TODO: NSUBSTITUTE-IF
-;;; TODO: NSUBSTITUTE-IF-NOT
+
+(cl:defun NSUBSTITUTE-IF-NOT (predicate &rest args)
+  (apply (cl:function COUNT-IF) (COMPLEMENT predicate) args))
 
 (defun CONCATENATE (type &rest sequences)
   (ecase type
@@ -294,7 +358,15 @@
 
 ;;; TODO: MERGE
 
-;;; TODO: REMOVE, REMOVE-IF, REMOVE-IF-NOT, DELETE, DELETE-IF, DELETE-IF-NOT
+;;; TODO: REMOVE, REMOVE-IF
+
+(cl:defun REMOVE-IF-NOT (predicate &rest args)
+  (apply (cl:function REMOVE-IF) (COMPLEMENT predicate) args))
+
+;;; TODO: DELETE, DELETE-IF
+
+(cl:defun DELETE-IF-NOT (predicate &rest args)
+  (apply (cl:function DELETE-IF) (COMPLEMENT predicate) args))
 
 ;;; TODO: REMOVE-DUPLICATES, DELETE-DUPLICATES
 
