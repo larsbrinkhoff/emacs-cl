@@ -54,14 +54,36 @@
       (CONS (COPY-TREE (CAR tree)) (COPY-TREE (CDR tree)))
       tree))
 
-(defun* SUBLIS (alist tree &key key test test-not)
+(defun* SUBLIS (alist tree &key (key #'IDENTITY) test test-not)
   (when (and test test-not)
     (error))
   (when test-not
-    (setq test (lambda (x) (not (funcall test x)))))
-  (if (funcall test (funcall key tree))
-      nil
-      nil))
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test #'EQL))
+  (let ((pair (ASSOC tree alist :key key :test test)))
+    (cond
+      (pair		(CDR pair))
+      ((ATOM tree)	tree)
+      (t		(CONS
+			 (SUBLIS alist (CAR tree) :key key :test test)
+			 (SUBLIS alist (CDR tree) :key key :test test))))))
+
+(defun* NSUBLIS (alist tree &key (key #'IDENTITY) test test-not)
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test #'EQL))
+  (let ((pair (ASSOC tree alist :key key :test test)))
+    (cond
+      (pair		(CDR pair))
+      ((ATOM tree)	tree)
+      (t
+       (progn
+	 (RPLACA tree (NSUBLIS alist (CAR tree) :key key :test test))
+	 (RPLACD tree (NSUBLIS alist (CDR tree) :key key :test test)))))))
 
 (fset 'COPY-LIST (symbol-function 'copy-list))
 
@@ -104,5 +126,5 @@
   (unless test
     (setq test #'EQL))
   (dolist (pair alist)
-    (when (and pair (funcall test item (funcall key (car pair))))
+    (when (and pair (FUNCALL test item (FUNCALL key (car pair))))
       (return-from ASSOC pair))))
