@@ -35,8 +35,10 @@
 (defun MACRO-FUNCTION (name &optional env)
   (when (null env)
     (setq env *global-environment*))
-  (let ((fn (lexical-function name env)))
-    (or fn (gethash name *macro-functions*))))
+  (MULTIPLE-VALUE-BIND (type localp decl) (function-information name env)
+    (if (eq type :macro)
+	(lexical-function name env)
+	(gethash name *macro-functions*))))
 
 (defsetf MACRO-FUNCTION (name &optional env) (fn)
   `(if (null ,env)
