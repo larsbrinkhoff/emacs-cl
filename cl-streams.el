@@ -292,6 +292,18 @@
   `(WITH-OPEN-STREAM (,var (MAKE-STRING-INPUT-STREAM ,string ,start ,end))
      ,@body))
 
+(defmacro* WITH-OUTPUT-TO-STRING ((var &optional string &key element-type)
+				  &body body)
+  (when (null element-type)
+    (setq element-type '(QUOTE CHARACTER)))
+  (if string
+      `(WITH-OPEN-STREAM (,var (make-fill-pointer-output-stream ,string))
+	 ,@body)
+      `(WITH-OPEN-STREAM (,var (MAKE-STRING-OUTPUT-STREAM
+				,(kw ELEMENT-TYPE) ,element-type))
+	 ,@body
+	 (GET-OUTPUT-STREAM-STRING ,var))))
+
 (cl:defmacro WITH-OUTPUT-TO-STRING ((var &optional string &key element-type)
 				    &body body)
   (when (null element-type)
