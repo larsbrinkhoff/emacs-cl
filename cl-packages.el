@@ -10,6 +10,8 @@
 ;;; a hash table or a list of exported symbols.  Instead, symbols are
 ;;; searched with intern-soft, and all symbols are exported.
 
+;;; The PACKAGE system class is built in.
+
 (defun PACKAGE-NAME (package)
   (aref (FIND-PACKAGE package) 1))
 
@@ -44,7 +46,7 @@
 	  ((eq status (kw INHERITED))
 	   (IMPORT sym package))
 	  ((null status)
-	   (error "package error"))))
+	   (ERROR 'PACKAGE-ERROR (kw PACKAGE) package))))
       (pushnew sym (aref package 7)))))
 
 (defun FIND-PACKAGE (name)
@@ -174,9 +176,23 @@
 	  (aset package 1 nil)
 	  T))))
 
-;;; with-package-iterator
+;;; TODO:
+; (cl:defmacro WITH-PACKAGE-ITERATOR ((name packages &rest types) &body body)
+;   (with-gensyms (p)
+;     `(LET ((,p ,packages))
+;        (MACROLET ((,name ()
+; 		    ...))
+; 	 ,@body))))
 
-;;; unexport
+(cl:defun UNEXPORT (symbols &optional (package-designator *PACKAGE*))
+  (let ((package (FIND-PACKAGE package-designator)))
+    (do-list-designator (symbol symbols)
+      (MULTIPLE-VALUE-BIND (sym found)
+	  (FIND-SYMBOL (symbol-name symbol) package)
+	(if (and found (eq sym symbol))
+	    (aset package 7 (delete symbol (aref package 7)))
+	    (ERROR 'PACKAGE-ERROR (kw PACKAGE) package)))))
+  (VALUES T))
 
 (defun* UNINTERN (symbol &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
@@ -241,7 +257,7 @@
   (maphash (lambda (k v) (FUNCALL fn k v)) hash))
 
 (cl:defmacro DO-SYMBOLS ((var &optional package result) &body body)
-  (let ((p1 (gensym)) (p2 (gensym)) (ignore (gensym)))
+  (with-gensyms (p1 p2 ignore)
     `(LET* ((,p1 ,package)
 	    (,p2 (IF ,p1 (FIND-PACKAGE ,p1) *PACKAGE*)))
        (el-maphash (LAMBDA (,ignore ,var) ,@body)
@@ -249,14 +265,14 @@
        ,result)))
 
 (cl:defmacro DO-EXTERNAL-SYMBOLS ((var &optional package result) &body body)
-  (let ((p1 (gensym)) (p2 (gensym)))
+  (with-gensyms (p1 p2)
     `(LET* ((,p1 ,package)
 	    (,p2 (IF ,p1 (FIND-PACKAGE ,p1) *PACKAGE*)))
        (DOLIST (,var (aref ,p2 7) ,result)
 	 ,@body))))
 
 (cl:defmacro DO-ALL-SYMBOLS ((var &optional result) &body body)
-  (let ((p (gensym)) (ignore (gensym)))
+  (with-gensyms (p ignore)
     `(DOLIST (,p *all-packages* ,result)
        (el-maphash (LAMBDA (,ignore ,var) ,@body)
 	           (package-table ,p)))))
@@ -281,9 +297,7 @@
 
 (defvar *PACKAGE* (FIND-PACKAGE "CL-USER"))
 
-;;; package-error
-
-;;; package-error-package
+;;; PACKAGE-ERROR and PACKAGE-ERROR-PACKAGE are defined in cl-conditions.el.
 
 
 
