@@ -44,11 +44,54 @@
 
 ;;; TODO: string-trim, string-left-trim, string-right-trim
 
-(fset 'STRING= (symbol-function 'string=))
+(defun* STRING= (string1 string2 &key (start1 0) end1 (start2 0) end2)
+  (string= (substring string1 start1 end1)
+	   (substring string2 start2 end2)))
 
-;;; TODO: string=, string/=, string<, string>, string<=, string>=,
-;;; string-equal, string-not-equal, string-lessp, string-greaterp,
-;;; string-not-greaterp, string-not-lessp
+(defun* STRING/= (string1 string2 &key (start1 0) end1 (start2 0) end2)
+  (not (STRING= string1 string2 :start1 start1 :end1 end1
+		                :start2 start2 :end2 end2)))
+
+(defun* STRING< (string1 string2 &key start1 end1 start2 end2)
+  (let ((i 0)
+	(len1 (LENGTH string1))
+	(len2 (LENGTH string2)))
+    (loop
+      (when (eq i len1)
+	(return-from STRING< (if (eq i len2) nil i)))
+      (when (eq i len2)
+	(return-from STRING< nil))
+      (when (CHAR< (CHAR string1 i) (CHAR string2 i))
+	(return-from STRING< i))
+      (when (CHAR> (CHAR string1 i) (CHAR string2 i))
+	(return-from STRING< nil))
+      (incf i))))
+
+(defun* STRING> (string1 string2 &key start1 end1 start2 end2)
+  (let ((i 0)
+	(len1 (LENGTH string1))
+	(len2 (LENGTH string2)))
+    (loop
+      (when (eq i len1)
+	(return-from STRING> nil))
+      (when (eq i len2)
+	(return-from STRING> i))
+      (when (CHAR< (CHAR string1 i) (CHAR string2 i))
+	(return-from STRING> nil))
+      (when (CHAR> (CHAR string1 i) (CHAR string2 i))
+	(return-from STRING> i))
+      (incf i))))
+
+(defun* STRING<= (string1 string2 &key start1 end1 start2 end2)
+  (STRING> string2 string1 :start1 start2 :end1 end2
+			   :start2 start1 :end2 end1))
+
+(defun* STRING>= (string1 string2 &key start1 end1 start2 end2)
+  (STRING< string2 string1 :start1 start2 :end1 end2
+			   :start2 start1 :end2 end1))
+
+;;; TODO: string-equal, string-not-equal, string-lessp,
+;;; string-greaterp, string-not-greaterp, string-not-lessp
 
 (defun STRINGP (object)
   (or (SIMPLE-STRING-P object)
