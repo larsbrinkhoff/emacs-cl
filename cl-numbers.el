@@ -510,8 +510,8 @@
     `(LET* ,(MAPCAR #'list temps values)
        (LET ((,(first variables)
 	      ,(if (eq delta 1)
-		   `(,(INTERN "1+" *common-lisp-package*) ,getter)
-		   `(,(INTERN "+" *common-lisp-package*) ,getter ,delta))))
+		   `(,(INTERN "1+" *cl-package*) ,getter)
+		   `(,(INTERN "+" *cl-package*) ,getter ,delta))))
 	 ,setter))))
 
 (cl:defmacro DECF (place &optional delta)
@@ -522,8 +522,8 @@
     `(LET* ,(MAPCAR #'list temps values)
        (LET ((,(first variables)
 	      ,(if (eq delta 1)
-		   `(,(INTERN "1-" *common-lisp-package*) ,getter)
-		   `(,(INTERN "-" *common-lisp-package*) ,getter ,delta))))
+		   `(,(INTERN "1-" *cl-package*) ,getter)
+		   `(,(INTERN "-" *cl-package*) ,getter ,delta))))
 	 ,setter))))
 
 ;;; TODO: LCM

@@ -74,7 +74,7 @@
 (defvar *keyword-package* (MAKE-PACKAGE "KEYWORD"))
 (defvar *emacs-lisp-package* (MAKE-PACKAGE "EMACS-LISP" :nicknames '("EL")))
 (defvar *emacs-cl-package* (MAKE-PACKAGE "EMACS-CL" :nicknames '("E-CL")))
-(defvar *common-lisp-package* (MAKE-PACKAGE "COMMON-LISP" :nicknames '("CL")))
+(defvar *cl-package* (MAKE-PACKAGE "COMMON-LISP" :nicknames '("CL")))
 (MAKE-PACKAGE "COMMON-LISP-USER" :nicknames '("CL-USER")
 	      :use '("CL" "E-CL" "EL"))
 
