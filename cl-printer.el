@@ -222,16 +222,7 @@
       ((READTABLEP object)
        (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
       ((STREAMP object)
-       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
-         (cond
-	   ((STREAM-filename object)
-	    (WRITE-STRING object stream))
-	   ((bufferp (STREAM-content object))
-	    (WRITE-STRING (buffer-name (STREAM-content object)) stream))
-	   ((STRINGP (STREAM-content object))
-	    (WRITE-STRING (string 34) stream)
-	    (WRITE-STRING (STREAM-content object) stream)
-	    (WRITE-STRING (string 34) stream)))))
+       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
       ((or (TYPEP object 'SIMPLE-CONDITION)
 	   ;; TODO: these two won't be necessary later
 	   (TYPEP object 'SIMPLE-ERROR)

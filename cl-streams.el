@@ -323,9 +323,19 @@
 	 (t
 	  (WRITE-LINE "Please answer 'yes' or 'no'. ")))))))
 
-;;; TODO: make-synonym-stream
+(defun MAKE-SYNONYM-STREAM (symbol)
+  (mk-SYNONYM-STREAM
+   (kw SYMBOL) symbol
+   (kw read-fn)
+     (lambda (stream)
+       (let ((s (symbol-value (SYNONYM-STREAM-SYMBOL stream))))
+	 (funcall (STREAM-read-fn s) s)))
+   (kw write-fn)
+     (lambda (char stream)
+       (let ((s (symbol-value (SYNONYM-STREAM-SYMBOL stream))))
+	 (funcall (STREAM-read-fn s) char s)))))
 
-;;; TODO: synonym-stream-symbol
+;;; SYNONYM-STREAM-SYMBOL defined by defstruct.
 
 ;;; BROADCAST-STREAM-STREAMS defined by defstruct.
 
