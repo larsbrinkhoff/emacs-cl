@@ -180,7 +180,7 @@
 		      (if (atom constructor)
 			  `(,constructor
 			    ,(lambda-list-with-defaults
-			      `(&key ,@(mapcar #'slot-name slots)) slots))
+			      `(&KEY ,@(mapcar #'slot-name slots)) slots))
 			  `(,(first constructor)
 			    ,(lambda-list-with-defaults
 			      (second constructor) slots))))

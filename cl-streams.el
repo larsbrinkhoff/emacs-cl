@@ -117,7 +117,7 @@
   (let ((char (read-char-exclusive)))
     (if (eq char 13) 10 char)))
 
-(cl:defun READ-CHAR-NO-HANG (&optional stream-designator (eof-error-p T)
+(cl:defun READ-CHAR-NO-HANG (&OPTIONAL stream-designator (eof-error-p T)
 				       eof-value recursive-p)
   (let ((stream (input-stream stream-designator)))
     (if (eq (STREAM-read-fn stream)
@@ -126,22 +126,22 @@
 	  (READ-CHAR stream stream eof-error-p eof-value recursive-p))
 	(READ-CHAR stream stream eof-error-p eof-value recursive-p))))
 
-(cl:defun TERPRI (&optional stream-designator)
+(cl:defun TERPRI (&OPTIONAL stream-designator)
   (let ((stream (output-stream stream-designator)))
     (WRITE-CHAR (ch 10) stream))
   nil)
 
-(cl:defun FRESH-LINE (&optional stream-designator)
+(cl:defun FRESH-LINE (&OPTIONAL stream-designator)
   (let ((stream (output-stream stream-designator)))
     (unless (STREAM-fresh-line-p stream)
       (TERPRI stream))))
 
-(cl:defun UNREAD-CHAR (char &optional stream-designator)
+(cl:defun UNREAD-CHAR (char &OPTIONAL stream-designator)
   (let ((stream (input-stream stream-designator)))
     (when (> (STREAM-position stream) 0)
       (decf (STREAM-position stream)))))
 
-(cl:defun WRITE-CHAR (char &optional stream-designator)
+(cl:defun WRITE-CHAR (char &OPTIONAL stream-designator)
   (let* ((stream (output-stream stream-designator))
 	 (fn (STREAM-write-fn stream)))
     (unless fn
@@ -150,7 +150,7 @@
     (setf (STREAM-fresh-line-p stream) (ch= char 10))
     char))
 
-(cl:defun READ-LINE (&optional stream-designator (eof-error-p T)
+(cl:defun READ-LINE (&OPTIONAL stream-designator (eof-error-p T)
 			       eof-value recursive-p)
   (let ((stream (input-stream stream-designator))
 	(line ""))
@@ -165,7 +165,7 @@
 	    (throw 'READ-LINE (VALUES line nil))))
 	 (setq line (concat line (list (CHAR-CODE char)))))))))
 
-(cl:defun WRITE-STRING (string &optional stream-designator &key (START 0) END)
+(cl:defun WRITE-STRING (string &OPTIONAL stream-designator &KEY (START 0) END)
   (unless END
     (setq END (LENGTH string)))
   (do ((stream (output-stream stream-designator))
@@ -173,13 +173,13 @@
       ((eq i END) string)
     (WRITE-CHAR (CHAR string i) stream)))
 
-(cl:defun WRITE-LINE (string &optional stream-designator &key (START 0) END)
+(cl:defun WRITE-LINE (string &OPTIONAL stream-designator &KEY (START 0) END)
   (let ((stream (output-stream stream-designator)))
     (WRITE-STRING string stream (kw START) START (kw END) END)
     (TERPRI stream)
     string))
 
-(cl:defun READ-SEQUENCE (seq stream &key (START 0) END)
+(cl:defun READ-SEQUENCE (seq stream &KEY (START 0) END)
   (unless END
     (setq END (LENGTH seq)))
   (catch 'READ-SEQUENCE
@@ -191,7 +191,7 @@
 	    (throw 'READ-SEQUENCE i)
 	    (setf (ELT seq i) char))))))
 
-(cl:defun WRITE-SEQUENCE (seq stream &key (START 0) END)
+(cl:defun WRITE-SEQUENCE (seq stream &KEY (START 0) END)
   (unless END
     (setq END (LENGTH seq)))
   (do ((i START (1+ i)))
@@ -224,7 +224,7 @@
 		 (PRINT object s)
 	      (CLOSE s)))))
 
-(cl:defun OPEN (filespec &key (DIRECTION (kw INPUT)) (ELEMENT-TYPE 'CHARACTER)
+(cl:defun OPEN (filespec &KEY (DIRECTION (kw INPUT)) (ELEMENT-TYPE 'CHARACTER)
 		              IF-EXISTS IF-DOES-NOT-EXIST
 			      (EXTERNAL-FORMAT (kw DEFAULT)))
   (mk-FILE-STREAM
@@ -261,7 +261,7 @@
   `(WITH-OPEN-STREAM (,stream (OPEN ,filespec ,@options))
      ,@body))
 
-(cl:defun CLOSE (stream &key ABORT)
+(cl:defun CLOSE (stream &KEY ABORT)
   (when (TYPEP stream 'FILE-STREAM)
     (save-current-buffer
       (set-buffer (STREAM-content stream))
@@ -283,7 +283,7 @@
 	  (progn ,@body)
        (CLOSE ,var))))
 
-(cl:defun LISTEN (&optional stream-designator)
+(cl:defun LISTEN (&OPTIONAL stream-designator)
   (let ((stream (input-stream stream-designator)))
      (if (eq (STREAM-read-fn stream)
 	     (cl:function read-char-exclusive-ignoring-arg))
@@ -409,7 +409,7 @@
 (defun GET-OUTPUT-STREAM-STRING (stream)
   (STRING-STREAM-string stream))
 
-(cl:defun MAKE-STRING-INPUT-STREAM (string &optional (start 0) end)
+(cl:defun MAKE-STRING-INPUT-STREAM (string &OPTIONAL (start 0) end)
   (mk-STRING-STREAM
    (kw string) (let ((substr (substring string start end)))
 		 (if (> (length substr) 0)
@@ -428,7 +428,7 @@
 	  (char-octet (aref (STRING-STREAM-string stream)
 			    (1- (incf (STREAM-position stream))))))))))
 
-(cl:defun MAKE-STRING-OUTPUT-STREAM (&key (ELEMENT-TYPE 'CHARACTER))
+(cl:defun MAKE-STRING-OUTPUT-STREAM (&KEY (ELEMENT-TYPE 'CHARACTER))
   (mk-STRING-STREAM
    (kw string) ""
    (kw write-fn)

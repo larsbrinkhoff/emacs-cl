@@ -23,12 +23,12 @@
   (MERGE-PATHNAMES (MAKE-PATHNAME (kw TYPE) "elc") filename))
 
 (cl:defun COMPILE-FILE-PATHNAME (input-file
-				 &key (OUTPUT-FILE (elc-file input-file))
-				 &allow-other-keys)
+				 &KEY (OUTPUT-FILE (elc-file input-file))
+				 &ALLOW-OTHER-KEYS)
   (let* ((input (MERGE-PATHNAMES input-file)))
     (MERGE-PATHNAMES OUTPUT-FILE input)))
 
-(cl:defun LOAD (file &key (VERBOSE *LOAD-VERBOSE*)
+(cl:defun LOAD (file &KEY (VERBOSE *LOAD-VERBOSE*)
 		     	  (PRINT *LOAD-PRINT*)
 		     	  (IF-DOES-NOT-EXIST T)
 		     	  (EXTERNAL-FORMAT (kw DEFAULT)))

@@ -5,7 +5,7 @@
 
 (IN-PACKAGE "EMACS-CL")
 
-(cl:defun COPY-PPRINT-DISPATCH (&optional (table *PRINT-PPRINT-DISPATCH*))
+(cl:defun COPY-PPRINT-DISPATCH (&OPTIONAL (table *PRINT-PPRINT-DISPATCH*))
   (unless table
     (setq table *initial-pprint-dispatch*))
   (let ((copy (make-hash-table :test #'equal)))
@@ -15,7 +15,7 @@
 
 ;;; FORMATTER is defined in cl-format.el.
 
-(cl:defun PPRINT-DISPATCH (object &optional (table *PRINT-PPRINT-DISPATCH*))
+(cl:defun PPRINT-DISPATCH (object &OPTIONAL (table *PRINT-PPRINT-DISPATCH*))
   (unless table
     (setq table *initial-pprint-dispatch*))
   (let ((fn nil)
@@ -250,7 +250,7 @@
 (cl:defmacro PRINT-UNREADABLE-OBJECT ((object stream &rest keys) &body body)
   `(print-unreadable-object ,object ,stream (LAMBDA () ,@body) ,@keys))
 
-(cl:defun print-unreadable-object (object stream fn &key TYPE IDENTITY)
+(cl:defun print-unreadable-object (object stream fn &KEY TYPE IDENTITY)
   (when *PRINT-READABLY*
     (ERROR 'PRINT-NOT-READABLE (kw OBJECT) object))
   (WRITE-STRING "#<" stream)
@@ -266,7 +266,7 @@
   nil)
 
 (cl:defun SET-PPRINT-DISPATCH (type fn
-			       &optional (priority 0)
+			       &OPTIONAL (priority 0)
 					 (table *PRINT-PPRINT-DISPATCH*))
   (if (null fn)
       (remhash type table)
@@ -301,7 +301,7 @@
 (defun printer-escaping-p ()
   (or *PRINT-READABLY* *PRINT-ESCAPE*))
 
-(cl:defun WRITE (object &key
+(cl:defun WRITE (object &KEY
 		 (ARRAY *PRINT-ARRAY*)
 		 (BASE *PRINT-BASE*)
 		 (CASE *PRINT-CASE*)
@@ -353,7 +353,7 @@
 (defun write-char-to-*standard-output* (char)
   (WRITE-CHAR (CODE-CHAR (char-octet char)) *STANDARD-OUTPUT*))
 
-(cl:defun print-integer (number stream &optional (base 10) radix)
+(cl:defun print-integer (number stream &OPTIONAL (base 10) radix)
   (when radix
     (case base
       (2	(WRITE-STRING "#b" stream))
@@ -425,7 +425,7 @@
 (defun PRINC (object &optional stream)
   (WRITE object (kw STREAM) stream (kw ESCAPE) nil (kw READABLY) nil))
 
-(cl:defun WRITE-TO-STRING (object &rest keys)
+(cl:defun WRITE-TO-STRING (object &REST keys)
   (WITH-OUTPUT-TO-STRING (stream)
     (apply (cl:function WRITE) object (kw STREAM) stream keys)))
 

@@ -51,7 +51,7 @@
     (aset vector 0 'SIMPLE-VECTOR)
     vector))
 
-(cl:defun MAKE-ARRAY (dimensions &key (ELEMENT-TYPE T) INITIAL-ELEMENT
+(cl:defun MAKE-ARRAY (dimensions &KEY (ELEMENT-TYPE T) INITIAL-ELEMENT
 		      INITIAL-CONTENTS ADJUSTABLE FILL-POINTER
 		      DISPLACED-TO DISPLACED-INDEX-OFFSET)
   (setq dimensions (ensure-list dimensions))
@@ -148,7 +148,7 @@
 ; 	 array)))))
 
 (cl:defun ADJUST-ARRAY (array new-dimensions
-			&key ELEMENT-TYPE INITIAL-ELEMENT INITIAL-CONTENTS
+			&KEY ELEMENT-TYPE INITIAL-ELEMENT INITIAL-CONTENTS
 			     FILL-POINTER DISPLACED-TO DISPLACED-INDEX-OFFSET)
   (if (ADJUSTABLE-ARRAY-P array)
       (error "TODO")

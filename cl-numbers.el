@@ -225,7 +225,7 @@
       (setq float (/ float two^fixnum-bits)))
     (canonical-bignum (nreverse list))))
 
-(cl:defun FLOOR (number &optional (divisor 1))
+(cl:defun FLOOR (number &OPTIONAL (divisor 1))
   (let (quotient remainder)
     (cond
       ((or (floatp number) (floatp divisor))
@@ -249,14 +249,14 @@
       (setq quotient (binary- quotient 1)))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
 
-(cl:defun FFLOOR (number &optional (divisor 1))
+(cl:defun FFLOOR (number &OPTIONAL (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (FLOOR number divisor)
     (VALUES (FLOAT quotient) remainder)))
 
 (defun ceiling-to-bignum (float)
   (cl:- (floor-to-bignum (- float))))
 
-(cl:defun CEILING (number &optional (divisor 1))
+(cl:defun CEILING (number &OPTIONAL (divisor 1))
   (let (quotient remainder)
     (cond
       ((or (floatp number) (floatp divisor))
@@ -280,7 +280,7 @@
       (setq quotient (binary+ quotient 1)))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
 
-(cl:defun FCEILING (number &optional (divisor 1))
+(cl:defun FCEILING (number &OPTIONAL (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (CEILING number divisor)
     (VALUES (FLOAT quotient) remainder)))
 
@@ -296,7 +296,7 @@
   (wrong-number-of-arguments
    (defmacro trunc2 (num div) `(truncate (/ ,num ,div)))))
 
-(cl:defun TRUNCATE (number &optional (divisor 1))
+(cl:defun TRUNCATE (number &OPTIONAL (divisor 1))
   (let (quotient)
     (cond
       ((or (floatp number) (floatp divisor))
@@ -316,17 +316,17 @@
        (error "type error")))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
 
-(cl:defun FTRUNCATE (number &optional (divisor 1))
+(cl:defun FTRUNCATE (number &OPTIONAL (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (TRUNCATE number divisor)
     (VALUES (FLOAT quotient) remainder)))
 
-(cl:defun ROUND (number &optional (divisor 1))
+(cl:defun ROUND (number &OPTIONAL (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder)
       ;; TODO: proper rounding
       (TRUNCATE (binary+ number .5) divisor)
     (VALUES quotient remainder)))
 
-(cl:defun FROUND (number &optional (divisor 1))
+(cl:defun FROUND (number &OPTIONAL (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (ROUND number divisor)
     (VALUES (FLOAT quotient) remainder)))
 
@@ -512,7 +512,7 @@
 (defun bignum+bignum (x y)
   (canonical-bignum (bignum+ (bignum-list x) (bignum-list y))))
 
-(cl:defun bignum-list (num &optional (index 1))
+(cl:defun bignum-list (num &OPTIONAL (index 1))
   (if (= index (length num))
       nil
       (cons (aref num index) (bignum-list num (1+ index)))))
@@ -549,7 +549,7 @@
 		 list)))
 	    list))))
 
-(cl:defun bignum+ (x y &optional (carry 0))
+(cl:defun bignum+ (x y &OPTIONAL (carry 0))
 ; (print (format "(bignum+ %s %s %s)" x y carry))
   (cond
     ((null x)
@@ -764,7 +764,7 @@
       0
       (integer-truncate (ABS (binary* x y)) (GCD x y))))
 
-(cl:defun LOG (number &optional (base (exp 1)))
+(cl:defun LOG (number &OPTIONAL (base (exp 1)))
   (cond
     ((and (REALP number) (REALP base))
      (log (FLOAT number) (FLOAT base)))
@@ -841,7 +841,7 @@
     (type-error x 'REAL))
   (EXP (vector 'COMPLEX 0 x)))
 
-(cl:defun COMPLEX (realpart &optional (imagpart 0))
+(cl:defun COMPLEX (realpart &OPTIONAL (imagpart 0))
   (cond
     ((floatp realpart)
      (setq imagpart (float imagpart)))
@@ -1001,7 +1001,7 @@
 (defun INTEGERP (num)
   (or (integerp num) (bignump num)))
 
-(cl:defun PARSE-INTEGER (string &key (START 0) (END (LENGTH string))
+(cl:defun PARSE-INTEGER (string &KEY (START 0) (END (LENGTH string))
 			             (RADIX 10) JUNK-ALLOWED)
   (let ((sign 1)
 	(integer 0)
@@ -1296,7 +1296,7 @@
     (error "type error"))
   2)
 
-(defun* FLOAT-SIGN (float1 &optional (float2 1.0))
+(cl:defun FLOAT-SIGN (float1 &OPTIONAL (float2 1.0))
   (if (minusp float1)
       (- float2)
       float2))

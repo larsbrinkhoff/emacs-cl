@@ -332,7 +332,7 @@
 	               fn-info fn-local (aref env 6)
 	               block-info tagbody-info)))
 
-(cl:defun enclose (lambda-exp &optional env (name ""))
+(cl:defun enclose (lambda-exp &OPTIONAL env (name ""))
   (unless env
     (setq env *global-environment*))
   (vector 'INTERPRETED-FUNCTION lambda-exp env name))

@@ -275,7 +275,7 @@
 
 ;;; TODO: Standard Generic Function DOCUMENTATION, (SETF DOCUMENTATION)
 
-(cl:defun ROOM (&optional (x (kw DEFAULT)))
+(cl:defun ROOM (&OPTIONAL (x (kw DEFAULT)))
   (let* ((info (garbage-collect))
          (foo '("conses" "symbols" "misc" "string chars"
                 "vector slots" "floats" "intervals" "strings"))

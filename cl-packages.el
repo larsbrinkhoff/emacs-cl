@@ -63,7 +63,7 @@
 	       (find string (PACKAGE-NICKNAMES p) :test 'equal)))
 	 *all-packages*))))
 
-(cl:defun MAKE-PACKAGE (name &key NICKNAMES USE)
+(cl:defun MAKE-PACKAGE (name &KEY NICKNAMES USE)
   (let ((package (make-vector 8 'PACKAGE))
 	(use-packages (mapcar #'FIND-PACKAGE USE)))
     (aset package 1 (STRING name))			;name
@@ -218,7 +218,7 @@
 			      (VALUES T (CAR cons) (CDR cons) (CAR ,p))))))))
 	  ,@body))))
 
-(cl:defun UNEXPORT (symbols &optional (package-designator *PACKAGE*))
+(cl:defun UNEXPORT (symbols &OPTIONAL (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
     (do-list-designator (symbol symbols)
       (MULTIPLE-VALUE-BIND (sym found)
@@ -228,7 +228,7 @@
 	    (ERROR 'PACKAGE-ERROR (kw PACKAGE) package)))))
   (VALUES T))
 
-(defun* UNINTERN (symbol &optional (package-designator *PACKAGE*))
+(cl:defun UNINTERN (symbol &OPTIONAL (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
     (when (eq (SYMBOL-PACKAGE symbol) package)
       (setf (SYMBOL-PACKAGE symbol) nil))
@@ -250,7 +250,7 @@
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
      (SETQ *PACKAGE* (FIND-PACKAGE ,package))))
 
-(defun* UNUSE-PACKAGE (packages-to-unuse &optional (package *PACKAGE*))
+(cl:defun UNUSE-PACKAGE (packages-to-unuse &OPTIONAL (package *PACKAGE*))
   (let ((package (FIND-PACKAGE package)))
     (do-list-designator (p packages-to-unuse)
       (let ((p (FIND-PACKAGE p)))
@@ -258,7 +258,7 @@
 	(aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))))
   T)
 
-(defun* USE-PACKAGE (packages-to-use &optional (package *PACKAGE*))
+(cl:defun USE-PACKAGE (packages-to-use &OPTIONAL (package *PACKAGE*))
   (let ((package (FIND-PACKAGE package)))
     (do-list-designator (p packages-to-use)
       (aset package 4 (cons (FIND-PACKAGE p) (PACKAGE-USE-LIST package)))))
@@ -322,7 +322,7 @@
        (el-maphash (LAMBDA (,ignore ,var) ,@body)
 	           (package-table ,p)))))
 
-(defun* INTERN (name &optional (package-designator *PACKAGE*))
+(cl:defun INTERN (name &OPTIONAL (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
     (when (null package)
       (error (format "package \"%s\" not found" package-designator)))

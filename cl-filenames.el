@@ -22,7 +22,7 @@
 (defun mkpathname (host device directory name type version)
   (vector 'PATHNAME host device directory name type version))
 
-(cl:defun MAKE-PATHNAME (&key HOST DEVICE DIRECTORY NAME
+(cl:defun MAKE-PATHNAME (&KEY HOST DEVICE DIRECTORY NAME
 			      TYPE VERSION DEFAULTS CASE)
   (unless DEFAULTS
     (setq DEFAULTS (mkpathname (PATHNAME-HOST *DEFAULT-PATHNAME-DEFAULTS*)
@@ -122,7 +122,7 @@
     ((EQUAL (first dir1) (first dir2))
      (dir-subtract (rest dir1) (rest dir2)))))
 
-(cl:defun ENOUGH-NAMESTRING (pathname-designator &optional
+(cl:defun ENOUGH-NAMESTRING (pathname-designator &OPTIONAL
 			     (defaults *DEFAULT-PATHNAME-DEFAULTS*))
   ;; It is required that
   ;;   (merge-pathnames (enough-namestring pathname defaults) defaults)
@@ -196,9 +196,9 @@
     ((STRING= string "*")	(kw WILD))
     (t				string)))
 
-(cl:defun PARSE-NAMESTRING (thing &optional host
+(cl:defun PARSE-NAMESTRING (thing &OPTIONAL host
 			    (default *DEFAULT-PATHNAME-DEFAULTS*)
-			    &key (START 0) END JUNK-ALLOWED)
+			    &KEY (START 0) END JUNK-ALLOWED)
   (cond
     ((STREAMP thing)
      (PARSE-NAMESTRING (STREAM-filename thing) host default (kw START) START
@@ -221,7 +221,7 @@
     (t
      (type-error thing '(OR PATHNAME STRING STREAM)))))
 
-(cl:defun WILD-PATHNAME-P (pathname-designator &optional field)
+(cl:defun WILD-PATHNAME-P (pathname-designator &OPTIONAL field)
   (let ((pathname (PATHNAME pathname-designator)))
     (cond
       ((eq field (kw HOST))
@@ -314,7 +314,7 @@
      (wild-or-nil (PATHNAME-TYPE to-wildcard) (PATHNAME-TYPE source))
      (wild-or-nil (PATHNAME-VERSION to-wildcard) (PATHNAME-VERSION source)))))
 
-(cl:defun MERGE-PATHNAMES (pathname-d &optional (default-d
+(cl:defun MERGE-PATHNAMES (pathname-d &OPTIONAL (default-d
 						 *DEFAULT-PATHNAME-DEFAULTS*)
 					        (default-version (kw NEWEST)))
   (let ((pathname (PATHNAME pathname-d))

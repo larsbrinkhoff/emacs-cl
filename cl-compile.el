@@ -222,11 +222,31 @@
 	    (compile-form `(LAMBDA ,@(rest fn)) new-env)))
     `(progn ,@(compile-forms body))))
 
+(defun lambda-list-parameters (lambda-list)
+  (let ((result nil))
+    (dolist (var lambda-list (nreverse result))
+      (unless (lambda-list-keyword-p var)
+	(push (cond
+		((symbolp var)			    var)
+		((consp var)	(let ((var (car var)))
+				  ((symbolp var)    var)
+				  ((consp var)	    (car var))
+				  (t		    (ERROR 'PROGRAM-ERROR))))
+		(t				    (ERROR 'PROGRAM-ERROR)))
+	      result)))))
+
 (defvar *compile-lambda* nil)
 
 ;;; TODO: lambda
 (defun* compile-lambda (form env)
-  nil)
+  (MULTIPLE-VALUE-BIND (body decls) (cddr form)
+    (let* ((vars (second form))
+	   (new-env (if vars (augment-environment env :variable vars) env))
+	   (*bound* nil))
+      (dolist (var (lambda-list-parameters vars))
+	(setf (lexical-value var new-env) (new-register))
+	(push var *bound*))
+      (expand-lambda vars (compile-forms body new-env)))))
 
 ;   (let ((vars (second form))
 ; 	(body (cddr form))
@@ -263,7 +283,8 @@
     (let* ((vars (lexical-binding-variables bindings))
 	   (new-env (if vars (augment-environment env :variable vars) env)))
       (dolist (var vars)
-	(setf (lexical-value var new-env) (new-register)))
+	(setf (lexical-value var new-env) (new-register))
+	(push var *bound*))
       `(let ,(mapcar (lambda (binding)
 		       (cond
 			 ((symbolp binding)
@@ -281,7 +302,8 @@
     (let* ((vars (lexical-binding-variables bindings))
 	   (new-env (if vars (augment-environment env :variable vars) env)))
       (dolist (var vars)
-	(setf (lexical-value var new-env) (new-register)))
+	(setf (lexical-value var new-env) (new-register))
+	(push var *bound*))
       `(let* ,(mapcar (lambda (binding)
 			(cond
 			  ((symbolp binding)

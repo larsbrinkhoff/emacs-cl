@@ -193,7 +193,7 @@
 	(error "no such condition type"))))
 
 (DEFSTRUCT (RESTART
-	     (:constructor make-restart (NAME handler &optional condition))
+	     (:constructor make-restart (NAME handler &OPTIONAL condition))
 	     (:predicate restartp))
   NAME handler condition)
 

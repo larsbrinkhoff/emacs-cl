@@ -18,7 +18,7 @@
      ',name))
 
 (defun lambda-keyword-p (x)
-  (member x '(&optional &rest &key)))
+  (member x '(&OPTIONAL &REST &KEY)))
 
 (defvar rest-sym (make-symbol "rest"))
 
@@ -29,13 +29,13 @@
 	(state :required))
     (dolist (x lambda-list)
       (cond
-	((memq x '(&key &rest))
+	((memq x '(&KEY &REST))
 	 (push '&rest result)
 	 (push rest-sym result)
 	 (return-from simplify-lambda-list (nreverse result)))
 	((lambda-keyword-p x)
 	 (setq state x)
-	 (push x result))
+	 (push (cdr (assq x '((&OPTIONAL . &optional)))) result))
 	((symbolp x)
 	 (push x result))
 	((consp x)
@@ -57,8 +57,8 @@
     (while lambda-list
       (setq x (pop lambda-list))
       (cond
-	((eq x '&key)
-	 (dolist (y (lambda-list-keyword-vars (cons '&key lambda-list) t))
+	((eq x '&KEY)
+	 (dolist (y (lambda-list-keyword-vars (cons '&KEY lambda-list) t))
 	   (push `(,y ',unbound) bindings))
 	 (return-from lambda-list-bindings (nreverse bindings)))
 	((lambda-keyword-p x)
@@ -67,10 +67,10 @@
 	 (case state
 	   (:optional-rest
 	    (push `(,x (pop ,rest-sym)) bindings))
-	   (&rest
+	   (&REST
 	    (push `(,x ,rest-sym) bindings))))
 	((consp x)
-	 (when (eq state '&optional)
+	 (when (eq state '&OPTIONAL)
 	   (setq state :optional-rest))
 	 (case state
 	   (:optional-rest
@@ -87,7 +87,7 @@
     (nreverse bindings)))
 
 (defun lambda-list-keys (lambda-list)
-  (let ((key (copy-list (member '&key lambda-list))))
+  (let ((key (copy-list (member '&KEY lambda-list))))
     (when key
       (let ((x key))
 	(while (rest x)
@@ -107,7 +107,7 @@
 	      (rest key)))))
 
 (defun lambda-list-keyword-vars (lambda-list &optional include-supplied)
-  (let ((key (copy-list (member '&key lambda-list))))
+  (let ((key (copy-list (member '&KEY lambda-list))))
     (when key
       (let ((x key))
 	(while (rest x)
@@ -129,7 +129,7 @@
 	       (rest key)))))
 
 (defun lambda-list-keyword-defaults (lambda-list)
-  (let ((key (copy-list (member '&key lambda-list))))
+  (let ((key (copy-list (member '&KEY lambda-list))))
     (when key
       (let ((x key))
 	(while (rest x)
@@ -142,7 +142,7 @@
 	      (rest key)))))
 
 (defun keyword-bindings (lambda-list)
-  (let ((allow-other-keys (member '&allow-other-keys lambda-list))
+  (let ((allow-other-keys (member '&ALLOW-OTHER-KEYS lambda-list))
 	(result nil)
 	(temp (gensym))
 	(keys (lambda-list-keys lambda-list))
@@ -164,14 +164,20 @@
 			 (setq ,var ,default))))
 		   vars defaults)))))
 
+(defun expand-lambda (lambda-list body)
+  (dolist (k '(&optional &rest &key &aux &allow-other-keys))
+    (when (memq k lambda-list)
+      (error "Emacs Lisp lambda list keywords not allowed")))
+  (if (and (every 'symbolp lambda-list)
+	   (notany (lambda (x) (member x '(&KEY))) lambda-list))
+      ;; Easy case: no defaults, suppliedp, or keyword arguments.
+      `(lambda ,(simplify-lambda-list lambda-list) ,@body)
+      ;; Difficult case:
+      `(lambda ,(simplify-lambda-list lambda-list)
+	(let* ,(lambda-list-bindings lambda-list)
+	  ,@(keyword-bindings lambda-list)
+	  ,@body))))
+
 (defmacro cl:lambda (lambda-list &rest body)
 ;  (byte-compile
-    (if (and (every 'symbolp lambda-list)
-	     (notany (lambda (x) (member x '(&key))) lambda-list))
-	;; Easy case: no defaults, suppliedp, or keyword arguments.
-	`(lambda ,lambda-list ,@body)
-	;; Difficult case:
-	`(lambda ,(simplify-lambda-list lambda-list)
-	   (let* ,(lambda-list-bindings lambda-list)
-	     ,@(keyword-bindings lambda-list)
-	     ,@body))));)
+   (expand-lambda lambda-list body));)

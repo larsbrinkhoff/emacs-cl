@@ -30,7 +30,7 @@
 	  hash))
   to)
 
-(cl:defun MAKE-DISPATCH-MACRO-CHARACTER (char &optional non-terminating-p
+(cl:defun MAKE-DISPATCH-MACRO-CHARACTER (char &OPTIONAL non-terminating-p
 					      (readtable *READTABLE*))
   (SET-MACRO-CHARACTER char #'dispatch-reader non-terminating-p readtable)
   T)
@@ -129,12 +129,12 @@
        (let ,bindings
 	 ,@body)))
 
-(cl:defun READ (&optional stream (eof-error-p T) eof-value recursive-p)
+(cl:defun READ (&OPTIONAL stream (eof-error-p T) eof-value recursive-p)
   (let-unless recursive-p
 	    ((*sharp-equal-table* (make-hash-table :test #'equal)))
     (read1 stream eof-error-p eof-value recursive-p nil)))
 
-(cl:defun READ-PRESERVING-WHITESPACE (&optional stream (eof-error-p T)
+(cl:defun READ-PRESERVING-WHITESPACE (&OPTIONAL stream (eof-error-p T)
 				      eof-value recursive-p)
   (let-unless recursive-p
 	    ((*sharp-equal-table* (make-hash-table :test #'equal)))
@@ -155,8 +155,8 @@
     (unless-read-suppress-let (object (READ stream t nil recursive-p))
       (push object list))))
 
-(cl:defun READ-FROM-STRING (string &optional (eof-error-p T) eof-value
-			           &key (START 0) END PRESERVE-WHITESPACE)
+(cl:defun READ-FROM-STRING (string &OPTIONAL (eof-error-p T) eof-value
+			           &KEY (START 0) END PRESERVE-WHITESPACE)
   (let ((stream (MAKE-STRING-INPUT-STREAM string START END)))
     (if PRESERVE-WHITESPACE
 	(READ-PRESERVING-WHITESPACE stream eof-error-p eof-value)
