@@ -42,7 +42,7 @@ simple-vector		[SIMPLE-VECTOR <elt> ...]
 vector			[VECTOR <size> <elements> <offset> <fill-pointer>]
 array			[ARRAY <dimensions> <elements> <offset>]
 interpreted-function	[INTERPRETED-FUNCTION <fn> <env> <name>]
-instance of type T	[T <slot> ...]
+instance of class T	[T <slot> ...]
 
 
 
@@ -72,5 +72,5 @@ in compiled files:
  * When's applied to a subr, the result will be printed with the
    #<subr ...> syntax, which will raise a syntax error when loaded.
 
-In generall, Emacs' byte compiler doesn't preserve object identity,
+In general, Emacs' byte compiler doesn't preserve object identity,
 which is a problem.
