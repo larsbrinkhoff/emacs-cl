@@ -21,6 +21,7 @@
   (load "cl-strings")
   (load "cl-symbols")
   (load "cl-packages")
+  (load "cl-hash")
 
   (load "cl-types")
   (load "cl-typep")
