@@ -91,19 +91,7 @@
      (type-error array 'ARRAY))))
 
 (defsetf AREF (array &rest subscripts) (obj)
-  `(cond
-     ((BIT-VECTOR-P ,array)
-      (setf (BIT ,array (just-one ',subscripts))) ,obj)
-     ((STRINGP ,array)
-      (setf (CHAR ,array (just-one ',subscripts))) ,obj)
-     ((vector-and-typep ,array 'SIMPLE-VECTOR)
-      (setf (SVREF ,array ,(first subscripts)) ,obj))
-     ((vector-and-typep ,array 'VECTOR)
-      (aset (aref ,array 2) (just-one ',subscripts) ,obj))
-     ((vector-and-typep ,array 'ARRAY)
-      (aset (aref ,array 2) (ARRAY-ROW-MAJOR-INDEX ,@subscripts) ,obj))
-     (t
-      (error))))
+  `(ASET ,obj ,array ,@subscripts))
 
 (DEFINE-SETF-EXPANDER AREF (array &rest subscripts)
   (let ((obj (gensym))
@@ -129,21 +117,6 @@
      (aset (aref array 2) (apply #'ARRAY-ROW-MAJOR-INDEX subscripts) object))
     (t
      (type-error array 'ARRAY))))
-
-; (DEFSETF AREF (array &rest subscripts) (obj)
-;   `(COND
-;      ((BIT-VECTOR-P ,array)
-;       (SETF (BIT ,array (first (QUOTE ,subscripts)))) ,obj)
-;      ((STRINGP ,array)
-;       (SETF (CHAR ,array (first (QUOTE ,subscripts)))) ,obj)
-;      ((vector-and-typep ,array (QUOTE SIMPLE-VECTOR))
-;       (SETF (SVREF ,array ,(first subscripts)) ,obj))
-;      ((vector-and-typep ,array (QUOTE VECTOR))
-;       (aset (aref ,array 2) (first (QUOTE ,subscripts)) ,obj))
-;      ((vector-and-typep ,array (QUOTE ARRAY))
-;       (aset (aref ,array 2) (ARRAY-ROW-MAJOR-INDEX ,@subscripts) ,obj))
-;      (T
-;       (type-error ,array 'ARRAY))))
 
 (defun ARRAY-DIMENSION (array axis)
   (cond
