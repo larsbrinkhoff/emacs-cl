@@ -55,6 +55,12 @@
       (CONS (COPY-TREE (CAR tree)) (COPY-TREE (CDR tree)))
       tree))
 
+(fset 'COPY-LIST (symbol-function 'copy-list))
+
+(fset 'LIST (symbol-function 'list))
+
+(fset 'LIST* (symbol-function 'list*))
+
 (defun* MAKE-LIST (size &key initial-element)
   (make-list size initial-element))
 

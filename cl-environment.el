@@ -15,6 +15,12 @@
 (defvar ///)
 (defvar cl:- nil)
 
+(defun LISP-IMPLEMENTATION-TYPE ()
+  "Emacs CL")
+
+(defun LISP-IMPLEMENTATION-VERSION ()
+  "0.1")
+
 (defun top-level-loop ()
   (loop
    (princ (format "%s> " (package-name *PACKAGE*)))
