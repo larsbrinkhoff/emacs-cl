@@ -159,8 +159,10 @@
      (cl::ratio (two-arg-+ (cl:* (numerator x) (denominator y))
 		       (cl:* (denominator y) (numerator x)))
 	    (cl:* (denominator x) (denominator y))))
-    ;; bignum
-    (t 0)))
+    ((or (cl::bignump x) (cl::bignump y))
+     0)
+    (t
+     (error))))
 
 (defun cl:- (number &rest numbers)
   (if (null numbers)
@@ -181,6 +183,8 @@
 	 (error)))
       (dolist (num numbers number)
 	(setq number (two-arg-- number num)))))
+
+;;; TODO: two-arg--
 
 (defun cl:/ (number &rest numbers)
   (if (null numbers)

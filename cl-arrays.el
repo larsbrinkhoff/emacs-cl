@@ -23,26 +23,34 @@
       (setq fill-pointer (just-one dimensions)))
     (ecase (upgraded-array-element-type element-type)
       (bit
-       (let ((bit-vector (make-bool-vector size (ecase initial-element
-						  ((0 nil) nil) (1 t)))))
+       (let ((bit-vector (or displaced-to
+			     (make-bool-vector size (ecase initial-element
+						      ((0 nil) nil) (1 t))))))
 	 (cond
 	   (simplep	bit-vector)
-	   (vectorp	(vector 'bit-vector fill-pointer bit-vector))
-	   (t		(vector 'bit-array dimensions bit-vector)))))
+	   (vectorp	(vector 'bit-vector fill-pointer bit-vector
+				displaced-index-offset))
+	   (t		(vector 'bit-array dimensions bit-vector
+				displaced-index-offset)))))
       (character
-       (let ((string (make-string size (char-code initial-element))))
+       (let ((string (or displaced-to
+			 (make-string size (char-code initial-element)))))
 	 (cond
 	   (simplep	string)
-	   (vectorp	(vector 'string fill-pointer string))
-	   (t		(vector 'char-array dimensions string)))))
+	   (vectorp	(vector 'string fill-pointer string
+				displaced-index-offset))
+	   (t		(vector 'char-array dimensions string
+				displaced-index-offset)))))
       ((t)
        (when simplep
 	 (incf size))
-       (let ((array (make-vector size initial-element)))
+       (let ((array (or displaced-to (make-vector size initial-element))))
 	 (cond
 	   (simplep	(aset array 0 'simple-vector) array)
-	   (vectorp	(vector 'vector fill-pointer array))
-	   (t		(vector 'array dimensions array))))))))
+	   (vectorp	(vector 'vector fill-pointer array
+				displaced-index-offset))
+	   (t		(vector 'array dimensions array
+				displaced-index-offset))))))))
 
 (defun adjust-array (array new-dimensions
 		     &key element-type initial-element initial-contents
