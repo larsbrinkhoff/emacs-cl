@@ -797,8 +797,36 @@
     ((COMPLEXP number)	(error "TODO"))
     (t			(error "type error"))))
 
+; (defun ISQRT (number)
+;   (cl:values (FLOOR (sqrt (FLOAT number)))))
+
+;;; http://www.embedded.com/98/9802fe2.htm
 (defun ISQRT (number)
-  (cl:values (FLOOR (sqrt (FLOAT number)))))
+  (do ((rem 0)
+       (root 0)
+       (i (LOGAND (INTEGER-LENGTH number) -2) (- i 2)))
+      ((minusp i)
+       (ASH root -1))
+    (setq root (binary+ root root)
+	  rem (binary+ (ASH rem 2) (LOGAND (ASH number (- i)) 3))
+	  root (binary+ root 1))
+    (if (binary<= root rem)
+	(setq rem (binary- rem root)
+	      root (binary+ root 1))
+	(setq root (binary+ root -1)))))
+; (defun ISQRT (number)
+;   (do ((rem 0)
+;        (root 0)
+;        divisor
+;        (i (LOGAND (INTEGER-LENGTH number) -2) (- i 2)))
+;       ((minusp i)
+;        root)
+;     (setq root (binary+ root root)
+; 	  rem (binary+ (ASH rem 2) (LOGAND (ASH number (- i)) 3))
+; 	  divisor (binary+ (binary+ root root) 1))
+;     (when (binary<= divisor rem)
+;       (setq rem (binary- rem divisor)
+; 	    root (binary+ root 1)))))
 
 ;;; System Class RANDOM-STATE
 
