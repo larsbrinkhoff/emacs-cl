@@ -13,10 +13,133 @@
   MACRO-TABLE
   DISPATCH-TABLE)
 
-(defun* GET-DISPATCH-MACRO-CHARACTER (disp-char sub-char
-				      &optional (readtable *READTABLE*))
-  (let ((string (concat (list (CHAR-CODE disp-char) (CHAR-CODE sub-char)))))
-    (gethash string (READTABLE-DISPATCH-TABLE readtable))))
+(defun* COPY-READTABLE (&optional (from *READTABLE*) to)
+  (unless from
+    (setq from *standard-readtable*))
+  (unless to
+    (setq to (MAKE-READTABLE)))
+  (setf (READTABLE-CASE to) (READTABLE-CASE from))
+  (setf (READTABLE-SYNTAX-TYPE to)
+	(copy-sequence (READTABLE-SYNTAX-TYPE from)))
+  (setf (READTABLE-MACRO-TABLE to)
+	(copy-sequence (READTABLE-MACRO-TABLE from)))
+  (setf (READTABLE-DISPATCH-TABLE to)
+	(let ((hash (make-hash-table :test #'equal)))
+	  (maphash (lambda (key val) (setf (gethash key hash) val))
+		   (READTABLE-DISPATCH-TABLE from))
+	  hash))
+  to)
+
+;;; TODO: MAKE-DISPATCH-MACRO-CHARACTER
+
+(defun* READ (&optional stream (eof-error-p T) eof-value recursive-p)
+  (let (char
+	(escape nil)
+	(package nil)
+	(colons 0)
+	(token nil))
+    (tagbody
+      STEP-1
+       (setq char (READ-CHAR stream eof-error-p eof-value recursive-p))
+       (when (EQL char eof-value)
+	 (return-from READ eof-value))
+
+      (case (char-syntx char)
+	(:whitespace
+	 (go STEP-1))
+	((:terminating-macro :non-terminating-macro)
+	 (let* ((fn (GET-MACRO-CHARACTER char))
+		(list (MULTIPLE-VALUE-LIST (funcall fn stream char))))
+	   (if (null list)
+	       (go STEP-1)
+	       (return-from READ (VALUES (first list))))))
+	(:single-escape
+	 (setq escape t)
+	 (setq char (READ-CHAR stream T nil T))
+	 (setq token (concat token (list (CHAR-CODE char))))
+	 (go STEP-8))
+	(:multiple-escape
+	 (go STEP-9))
+	(:constituent
+	 (setq char (char-convert-case char))))
+
+      STEP-8a
+      (cond
+	((CHAR= char (CODE-CHAR 58))
+	 (incf colons)
+	 (when (or (and package (not (zerop (length token))))
+		   (> colons 2))
+	   (error "too many colons"))
+	 (if (= colons 1)
+	     (setq package token))
+	 (setq token nil))
+	(t
+	 (setq token (concat token (list (CHAR-CODE char))))))
+      STEP-8
+      (setq char (READ-CHAR stream nil nil T))
+      (when (null char)
+	(go STEP-10))
+      (case (char-syntx char)
+	((:constituent :non-terminating-macro)
+	 (setq char (char-convert-case char))
+	 (go STEP-8a))
+	(:single-escape
+	 (setq escape t)
+	 (setq char (READ-CHAR stream T nil T))
+	 (setq token (concat token (list (CHAR-CODE char))))
+	 (go STEP-8))
+	(:multiple-escape
+	 (go STEP-9))
+	(:terminating-macro
+	 (UNREAD-CHAR char stream)
+	 (go STEP-10))
+	(:whitespace
+	 (when nil
+	   (UNREAD-CHAR char stream))
+	 (go STEP-10)))
+
+      STEP-9
+      (setq escape t)
+      (setq char (READ-CHAR stream nil nil T))
+      (when (null char)
+	(error "end of file"))
+      (case (char-syntx char)
+	((:constituent :non-terminating-macro :terminating-macro :whitespace)
+	 (setq token (concat token (list (CHAR-CODE char))))
+	 (go STEP-9))
+	(:single-escape
+	 (setq char (READ-CHAR stream T nil T))
+	 (setq token (concat token (list (CHAR-CODE char))))
+	 (go STEP-9))
+	(:multiple-escape
+	 (when (null token)
+	   (setq token ""))
+	 (go STEP-8)))
+
+      STEP-10
+      (return-from READ (process-token package colons token escape)))))
+
+;;; TODO: READ-PRESERVING-WHITESPACE
+
+(defun* READ-DELIMITED-LIST (delimiter &optional (stream *STANDARD-INPUT*)
+			                         recursive-p)
+  (do ((list nil)
+       (char #1=(PEEK-CHAR T stream T nil recursive-p) #1#))
+      ((CHAR= char delimiter)
+       (READ-CHAR stream t nil recursive-p)
+       (nreverse list))
+    (push (READ stream t nil recursive-p) list)))
+
+(cl:defun READ-FROM-STRING (string &optional (eof-error-p T) eof-value
+			           &key (start 0) end preserve-whitespace)
+  (let ((stream (MAKE-STRING-INPUT-STREAM string start end)))
+    (if preserve-whitespace
+	(READ-PRESERVING-WHITESPACE stream eof-error-p eof-value)
+	(READ stream eof-error-p eof-value))))
+
+;;; READTABLE-CASE defined by defstruct.
+
+;;; READTABLEP defined by defstruct.
 
 (defun* SET-DISPATCH-MACRO-CHARACTER (disp-char sub-char new-function
 				      &optional (readtable *READTABLE*))
@@ -25,9 +148,10 @@
 	  new-function))
   T)
 
-(defun* GET-MACRO-CHARACTER (char &optional (readtable *READTABLE*))
-  (VALUES (aref (READTABLE-MACRO-TABLE readtable) (CHAR-CODE char))
-	  (eq (char-syntx char readtable) :non-terminating-macro)))
+(defun* GET-DISPATCH-MACRO-CHARACTER (disp-char sub-char
+				      &optional (readtable *READTABLE*))
+  (let ((string (concat (list (CHAR-CODE disp-char) (CHAR-CODE sub-char)))))
+    (gethash string (READTABLE-DISPATCH-TABLE readtable))))
 
 (defun* SET-MACRO-CHARACTER (char new-function
 			     &optional non-terminating-p
@@ -39,6 +163,13 @@
 	    :terminating-macro))
   T)
 
+(defun* char-syntx (char &optional (readtable *READTABLE*))
+  (aref (READTABLE-SYNTAX-TYPE readtable) (CHAR-CODE char)))
+
+(defun* GET-MACRO-CHARACTER (char &optional (readtable *READTABLE*))
+  (VALUES (aref (READTABLE-MACRO-TABLE readtable) (CHAR-CODE char))
+	  (eq (char-syntx char readtable) :non-terminating-macro)))
+
 (defun* SET-SYNTAX-FROM-CHAR (to-char from-char
 			      &optional (to-readtable *READTABLE*)
 			                (from-readtable *standard-readtable*))
@@ -46,8 +177,37 @@
 	(char-syntx from-char from-readtable))
   T)
 
-(defun* char-syntx (char &optional (readtable *READTABLE*))
-  (aref (READTABLE-SYNTAX-TYPE readtable) (CHAR-CODE char)))
+(cl:defmacro WITH-STANDARD-IO-SYNTAX (&body body)
+  `(LET ((*PACKAGE*			*cl-package*)
+	 (*PRINT-ARRAY*			T)
+	 (*PRINT-BASE*			10)
+	 (*PRINT-CASE*			(kw UPCASE))
+	 (*PRINT-CIRCLE*		nil)
+	 (*PRINT-ESCAPE*		T)
+	 (*PRINT-GENSYM*		T)
+	 (*PRINT-LENGTH*		nil)
+	 (*PRINT-LEVEL*			nil)
+	 (*PRINT-LINES*			nil)
+	 (*PRINT-MISER-WIDTH*		nil)
+;	 (*PRINT-PPRINT-DISPATCH*	#<The standard pprint dispatch table>)
+	 (*PRINT-PRETTY*		nil)
+	 (*PRINT-RADIX*			nil)
+	 (*PRINT-READABLY*		T)
+	 (*PRINT-RIGHT-MARGIN*		nil)
+	 (*READ-BASE*			10)
+	 (*READ-DEFAULT-FLOAT-FORMAT*	'SINGLE-FLOAT)
+	 (*READ-EVAL*			T)
+	 (*READ-SUPPRESS*		nil)
+	 (*READTABLE*			*standard-readtable*))
+     ,@body))
+
+(defvar *READ-BASE* 10)
+
+(defvar *READ-DEFAULT-FLOAT-FORMAT* 'SINGLE-FLOAT)
+
+(defvar *READ-EVAL* T)
+
+(defvar *READ-SUPPRESS* nil)
 
 (defvar *standard-readtable*
   (let ((readtable (MAKE-READTABLE)))
@@ -108,6 +268,10 @@
       (sharp-macro 41 #'sharp-right-paren-reader))
 
     readtable))
+
+(defvar *READTABLE* (COPY-READTABLE nil))
+
+;;; READER-ERROR defined in cl-conditions.el.
 
 (defun whitespacep (char)
   (eq (char-syntx char) :whitespace))
@@ -218,8 +382,6 @@
        (UNREAD-CHAR char stream)
        (VALUES (make-symbol string)))
     (setq string (concat string (list (CHAR-CODE char))))))
-
-(defvar *READ-EVAL* T)
 
 (defun sharp-dot-reader (stream char n)
   (if *READ-EVAL*
@@ -334,118 +496,12 @@
 
 
 
-(defun* COPY-READTABLE (&optional (from *READTABLE*) to)
-  (unless from
-    (setq from *standard-readtable*))
-  (unless to
-    (setq to (MAKE-READTABLE)))
-  (setf (READTABLE-CASE to) (READTABLE-CASE from))
-  (setf (READTABLE-SYNTAX-TYPE to)
-	(copy-sequence (READTABLE-SYNTAX-TYPE from)))
-  (setf (READTABLE-MACRO-TABLE to)
-	(copy-sequence (READTABLE-MACRO-TABLE from)))
-  (setf (READTABLE-DISPATCH-TABLE to)
-	(let ((hash (make-hash-table :test #'equal)))
-	  (maphash (lambda (key val) (setf (gethash key hash) val))
-		   (READTABLE-DISPATCH-TABLE from))
-	  hash))
-  to)
-
-(defvar *READTABLE* (COPY-READTABLE nil))
-
 (defun char-convert-case (char)
   (ecase (READTABLE-CASE *READTABLE*)
     (:preserve	char)
     (:upcase	(CHAR-UPCASE char))
     (:downcase	(CHAR-DOWNCASE char))
     (:invert	(error "not implemented"))))
-
-(defun* READ (&optional stream (eof-error-p T) eof-value recursive-p)
-  (let (char
-	(escape nil)
-	(package nil)
-	(colons 0)
-	(token nil))
-    (tagbody
-      STEP-1
-       (setq char (READ-CHAR stream eof-error-p eof-value recursive-p))
-       (when (EQL char eof-value)
-	 (return-from READ eof-value))
-
-      (case (char-syntx char)
-	(:whitespace
-	 (go STEP-1))
-	((:terminating-macro :non-terminating-macro)
-	 (let* ((fn (GET-MACRO-CHARACTER char))
-		(list (MULTIPLE-VALUE-LIST (funcall fn stream char))))
-	   (if (null list)
-	       (go STEP-1)
-	       (return-from READ (VALUES (first list))))))
-	(:single-escape
-	 (setq escape t)
-	 (setq char (READ-CHAR stream T nil T))
-	 (setq token (concat token (list (CHAR-CODE char))))
-	 (go STEP-8))
-	(:multiple-escape
-	 (go STEP-9))
-	(:constituent
-	 (setq char (char-convert-case char))))
-
-      STEP-8a
-      (cond
-	((CHAR= char (CODE-CHAR 58))
-	 (incf colons)
-	 (when (or (and package (not (zerop (length token))))
-		   (> colons 2))
-	   (error "too many colons"))
-	 (if (= colons 1)
-	     (setq package token))
-	 (setq token nil))
-	(t
-	 (setq token (concat token (list (CHAR-CODE char))))))
-      STEP-8
-      (setq char (READ-CHAR stream nil nil T))
-      (when (null char)
-	(go STEP-10))
-      (case (char-syntx char)
-	((:constituent :non-terminating-macro)
-	 (setq char (char-convert-case char))
-	 (go STEP-8a))
-	(:single-escape
-	 (setq escape t)
-	 (setq char (READ-CHAR stream T nil T))
-	 (setq token (concat token (list (CHAR-CODE char))))
-	 (go STEP-8))
-	(:multiple-escape
-	 (go STEP-9))
-	(:terminating-macro
-	 (UNREAD-CHAR char stream)
-	 (go STEP-10))
-	(:whitespace
-	 (when nil
-	   (UNREAD-CHAR char stream))
-	 (go STEP-10)))
-
-      STEP-9
-      (setq escape t)
-      (setq char (READ-CHAR stream nil nil T))
-      (when (null char)
-	(error "end of file"))
-      (case (char-syntx char)
-	((:constituent :non-terminating-macro :terminating-macro :whitespace)
-	 (setq token (concat token (list (CHAR-CODE char))))
-	 (go STEP-9))
-	(:single-escape
-	 (setq char (READ-CHAR stream T nil T))
-	 (setq token (concat token (list (CHAR-CODE char))))
-	 (go STEP-9))
-	(:multiple-escape
-	 (when (null token)
-	   (setq token ""))
-	 (go STEP-8)))
-
-      STEP-10
-      (return-from READ (process-token package colons token escape)))))
 
 (defun* process-token (package colons token escape)
   (when (and (zerop colons) (not escape))
@@ -470,8 +526,6 @@
 	     sym))
 	((null status)
 	 (NTH-VALUE 0 (INTERN token package)))))))
-
-(defvar *READ-BASE* 10)
 
 (defun potential-number-p (string)
   (and
@@ -516,19 +570,3 @@
 		    (cl:* (if (MINUSP integer) -1 1)
 			  (FLOAT fraction)
 			  (EXPT *READ-BASE* (cl:- end end2 -1))))))))))))
-
-(defun* READ-DELIMITED-LIST (delimiter &optional (stream *STANDARD-INPUT*)
-			                         recursive-p)
-  (do ((list nil)
-       (char #1=(PEEK-CHAR T stream T nil recursive-p) #1#))
-      ((CHAR= char delimiter)
-       (READ-CHAR stream t nil recursive-p)
-       (nreverse list))
-    (push (READ stream t nil recursive-p) list)))
-
-(defun* READ-FROM-STRING (string &optional (eof-error-p T) eof-value
-				 &key (start 0) end preserve-whitespace)
-  (let ((stream (MAKE-STRING-INPUT-STREAM string start end)))
-    (if preserve-whitespace
-	(READ-PRESERVING-WHITESPACE stream eof-error-p eof-value)
-	(READ stream eof-error-p eof-value))))
