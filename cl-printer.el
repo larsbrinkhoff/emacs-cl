@@ -224,7 +224,10 @@
      (WRITE-STRING "#P" stream)
      (PRIN1 (NAMESTRING object) stream))
     (t
-     (error)))
+     ;; TODO:
+     (if *PRINT-READABLY*
+	 (ERROR 'PRINT-NOT-READABLE (kw OBJECT) object)
+	 (WRITE-STRING "#<FIXME:UNPRINTABLE>" stream))))
   (VALUES object))
 
 (defvar *object-identities* (make-hash-table :test #'eq :weakness t))
