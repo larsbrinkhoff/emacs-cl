@@ -78,14 +78,3 @@
 	 (length (aref sequence 2))))
     (t
      (error))))
-
-(defun cl:mapcar (fn &rest seqs)
-  (if (null (cdr seqs))
-      (mapcar fn (car seqs))
-      (cl-mapcar-many fn seqs)))
-
-(defun cl:mapcan (fn &rest seqs)
-  (apply #'nconc
-   (if (null (cdr seqs))
-       (mapcar fn (car seqs))
-       (cl-mapcar-many fn seqs))))
