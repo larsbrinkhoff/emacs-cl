@@ -263,7 +263,7 @@
 					(kw WILD) (kw WILD) (kw WILD)))
 
 (defun PATHNAME-MATCH-P (pathname-designator wildcard)
-  (let ((pathname (PATHNAME pathname))
+  (let ((pathname (PATHNAME pathname-designator))
 	(wildcard (MERGE-PATHNAMES wildcard *all-wild-pathname*)))
     (and (wild-test PATHNAME-HOST pathname wildcard)
 	 (wild-test PATHNAME-DEVICE pathname wildcard)
