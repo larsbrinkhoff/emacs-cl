@@ -184,9 +184,22 @@
 (defun* MAKE-LIST (size &key initial-element)
   (make-list size initial-element))
 
-;;; TODO: PUSH
+(cl:defmacro PUSH (object place)
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION place env)
+    `(LET* (,@(MAPCAR #'list temps values)
+	    (,(first variables) (CONS ,object ,getter)))
+       ,setter)))
 
-;;; TODO: POP
+(cl:defmacro POP (place)
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION place env)
+    (with-gensyms (car)
+      `(LET* (,@(MAPCAR #'list temps values)
+	      (,car (CAR ,getter))
+	      (,(first variables) (CDR ,getter)))
+	 ,setter
+	 ,car))))
 
 (fset 'FIRST (symbol-function 'car-safe))
 
@@ -255,6 +268,36 @@
        (i 0 (+ i 1)))
       ((ATOM l) r)
     (if (>= i n) (POP r))))
+
+;;; Function LDIFF, TAILP
+
+;;; Function NTHCDR
+
+;;; Accessor REST
+
+(defun* MEMBER (object list &key (key #'IDENTITY) test test-not)
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test #'EQL))
+  (do ((list list (cdr list)))
+      ((null list) nil)
+    (when (FUNCALL test object (FUNCALL key (car list)))
+      (return-from MEMBER list))))
+
+(defun* MEMBER-IF (predicate list &key (key #'IDENTITY))
+  (do ((list list (cdr list)))
+      ((null list) nil)
+    (when (FUNCALL predicate (FUNCALL key (car list)))
+      (return-from MEMBER list))))
+
+(defun* MEMBER-IF-NOT (predicate list &key (key #'IDENTITY))
+  (do ((list list (cdr list)))
+      ((null list) nil)
+    (unless (FUNCALL predicate (FUNCALL key (car list)))
+      (return-from MEMBER list))))
 
 (defun MAPC (fn &rest lists)
   (let ((result (first lists)))
@@ -350,3 +393,21 @@
 	 (setf (SECOND tail) ,value))))
 
 ;;; TODO: REMF
+
+(defun* ADJOIN (object list &key test test-not)
+  (if (MEMBER object list :test test :test-not test-not)
+      list
+      (cons object list)))
+
+(cl:defmacro PUSHNEW (object place &key test test-not)
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test `(FUNCTION EQL)))
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION place env)
+    `(LET* (,@(MAPCAR #'list temps values)
+	    (,(first variables) (ADJOIN ,object ,getter :test ,test)))
+       ,setter)))
