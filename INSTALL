@@ -1,0 +1,8 @@
+TODO: Write proper installation instructions.
+
+To load Emacs CL, load load-cl.el into Emacs.
+
+To start an interactive session, type "M-x emacs-cl".
+
+To compile Emacs CL, type "M-x compile-cl".  (Loading compiled files
+is not tested frequently, so may not work.)
