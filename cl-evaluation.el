@@ -138,6 +138,8 @@
   (unless env
     (setq env *global-environment*))
   (or (KEYWORDP form)
-      (and (symbolp form) (memq form *constants*))
-      (atom form)
+      (and (atom form)
+	   (if (symbolp form)
+	       (memq form *constants*)
+	       T))
       (quoted-object-p form)))
