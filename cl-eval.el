@@ -43,8 +43,9 @@
     (dolist (fn fns)
       (setf (lexical-function (first fn) new-env)
 	    (enclose `(LAMBDA ,@(rest fn)) env)))
-    (dolist (form forms lastval)
-      (setq lastval (eval-with-env form new-env)))))
+    (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
+      (dolist (form body lastval)
+	(setq lastval (eval-with-env form new-env))))))
 
 (defun lexical-or-global-function (name env)
   (multiple-value-bind (type localp decl) (function-information name env)
@@ -82,8 +83,9 @@
     (dolist (fn fns)
       (setf (lexical-function (first fn) new-env)
 	    (enclose `(LAMBDA ,@(rest fn)) new-env)))
-    (dolist (form forms lastval)
-      (setq lastval (eval-with-env form new-env)))))
+    (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
+      (dolist (form body lastval)
+	(setq lastval (eval-with-env form new-env))))))
 
 (define-special-operator LET (bindings &rest forms) env
   (let ((new-env
@@ -98,8 +100,9 @@
 	  (setf (lexical-value binding new-env) nil)
 	  (setf (lexical-value (first binding) new-env)
 		(eval-with-env (second binding) env))))
-    (dolist (form forms lastval)
-      (setq lastval (eval-with-env form new-env)))))
+    (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
+      (dolist (form body lastval)
+	(setq lastval (eval-with-env form new-env))))))
 
 (define-special-operator LET* (bindings &rest forms) env
   (dolist (binding bindings)
@@ -110,12 +113,17 @@
 	      (eval-with-env (second binding) env)
 	      env (augment-environment env :variable (list (first binding))))))
   (let ((lastval nil))
-    (dolist (form forms lastval)
-      (setq lastval (eval-with-env form env)))))
+    (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
+      (dolist (form body lastval)
+	(setq lastval (eval-with-env form env))))))
 
 ;;; TODO: LOAD-TIME-VALUE
 
-;;; TODO: LOCALLY
+(define-special-operator LOCALLY (&rest forms) env
+  (let (lastval)
+    (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
+      (dolist (form body lastval)
+	(setq lastval (eval-with-env form env))))))
 
 (define-special-operator MACROLET (macros &rest forms) env
   (let ((new-env (augment-environment env :macro (mapcar #'first macros)))
@@ -125,8 +133,9 @@
 	    (enclose `(LAMBDA (form env)
 		        ;; TODO: destructuring-bind
 		        (APPLY (LAMBDA ,@(rest macro)) (CDR form))))))
-    (dolist (form forms lastval)
-      (setq lastval (eval-with-env form new-env)))))
+    (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
+      (dolist (form body lastval)
+	(setq lastval (eval-with-env form new-env))))))
 
 (define-special-operator MULTIPLE-VALUE-CALL (fn &rest forms) env
   (let ((values nil))
@@ -307,6 +316,23 @@
   (vector-and-typep object 'interpreted-function))
 
 
+
+(defun* parse-body (body &optional doc-allowed)
+  (let ((decl nil)
+	(doc nil))
+    (flet ((done () (return-from parse-body (VALUES body decl doc))))
+      (while body
+	(let ((form (first body)))
+	  (cond
+	    ((STRINGP form)
+	     (if (and doc-allowed (not doc))
+		 (setq doc form)
+		 (done)))
+	    ((and (consp form) (eq (first form) 'DECLARE))
+	     (push form decl))
+	    (t
+	     (done))))
+	(setq body (rest body))))))
 
 (defun set-local-macro (name fn env)
   (augment-environment env :macro (list name))
