@@ -46,8 +46,8 @@
     ((symbolp datum)
      (apply #'MAKE-CONDITION datum args))
     ((STRINGP datum)
-     (MAKE-CONDITION default-type :FORMAT-CONTROL datum
-		                  :FORMAT-ARGUMENTS args))
+     ;; TODO: (keyword "FORMAT-CONTROL") and (keyword "FORMAT-ARGUMENTS")
+     (MAKE-CONDITION default-type :format datum :args args))
     (t
      (error "invalid condition designator"))))
 
@@ -66,7 +66,7 @@
     (ERROR 'TYPE-ERROR)))
 
 ;; TODO: inherit from SIMPLE-CONDITION
-(DEFINE-CONDITION SIMPLE-ERROR (ERROR) (FORMAT-CONTROL FORMAT-ARGUMENTS))
+(DEFINE-CONDITION SIMPLE-ERROR (ERROR) (format args))
 
 (defvar *condition-handler-alist* nil)
 
@@ -79,8 +79,21 @@
 	(FUNCALL (cdr handler) condition)))
     nil))
 
-(DEFINE-CONDITION SIMPLE-CONDITION (CONDITION)
-  (FORMAT-CONTROL FORMAT-ARGUMENTS))
+(DEFINE-CONDITION SIMPLE-CONDITION (CONDITION) (format args))
+
+(defun SIMPLE-CONDITION-FORMAT-CONTROL (condition)
+  (cond
+    ((TYPEP condition 'SIMPLE-CONDITION) (SIMPLE-CONDITION-format condition))
+    ((TYPEP condition 'SIMPLE-ERROR)     (SIMPLE-ERROR-format condition))
+    ((TYPEP condition 'SIMPLE-WARNING)   (SIMPLE-WARNING-format condition))
+    (t					 (error "this sucks"))))
+
+(defun SIMPLE-CONDITION-FORMAT-ARGUMENTS (condition)
+  (cond
+    ((TYPEP condition 'SIMPLE-CONDITION) (SIMPLE-CONDITION-args condition))
+    ((TYPEP condition 'SIMPLE-ERROR)     (SIMPLE-ERROR-args condition))
+    ((TYPEP condition 'SIMPLE-WARNING)   (SIMPLE-WARNING-args condition))
+    (t					 (error "this sucks"))))
 
 (defun WARN (datum &rest arguments)
   (let ((condition (condition datum args 'SIMPLE-WARNING)))
@@ -89,7 +102,7 @@
     nil))
 
 ;; TODO: inherit from SIMPLE-CONDITION
-(DEFINE-CONDITION SIMPLE-WARNING (WARNING) (FORMAT-CONTROL FORMAT-ARGUMENTS))
+(DEFINE-CONDITION SIMPLE-WARNING (WARNING) (format args))
 
 (defun INVOKE-DEBUGGER (condition)
   (let* ((hook *DEBUGGER-HOOK*)
