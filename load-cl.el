@@ -14,6 +14,7 @@
   (load "cl-arrays")
   (load "cl-sequences")
   (load "cl-structures")
+  (load "cl-iteration")
 
   (load "cl-characters")
   (load "cl-strings")
