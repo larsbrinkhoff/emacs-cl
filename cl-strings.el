@@ -36,25 +36,25 @@
   (cond
     ((STRINGP x)	x)
     ((SYMBOLP x)	(SYMBOL-NAME x))
-    ((CHARACTERP x)	(MAKE-STRING 1 :initial-element x))
+    ((CHARACTERP x)	(MAKE-STRING 1 (kw "INITIAL-ELEMENT") x))
     (t			(error))))
 
-(defun* STRING-UPCASE (string &key (start 0) end)
-  (NSTRING-UPCASE (COPY-SEQ string) :start start :end end))
+(cl:defun STRING-UPCASE (string &key (start 0) end)
+  (NSTRING-UPCASE (COPY-SEQ string) (kw "START") start :end end))
 
-(defun* STRING-DOWNCASE (string &key (start 0) end)
+(cl:defun STRING-DOWNCASE (string &key (start 0) end)
   (NSTRING-DOWNCASE (COPY-SEQ string) :start start :end end))
 
 ;;; TODO: STRING-CAPITALIZE
 
-(defun* NSTRING-UPCASE (string &key (start 0) end)
+(cl:defun NSTRING-UPCASE (string &key (start 0) end)
   (unless end
     (setq end (LENGTH string)))
   (do ((i start (1+ i)))
       ((eq i end) string)
     (setf (CHAR string i) (CHAR-UPCASE (CHAR string i)))))
 
-(defun* NSTRING-DOWNCASE (string &key (start 0) end)
+(cl:defun NSTRING-DOWNCASE (string &key (start 0) end)
   (unless end
     (setq end (LENGTH string)))
   (do ((i start (1+ i)))
@@ -65,15 +65,15 @@
 
 ;;; TODO: STRING-TRIM, STRING-LEFT-TRIM, STRING-RIGHT-TRIM
 
-(defun* STRING= (string1 string2 &key (start1 0) end1 (start2 0) end2)
+(cl:defun STRING= (string1 string2 &key (start1 0) end1 (start2 0) end2)
   (string= (substring string1 start1 end1)
 	   (substring string2 start2 end2)))
 
-(defun* STRING/= (string1 string2 &key (start1 0) end1 (start2 0) end2)
+(cl:defun STRING/= (string1 string2 &key (start1 0) end1 (start2 0) end2)
   (not (STRING= string1 string2 :start1 start1 :end1 end1
 		                :start2 start2 :end2 end2)))
 
-(defun* STRING< (string1 string2 &key start1 end1 start2 end2)
+(cl:defun STRING< (string1 string2 &key start1 end1 start2 end2)
   (let ((i 0)
 	(len1 (LENGTH string1))
 	(len2 (LENGTH string2)))
@@ -88,7 +88,7 @@
 	(return-from STRING< nil))
       (incf i))))
 
-(defun* STRING> (string1 string2 &key start1 end1 start2 end2)
+(cl:defun STRING> (string1 string2 &key start1 end1 start2 end2)
   (let ((i 0)
 	(len1 (LENGTH string1))
 	(len2 (LENGTH string2)))
@@ -103,19 +103,20 @@
 	(return-from STRING> i))
       (incf i))))
 
-(defun* STRING<= (string1 string2 &key start1 end1 start2 end2)
+(cl:defun STRING<= (string1 string2 &key start1 end1 start2 end2)
   (STRING> string2 string1 :start1 start2 :end1 end2
 			   :start2 start1 :end2 end1))
 
-(defun* STRING>= (string1 string2 &key start1 end1 start2 end2)
+(cl:defun STRING>= (string1 string2 &key start1 end1 start2 end2)
   (STRING< string2 string1 :start1 start2 :end1 end2
 			   :start2 start1 :end2 end1))
 
-(defun* STRING-EQUAL (string1 string2 &key (start1 0) end1 (start2 0) end2)
+(cl:defun STRING-EQUAL (string1 string2 &key (start1 0) end1 (start2 0) end2)
   (string= (substring (STRING-UPCASE string1) start1 end1)
 	   (substring (STRING-UPCASE string2) start2 end2)))
 
-(defun* STRING-NOT-EQUAL (string1 string2 &key (start1 0) end1 (start2 0) end2)
+(cl:defun STRING-NOT-EQUAL (string1 string2 &key (start1 0) end1
+			                         (start2 0) end2)
   (not (STRING-EQUAL string1 string2 :start1 start1 :end1 end1
 				     :start2 start2 :end2 end2)))
 
@@ -143,5 +144,5 @@
   (or (stringp object)
       (vector-and-typep object 'STRING)))
 
-(defun* MAKE-STRING (size &key initial-element element-type)
+(cl:defun MAKE-STRING (size &key initial-element element-type)
   (make-string size (if initial-element (CHAR-CODE initial-element) 0)))

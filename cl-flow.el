@@ -21,14 +21,10 @@
     (t
      (apply #'APPLY (FDEFINITION fn) args))))
 
-(defmacro* DEFUN (name lambda-list &body body)
-  `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (SETF (FDEFINITION ',name) (function* (lambda ,lambda-list ,@body)))))
-
 (cl:defmacro DEFUN (name lambda-list &body body)
-  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
-	       ,(keyword "LOAD-TOPLEVEL")
-	       ,(keyword "EXECUTE"))
+  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
+	       ,(kw "LOAD-TOPLEVEL")
+	       ,(kw "EXECUTE"))
      (SETF (FDEFINITION (QUOTE ,name))
            (FUNCTION (LAMBDA ,lambda-list (BLOCK ,name ,@body))))
      (QUOTE ,name)))
@@ -126,18 +122,18 @@
     ',name))
 
 (cl:defmacro DEFCONSTANT (name initial-value &optional documentation)
-  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
-	       ,(keyword "LOAD-TOPLEVEL")
-	       ,(keyword "EXECUTE"))
+  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
+	       ,(kw "LOAD-TOPLEVEL")
+	       ,(kw "EXECUTE"))
      (DEFVAR ,name ,initial-value)
      (PUSHNEW (QUOTE ,name) *constants*)
      (QUOTE ,name)))
 
 (cl:defmacro DEFVAR (name &optional (initial-value nil valuep) documentation)
   (with-gensyms (val)
-    `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
-		 ,(keyword "LOAD-TOPLEVEL")
-		 ,(keyword "EXECUTE"))
+    `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
+		 ,(kw "LOAD-TOPLEVEL")
+		 ,(kw "EXECUTE"))
        ,@(when valuep
 	   `((LET ((,val ,initial-value))
 	       (UNLESS (BOUNDP (QUOTE ,name))
@@ -145,9 +141,9 @@
        (QUOTE ,name))))
 
 (cl:defmacro DEFPARAMETER (name initial-value &optional documentation)
-  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
-	       ,(keyword "LOAD-TOPLEVEL")
-	       ,(keyword "EXECUTE"))
+  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
+	       ,(kw "LOAD-TOPLEVEL")
+	       ,(kw "EXECUTE"))
      (SETQ ,name ,initial-value)
      (QUOTE ,name)))
 
@@ -305,7 +301,7 @@
 
 ;;; TODO: EQUALP
 
-(defun IDENTITY (object)
+(cl:defun IDENTITY (object)
   object)
 
 (defun COMPLEMENT (fn)
@@ -477,9 +473,6 @@
 (cl:defmacro NTH-VALUE (n form)
   `(MULTIPLE-VALUE-CALL (LAMBDA (&rest vals) (NTH ,n vals)) ,form))
 
-(defun keyword (string)
-  (NTH-VALUE 0 (INTERN string *keyword-package*)))
-
 (cl:defmacro PROG1 (form1 &rest forms)
   (with-gensyms (val)
     `(LET ((,val ,form1))
@@ -540,9 +533,9 @@
 (cl:defmacro DEFINE-SETF-EXPANDER (access-fn lambda-list &body body)
   (setq lambda-list (copy-list lambda-list))
   (remf lambda-list '&environment)
-  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
-	       ,(keyword "LOAD-TOPLEVEL")
-	       ,(keyword "EXECUTE"))
+  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
+	       ,(kw "LOAD-TOPLEVEL")
+	       ,(kw "EXECUTE"))
      (SETF (GETHASH ',access-fn *setf-expanders*)
            (LAMBDA ,lambda-list ,@body))
      (QUOTE ,access-fn)))

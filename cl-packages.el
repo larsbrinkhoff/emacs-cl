@@ -196,9 +196,9 @@
     (setq *PACKAGE* (FIND-PACKAGE ,package))))
 
 (cl:defmacro IN-PACKAGE (package)
-  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
-	       ,(keyword "LOAD-TOPLEVEL")
-	       ,(keyword "EXECUTE"))
+  `(EVAL-WHEN (,(kw "COMPILE-TOPLEVEL")
+	       ,(kw "LOAD-TOPLEVEL")
+	       ,(kw "EXECUTE"))
      (SETQ *PACKAGE* (FIND-PACKAGE ,package))))
 
 (defun* UNUSE-PACKAGE (packages-to-unuse &optional (package *PACKAGE*))
@@ -277,15 +277,28 @@
 	    (unless (eq package *emacs-lisp-package*)
 	      (setf (gethash name (package-table package)) symbol))
 	    (when (eq package *keyword-package*)
-	      (set symbol symbol))
+	      (set symbol symbol)
+	      (pushnew symbol (aref package 7)))
 	    (VALUES symbol nil))))))
 
-(defconst *:internal* (keyword "INTERNAL"))
-(defconst *:external* (keyword "EXTERNAL"))
-(defconst *:inherited* (keyword "INHERITED"))
+(defconst *:internal* (kw "INTERNAL"))
+(defconst *:external* (kw "EXTERNAL"))
+(defconst *:inherited* (kw "INHERITED"))
 
 (defvar *PACKAGE* (FIND-PACKAGE "CL-USER"))
 
 ;;; package-error
 
 ;;; package-error-package
+
+
+
+;;; Bootstrap magic: take the list of symbols created by the old kw
+;;; macro, and import them into the KEYWORD package.
+(dolist (sym *initial-keywords*)
+  (IMPORT sym *keyword-package*)
+  (EXPORT sym *keyword-package*))
+
+;;; Redefine the kw macro (initially defined in utils.el).
+(defmacro kw (string)
+  (NTH-VALUE 0 (INTERN (upcase string) *keyword-package*)))

@@ -46,7 +46,7 @@
     ((symbolp datum)
      (apply #'MAKE-CONDITION datum args))
     ((STRINGP datum)
-     ;; TODO: (keyword "FORMAT-CONTROL") and (keyword "FORMAT-ARGUMENTS")
+     ;; TODO: (kw "FORMAT-CONTROL") and (kw "FORMAT-ARGUMENTS")
      (MAKE-CONDITION default-type :format datum :args args))
     (t
      (error "invalid condition designator"))))

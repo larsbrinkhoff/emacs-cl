@@ -7,6 +7,7 @@
 
 (defvar *cl-files*
 '("utils"
+  "func"
 
   "cl-evaluation"
   "cl-flow"

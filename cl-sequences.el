@@ -45,7 +45,7 @@
 
 ;;; TODO: fill
 
-(defun* make-sequence (type size &key initial-element)
+(cl:defun make-sequence (type size &key initial-element)
   (cond
     ((SUBTYPEP type 'LIST)
      (make-list size initial-element))

@@ -60,3 +60,19 @@
 
 (defun el-keyword (symbol)
   (intern (concat ":" (symbol-name symbol))))
+
+;;; Bootstrap magic: this list of symbols will later be imported into
+;;; the KEYWORD package.
+(defvar *initial-keywords* nil)
+
+(defun keyword (name)
+  (let* ((name (upcase name))
+	 (sym (find name *initial-keywords* :key 'symbol-name :test 'string=)))
+    (or sym
+	(let ((sym (make-symbol name)))
+	  (push sym *initial-keywords*)
+	  (set sym sym)
+	  sym))))
+
+(defmacro kw (name)
+  (keyword name))

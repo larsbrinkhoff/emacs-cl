@@ -5,9 +5,9 @@
 
 (IN-PACKAGE "EMACS-CL")
 
-(defun* MAKE-ARRAY (dimensions &key (element-type T) initial-element
-		    initial-contents adjustable fill-pointer
-		    displaced-to displaced-index-offset)
+(cl:defun MAKE-ARRAY (dimensions &key (element-type T) initial-element
+		      initial-contents adjustable fill-pointer
+		      displaced-to displaced-index-offset)
   (let* ((vectorp (or (atom dimensions) (null (cdr dimensions))))
 	 (simplep (not (or adjustable fill-pointer
 			   displaced-to (not vectorp))))
@@ -50,9 +50,9 @@
 	   (t		(vector 'ARRAY dimensions array
 				displaced-index-offset))))))))
 
-(defun ADJUST-ARRAY (array new-dimensions
-		     &key element-type initial-element initial-contents
-		          fill-pointer displaced-to displaced-index-offset)
+(cl:defun ADJUST-ARRAY (array new-dimensions
+			&key element-type initial-element initial-contents
+			     fill-pointer displaced-to displaced-index-offset)
   (if (ADJUSTABLE-ARRAY-P array)
       (error "TODO")
       (MAKE-ARRAY new-dimensions

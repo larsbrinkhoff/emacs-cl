@@ -41,10 +41,6 @@
 
 ; (DEFTYPE LIST () `(OR CONS NULL))
 
-(defmacro* CHECK-TYPE (place type &optional string &environment env)
-  `(unless (TYPEP ,place ,type ,env)
-    (error ,string)))
-
 (defun TYPE-OF (object)
   (case object
     ((nil)		'NULL)
