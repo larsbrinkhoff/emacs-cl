@@ -5,6 +5,10 @@ algorithms and messages have been inspired by SBCL.
 
 See INSTALL for usage instructions.
 
+TODO: Come up with a name.
+
+Some notes on the internals of the implementation follows:
+
 
 
 Mapping from Emacs Lisp object types to Common Lisp object types:
