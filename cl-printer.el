@@ -13,35 +13,38 @@
   (or (gethash object *object-identities*)
       (setf (gethash object *object-identities*) (incf *identity-counter*))))
 
-(defmacro* PRINT-UNREADABLE-OBJECT ((object stream &key identity) &body body)
+(defmacro* PRINT-UNREADABLE-OBJECT ((object stream &key type identity)
+				    &body body)
   `(progn
-    (WRITE-STRING "#<" stream)
-    (PRIN1 (TYPE-OF ,object) stream)
-    (WRITE-STRING " " stream)
-    ,@body
-    ,@(when (and body identity)
-	`((WRITE-STRING " " stream)))
-    ,@(when identity
-        `((WRITE-STRING "{" stream)
+     (WRITE-STRING "#<" stream)
+     ,@(when type
+	`((PRIN1 (TYPE-OF ,object) stream)
+	  (WRITE-STRING " " stream)))
+     ,@body
+     ,@(when identity
+        `((WRITE-STRING " {" stream)
 	  (PRIN1 (object-identity object))
 	  (WRITE-STRING "}" stream)))
     (WRITE-STRING ">" stream)))
 
 (defun external-symbol-p (symbol)
   (eq (NTH-VALUE 1 (FIND-SYMBOL (SYMBOL-NAME symbol) (SYMBOL-PACKAGE symbol)))
-      *:external*))
+      (kw EXTERNAL)))
 
 (defun write-char-to-*standard-output* (char)
   (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*))
 
 ;;; Ad-hoc unexensible.
 (defun PRIN1 (object &optional stream-designator)
-  (let* ((stream (resolve-output-stream-designator stream-designator))
+  (let* ((stream (output-stream stream-designator))
 	 (*STANDARD-OUTPUT* stream)
 	 (standard-output #'write-char-to-*standard-output*))
     (cond
-      ((or (integerp object)
-	   (floatp object))
+      ((integerp object)
+       (if (eq *PRINT-BASE* 10)
+	   (princ object)
+	   (prin1-integer object stream)))
+      ((floatp object)
        (princ object))
       ((symbolp object)
        (cond
@@ -73,12 +76,8 @@
 	 (WRITE-STRING " . " stream)
 	 (PRIN1 (cdr object) stream))
        (WRITE-STRING ")" stream))
-      ((COMPILED-FUNCTION-P object)
-       (PRINT-UNREADABLE-OBJECT (object stream :identity t)))
-      ((INTERPRETED-FUNCTION-P object)
-       (PRINT-UNREADABLE-OBJECT (object stream :identity t)))
       ((FUNCTIONP object)
-       (PRINT-UNREADABLE-OBJECT (object stream :identity t)))
+       (PRINT-UNREADABLE-OBJECT (object stream :type t :identity t)))
       ((bignump object)
        (prin1-integer object stream))
       ((ratiop object)
@@ -112,12 +111,12 @@
 	 (PRIN1 (AREF object i) stream))
        (WRITE-STRING ")" stream))
       ((PACKAGEP object)
-       (PRINT-UNREADABLE-OBJECT (object stream)
+       (PRINT-UNREADABLE-OBJECT (object stream :type t)
          (WRITE-STRING (PACKAGE-NAME object) stream)))
       ((READTABLEP object)
-       (PRINT-UNREADABLE-OBJECT (object stream :identity t)))
+       (PRINT-UNREADABLE-OBJECT (object stream :type t :identity t)))
       ((STREAMP object)
-       (PRINT-UNREADABLE-OBJECT (object stream :identity t)
+       (PRINT-UNREADABLE-OBJECT (object stream :type t :identity t)
          (cond
 	   ((STREAM-filename object)
 	    (WRITE-STRING object stream))
@@ -131,14 +130,14 @@
 	   ;; TODO: these two won't be necessary later
 	   (TYPEP object 'SIMPLE-ERROR)
 	   (TYPEP object 'SIMPLE-WARNING))
-       (PRINT-UNREADABLE-OBJECT (object stream :identity t)
+       (PRINT-UNREADABLE-OBJECT (object stream :type t :identity t)
          (PRINC (apply #'FORMAT nil
 		       (SIMPLE-CONDITION-FORMAT-CONTROL object)
 		       (SIMPLE-CONDITION-FORMAT-ARGUMENTS object)))))
       ((TYPEP object 'CONDITION)
-       (PRINT-UNREADABLE-OBJECT (object stream :identity t)))
+       (PRINT-UNREADABLE-OBJECT (object stream :type t :identity t)))
       ((restartp object)
-       (PRINT-UNREADABLE-OBJECT (object stream :identity t)
+       (PRINT-UNREADABLE-OBJECT (object stream :type t :identity t)
          (PRIN1 (RESTART-name object) stream)
 	 (when (RESTART-condition object)
 	   (WRITE-STRING " " stream)
@@ -152,13 +151,13 @@
     (WRITE-STRING "-" stream)
     (setq number (cl:- number)))
   (when (PLUSP number)
-    (MULTIPLE-VALUE-BIND (number digit) (TRUNCATE number 10)
+    (MULTIPLE-VALUE-BIND (number digit) (TRUNCATE number *PRINT-BASE*)
       (prin1-integer number stream)
       (WRITE-CHAR (AREF "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" digit)
 		  stream))))
 
 (defun PRINC (object &optional stream-designator)
-  (let* ((stream (resolve-output-stream-designator stream-designator))
+  (let* ((stream (output-stream stream-designator))
 	 (*STANDARD-OUTPUT* stream)
 	 (standard-output #'write-char-to-*standard-output*))
     (cond
@@ -175,3 +174,5 @@
   (PRIN1 object stream)
   (WRITE-CHAR (CODE-CHAR 32) stream)
   object)
+
+(defvar *PRINT-BASE* 10)
