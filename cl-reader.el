@@ -116,6 +116,8 @@
 (defun constituentp (char)
   (eq (char-syntx char) :constituent))
 
+
+
 (defun double-quote-reader (stream double-quote-char)
   (do ((string "")
        (char #1=(READ-CHAR stream T nil T) #1#))
@@ -138,13 +140,20 @@
 (defun quote-reader (stream ch)
   (values (list 'QUOTE (READ stream T nil T))))
 
-(defun left-paren-reader (stream char)
+(defun* left-paren-reader (stream char)
   (do ((list nil)
        (char #1=(PEEK-CHAR T stream) #1#))
       ((EQL char (CODE-CHAR 41))
        (READ-CHAR stream)
        (values (nreverse list)))
-    (push (READ stream T nil T) list)))
+    (let ((object (READ stream T nil T)))
+      (if (and (symbolp object) (string= (SYMBOL-NAME object) "."))
+	  (let ((cdr (READ stream T nil T)))
+	    (unless (EQL (READ-CHAR stream) (CODE-CHAR 41))
+	      (error "syntax error"))
+	    (return-from left-paren-reader
+	      (values (append (nreverse list) cdr))))
+	  (push object list)))))
 
 (defun right-paren-reader (stream char)
   (error "unbalanced '%c'" char))
@@ -273,6 +282,32 @@
   (error "syntax error"))
 (defun sharp-right-paren-reader (stream char n)
   (error "syntax error"))
+
+
+
+;(DEFMACRO BACKQUOTE (form)
+;  (expand-backquote form))
+
+(defun expand-backquote (form)
+  (PRINT form)
+  (cond
+    ((consp form)
+     (case (first form)
+       (COMMA
+	(second form))
+       ((COMMA-AT COMMA-DOT)
+	(error "syntax error"))
+       (t
+	(append (list 'APPEND)
+		(mapcar (lambda (x) (list 'LIST (list 'QUOTE x))) form)
+		(let ((tail (cdr (last form))))
+		  (list (list 'QUOTE tail)))))))
+    ((VECTORP form)
+     (apply #'VECTOR nil))
+    (t
+     form)))
+
+
 
 (defun* COPY-READTABLE (&optional (from *READTABLE*) to)
   (unless from
