@@ -7,7 +7,7 @@
   (mapcar (lambda (x) (gensym)) list))
 
 (defmacro* with-gensyms (syms &body body)
-  `(let ,(mapcar #'list syms (map-to-gensyms syms))
+  `(let ,(mapcar (lambda (sym) `(,sym ',(gensym))) syms)
      ,@body))
 
 (defun strcat (&rest string-designators)
