@@ -5,7 +5,8 @@
 
 (defvar *setf-definitions* (make-hash-table))
 
-;;; TODO: apply
+(defun APPLY (fn &rest args)
+  (apply fn args))
 
 (defmacro* DEFUN (name lambda-list &body body)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
