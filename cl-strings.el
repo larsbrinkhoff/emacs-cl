@@ -53,7 +53,8 @@
 (cl:defun STRING-DOWNCASE (string &key (start 0) end)
   (NSTRING-DOWNCASE (COPY-SEQ string) (kw START) start (kw END) end))
 
-;;; TODO: STRING-CAPITALIZE
+(cl:defun STRING-CAPITALIZE (string &key (start 0) (end (LENGTH string)))
+  (NSTRING-CAPITALIZE (COPY-SEQ string) (kw START) start (kw END) end))
 
 (cl:defun NSTRING-UPCASE (string &key (start 0) end)
   (unless end
@@ -69,7 +70,16 @@
       ((eq i end) string)
     (setf (CHAR string i) (CHAR-DOWNCASE (CHAR string i)))))
 
-;;; TODO: NSTRING-CAPITALIZE
+(cl:defun NSTRING-CAPITALIZE (string &key (start 0) (end (LENGTH string)))
+  (do* ((i start (1+ i))
+	(in-word-p nil))
+       ((eq i end)
+	string)
+    (let* ((char (CHAR string i))
+	   (alnump (ALPHANUMERICP char)))
+      (when (and (not in-word-p) alnump)
+	(setf (CHAR string i) (CHAR-UPCASE char)))
+      (setq in-word-p alnump))))
 
 (defun STRING-TRIM (chars string)
   (STRING-LEFT-TRIM chars (STRING-RIGHT-TRIM chars string)))
