@@ -84,15 +84,57 @@
 		 (FLOAT seconds)))
   nil)
 
-;;; TODO: Function APROPOS, APROPOS-LIST
+(defun APROPOS (string &optional package)
+  (dolist (symbol (APROPOS-LIST string package))
+    (PRINT symbol))
+  (VALUES))
+
+(defun APROPOS-LIST (string-designator &optional package)
+  (let ((string (STRING string-designator))
+	(packages (if (null package)
+		      *all-packages*
+		      (list (FIND-PACKAGE package))))
+	(result nil))
+    (dolist (p packages)
+      (DO-SYMBOLS (symbol p)
+	(when (SEARCH string (SYMBOL-NAME symbol))
+	  (push symbol result))))
+    result))
 
 ;;; TODO: Function DESCRIBE
 
 ;;; TODO: Standard Generic Function DESCRIBE-OBJECT
 
-;;; TODO: Macro TRACE, UNTRACE
+(defvar *traced-functions* nil)
 
-;;; TODO: Macro STEP
+(defun traced-fn (name)
+  `(lambda (&rest args)
+     (PRINT (format ,(format "Trace: %s %%s" name) args) *TRACE-OUTPUT*)
+     (APPLY ,(FDEFINITION name) args)))
+
+(defun trace-fn (name)
+  (unless (assoc name *traced-functions*)
+    (push (cons name (FDEFINITION name)) *traced-functions*)
+    (setf (FDEFINITION name) (traced-fn name))))
+
+(cl:defmacro TRACE (&rest names)
+  (if (null names)
+      `(QUOTE ,(mapcar #'car *traced-functions*))
+      `(DOLIST (name (QUOTE ,names))
+	 (trace-fn name))))
+      
+(defun untrace-fn (name)
+  (let ((fn (assoc name *traced-functions*)))
+    (when fn
+      (setq *traced-functions* (delq fn *traced-functions*))
+      (setf (FDEFINITION name) (cdr fn)))))
+
+(cl:defmacro UNTRACE (&rest names)
+  `(MAPC (FUNCTION untrace-fn) ,(if (null names) '(TRACE) `(QUOTE ,names))))
+
+(cl:defmacro STEP (form)
+  ;; TODO: stepping
+  `(LET () ,form))
 
 (cl:defmacro TIME (form)
   (with-gensyms (start val end)
