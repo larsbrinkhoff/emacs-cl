@@ -4,7 +4,7 @@
 ;;; This file provides various small utilities.
 
 (defmacro* with-gensyms (syms &body body)
-  `(let ,(mapcar (lambda (sym) (gensym)) syms)
+  `(let ,(mapcar (lambda (sym) `(,sym ',(gensym))) syms)
      ,@body))
 
 (defun strcat (&rest string-designators)
