@@ -79,6 +79,14 @@
 	  (param-with-default param slots))))
      lambda-list)))
 
+(defun slot-name-or-initval (slot constructor)
+  (let ((name (slot-name slot))
+	(initval (slot-initval slot))
+	(lambda-list (second constructor)))
+    (if (member name lambda-list)
+	name
+	initval)))
+
 
 ;;; The defstruct macro proper.
 (defmacro* DEFSTRUCT (name &rest slots)
@@ -188,7 +196,8 @@
 		       ,@(let ((index initial-offset))
 			   (mapcar (lambda (slot)
 				     `(aset object ,(incf index)
-					    ,(slot-name slot)))
+					    ,(slot-name-or-initval
+					      slot constructor)))
 				   slots))
 		       object))
 		    (vector
@@ -198,13 +207,17 @@
 			         `((setf (AREF object ,(incf index) ',name))))
 			     ,@(mapcar (lambda (slot)
 					 `(setf (AREF object ,(incf index))
-					        ,(slot-name slot)))
+					        ,(slot-name-or-initval
+						  slot constructor)))
 				       slots)))
 		       object))
 		    (list
 		     `(list ,@(make-list initial-offset nil)
 		            ,@(when named (list (list 'quote name)))
-		            ,@(mapcar #'slot-name slots)))))))
+		            ,@(mapcar (lambda (slot)
+					(slot-name-or-initval
+					 slot constructor))
+				      slots)))))))
 	   constructors)
 
 	;; Copier.
