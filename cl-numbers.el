@@ -502,7 +502,29 @@
 	(abs x))
       0))
 
-;;; TODO: INCF, DECF
+(cl:defmacro INCF (place &optional delta)
+  (unless delta
+    (setq delta 1))
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION place env)
+    `(LET* ,(MAPCAR #'list temps values)
+       (LET ((,(first variables)
+	      ,(if (eq delta 1)
+		   `(,(INTERN "1+" *common-lisp-package*) ,getter)
+		   `(,(INTERN "+" *common-lisp-package*) ,getter ,delta))))
+	 ,setter))))
+
+(cl:defmacro DECF (place &optional delta)
+  (unless delta
+    (setq delta 1))
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION place env)
+    `(LET* ,(MAPCAR #'list temps values)
+       (LET ((,(first variables)
+	      ,(if (eq delta 1)
+		   `(,(INTERN "1-" *common-lisp-package*) ,getter)
+		   `(,(INTERN "-" *common-lisp-package*) ,getter ,delta))))
+	 ,setter))))
 
 ;;; TODO: LCM
 
