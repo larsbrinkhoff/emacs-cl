@@ -21,7 +21,7 @@
   (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*))
 
 ;;; Ad-hoc unexensible.
-(defun PRINT (object &optional stream-designator)
+(defun PRIN1 (object &optional stream-designator)
   (let* ((stream (resolve-output-stream-designator stream-designator))
 	 (*STANDARD-OUTPUT* stream)
 	 (standard-output #'write-char-to-*standard-output*))
@@ -131,6 +131,11 @@
       (t
        (error))))
   object)
+
+(defun PRINT (object &optional stream)
+  (TERPRI)
+  (PRIN1 object stream)
+  (princ " "))
 
 (defun FORMAT (stream-designator format &rest args)
   (let ((stream (or (and (eq stream-designator t) *STANDARD-OUTPUT*)
