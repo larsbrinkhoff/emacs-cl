@@ -565,27 +565,50 @@
    (not (find (aref string (1- (length string))) "+-"))))
 
 (defun* parse-number (string)
-  (when (potential-number-p string)
-    (MULTIPLE-VALUE-BIND (integer end)
-	(PARSE-INTEGER string (kw RADIX) *READ-BASE* (kw JUNK-ALLOWED) T)
-      (unless integer
-	(return-from parse-integer (VALUES nil)))
-      (cond
-	((= end (length string))
-	 (return-from parse-number (VALUES integer)))
-	((CHAR= (CHAR string end) (CODE-CHAR 47))
-	 (MULTIPLE-VALUE-BIND (denumerator end2)
-	     (PARSE-INTEGER string :radix *READ-BASE* :start (1+ end)
-			    :junk-allowed T)
-	   (when (and denumerator (= end2 (length string)))
-	     (VALUES (cl:/ integer denumerator)))))
-	((CHAR= (CHAR string end) (CODE-CHAR 46))
-	 (MULTIPLE-VALUE-BIND (fraction end2)
-	     (PARSE-INTEGER string :radix *READ-BASE* :start (1+ end)
-			    :junk-allowed T)
-	   (when (and fraction (= end2 (length string)))
-	     (VALUES
-	      (cl:+ integer
-		    (cl:* (if (MINUSP integer) -1 1)
-			  (FLOAT fraction)
-			  (EXPT *READ-BASE* (cl:- end end2 -1))))))))))))
+  ;; First, is it a string of decimal digits followed by a period or an
+  ;; exponent marker?  If so, can be either a decimal integer or a float.
+  (MULTIPLE-VALUE-BIND (integer end)
+      (PARSE-INTEGER string (kw RADIX) 10 (kw JUNK-ALLOWED) T)
+    (when (and (< end (LENGTH string))
+	       (FIND (CHAR string end) ".DEFLSdefls"))
+      (if (and (eq (1+ end) (LENGTH string))
+	       (eq (CHAR-CODE (CHAR string end)) 46))
+	  (return-from parse-number (VALUES integer))
+	  (let ((fraction 0)
+		(exponent 0)
+		(end2 end))
+	    (when (eq (CHAR-CODE (CHAR string end)) 46)
+	      (MULTIPLE-VALUE-SETQ (fraction end2)
+		(PARSE-INTEGER string (kw RADIX) 10 (kw START) (incf end)
+			       (kw JUNK-ALLOWED) T)))
+	    (when (< end2 (LENGTH string))
+	      (unless (FIND (CHAR string end2) "DEFLSdefls")
+		(ERROR 'READ-ERROR))
+	      (setq exponent (PARSE-INTEGER string (kw RADIX) 10
+					    (kw START) (1+ end2))))
+	    (case *READ-DEFAULT-FLOAT-FORMAT*
+	      ((SHORT-FLOAT SINGLE-FLOAT DOUBLE-FLOAT LONG-FLOAT))
+	      (t (ERROR 'PARSE-ERROR)))
+	    (return-from parse-number
+	      (VALUES
+	       (* (+ (FLOAT integer)
+		     (* (if (MINUSP integer) -1 1)
+			(FLOAT fraction)
+			(expt 10.0 (- end end2))))
+		  (expt 10.0 (FLOAT exponent)))))))))
+  
+  ;; Second, try parsing as a number in current input radix.  It can
+  ;; be either an integer or a ratio.
+  (MULTIPLE-VALUE-BIND (integer end)
+      (PARSE-INTEGER string (kw RADIX) *READ-BASE* (kw JUNK-ALLOWED) T)
+    (unless integer
+      (return-from parse-number (VALUES nil)))
+    (cond
+      ((= end (LENGTH string))
+       (return-from parse-number (VALUES integer)))
+      ((CHAR= (CHAR string end) (CODE-CHAR 47))
+       (MULTIPLE-VALUE-BIND (denumerator end2)
+	   (PARSE-INTEGER string (kw RADIX) *READ-BASE*
+			  (kw START) (1+ end) (kw JUNK-ALLOWED) T)
+	 (when (and denumerator (= end2 (LENGTH string)))
+	   (VALUES (cl:/ integer denumerator))))))))
