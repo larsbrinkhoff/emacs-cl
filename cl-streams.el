@@ -52,6 +52,14 @@
 	    eof-value)
 	(CODE-CHAR ch))))
 
+;;; TODO: READ-CHAR-NO-HANG
+
+(defun TERPRI ()
+  (princ "\n")
+  nil)
+
+;;; TODO: FRESH-LINE
+
 (defun UNREAD-CHAR (char &optional stream-designator)
   (let ((stream (resolve-input-stream-designator stream-designator)))
     (when (> (STREAM-index stream) 0)

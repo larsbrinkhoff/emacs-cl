@@ -3,9 +3,6 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 14, Conses.
 
-(defun TERPRI ()
-  (princ "\n"))
-
 (defmacro* PRINT-UNREADABLE-OBJECT ((object stream &key identity) &body body)
   `(progn
     (princ "#<")
