@@ -159,12 +159,18 @@
       (IMPORT symbol package))))
 
 (defun DELETE-PACKAGE (package-designator)
-  (let ((package (FIND-PACKAGE package-designator)))
-    ;; TODO: follow spec more closely.
-    (dolist (p (PACKAGE-USE-LIST package))
-      (aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))
-    (setq *all-packages* (delete package *all-packages*)))
-  T)
+  (if (null (aref package 1))
+      nil
+      (let ((package (FIND-PACKAGE package-designator)))
+	(unless package
+	  (error "package error"))
+	(when (PACKAGE-USED-BY-LIST package)
+	  (error "package error"))
+	(dolist (p (PACKAGE-USE-LIST package))
+	  (aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))
+	(setq *all-packages* (delete package *all-packages*))
+	(aset package 1 nil)
+	T)))
 
 ;;; with-package-iterator
 
