@@ -85,11 +85,99 @@
 	 (RPLACA tree (NSUBLIS alist (CAR tree) :key key :test test))
 	 (RPLACD tree (NSUBLIS alist (CDR tree) :key key :test test)))))))
 
+(defun* SUBST (new old tree &key (key #'IDENTITY) test test-not)
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test #'EQL))
+  (cond
+    ((FUNCALL test old (FUNCALL key tree))
+     new)
+    ((ATOM tree)
+     tree)
+    (t
+     (CONS (SUBST new old (CAR tree) :key key :test test)
+	   (SUBST new old (CAR tree) :key key :test test)))))
+
+(defun* SUBST-IF (new predicate tree &key (key #'IDENTITY))
+  (cond
+    ((FUNCALL predicate (FUNCALL key tree))
+     new)
+    ((ATOM tree)
+     tree)
+    (t
+     (CONS (SUBST-IF new predicate (CAR tree) :key key)
+	   (SUBST-IF new predicate (CAR tree) :key key)))))
+
+(defun* SUBST-IF-NOT (new predicate tree &key (key #'IDENTITY))
+  (cond
+    ((not (FUNCALL predicate (FUNCALL key tree)))
+     new)
+    ((ATOM tree)
+     tree)
+    (t
+     (CONS (SUBST-IF new predicate (CAR tree) :key key)
+	   (SUBST-IF new predicate (CAR tree) :key key)))))
+
+(defun* NSUBST (new old tree &key (key #'IDENTITY) test test-not)
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test #'EQL))
+  (cond
+    ((FUNCALL test old (FUNCALL key tree))
+     new)
+    ((ATOM tree)
+     tree)
+    (t
+     (RPLACA tree (SUBST new old (CAR tree) :key key :test test))
+     (RPLACD tree (SUBST new old (CDR tree) :key key :test test)))))
+
+(defun* NSUBST-IF (new predicate tree &key (key #'IDENTITY))
+  (cond
+    ((FUNCALL predicate (FUNCALL key tree))
+     new)
+    ((ATOM tree)
+     tree)
+    (t
+     (RPLACA (NSUBST-IF new predicate (CAR tree) :key key))
+     (RPLACD (NSUBST-IF new predicate (CDR tree) :key key)))))
+
+(defun* NSUBST-IF-NOT (new predicate tree &key (key #'IDENTITY))
+  (cond
+    ((not (FUNCALL predicate (FUNCALL key tree)))
+     new)
+    ((ATOM tree)
+     tree)
+    (t
+     (RPLACA (NSUBST-IF new predicate (CAR tree) :key key))
+     (RPLACD (NSUBST-IF new predicate (CDR tree) :key key)))))
+
+(defun TREE-EQUAL (tree1 tree2 &key test test-not)
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test #'EQL))
+  (cond
+    ((and (ATOM tree1) (ATOM tree2))
+     (FUNCALL test tree1 tree2))
+    ((and (CONSP tree1) (CONSP tree2))
+     (and (TREE-EQUAL (CAR tree1) (CAR tree2) :test test)
+	  (TREE-EQUAL (CDR tree1) (CDR tree2) :test test)))))
+
 (fset 'COPY-LIST (symbol-function 'copy-list))
 
 (fset 'LIST (symbol-function 'list))
 
 (fset 'LIST* (symbol-function 'list*))
+
+;;; TODO: LIST-LENGTH
 
 (defun* MAKE-LIST (size &key initial-element)
   (make-list size initial-element))
