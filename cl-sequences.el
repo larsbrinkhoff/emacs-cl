@@ -459,7 +459,28 @@
 	   (aset string (incf i) (CHAR-CODE x))))
        string))))
 
-;;; TODO: MERGE
+(cl:defun MERGE (type seq1 seq2 predicate &key KEY)
+  (unless KEY
+    (setq KEY #'IDENTITY))
+  (let* ((len1 (LENGTH seq1))
+	 (len2 (LENGTH seq2))
+	 (len (+ len1 len2))
+	 (result (ecase type
+		  (LIST		(make-list len nil))
+		  (VECTOR	(make-vector (1+ len) 'SIMPLE-VECTOR))
+		  (t		(type-error type '(MEMBER LIST VECTOR))))))
+    (do ((i 0 (1+ i))
+	 (j 0)
+	 (k 0))
+	((= i len))
+      (setf (ELT result i)
+	    (if (or (eq j len1)
+		    (and (not (eq k len2))
+			 (FUNCALL predicate (FUNCALL KEY (ELT seq2 k))
+				            (FUNCALL KEY (ELT seq1 j)))))
+		(prog1 (ELT seq2 k) (incf k))
+		(prog1 (ELT seq1 j) (incf j)))))
+    result))
 
 ;;; TODO: REMOVE
 ;;; TODO: REMOVE-IF
