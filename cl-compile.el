@@ -850,5 +850,5 @@
 		   ,(compile-form (car forms) env)))
       (t	`(progn
 		   (setq nvals ,n
-		         mvals ',(compile-forms (cdr forms) env))
+		         mvals (list ,@(compile-forms (cdr forms) env)))
 		   ,(compile-form (car forms) env))))))
