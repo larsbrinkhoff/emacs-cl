@@ -177,7 +177,8 @@
 
 ;;; Special Operator: RETURN-FROM
 
-;;; TODO: RETURN
+(cl:defmacro RETURN (&optional form)
+  `(RETURN-FROM nil ,form))
 
 ;;; Special Operator: TAGBODY
 
