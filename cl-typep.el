@@ -316,3 +316,7 @@
 	(if fn
 	    (FUNCALL fn object env)
 	    (ERROR "Invalid typespec: ~A" type)))))
+
+;;; Bootstrap issue.  Redefined later.
+(defun INTERPRETED-FUNCTION-P (fn)
+  nil)
