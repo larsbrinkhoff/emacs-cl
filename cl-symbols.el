@@ -4,6 +4,7 @@
 
 (defun keywordp (sym)
   (and (symbolp sym)
+       (symbol-package sym)
        (equal (package-name (symbol-package sym)) "KEYWORD")))
 
 (defun copy-symbol (sym &optional copy-properties)
@@ -31,10 +32,10 @@
 (defun symbol-package (sym)
   (gethash sym *symbol-package-table*))
 
-(defun set-symbol-package (sym package)
+(defun setf-symbol-package (sym package)
   (if (null package)
       (remhash sym *symbol-package-table*)
       (setf (gethash sym *symbol-package-table*) package))
   package)
 
-(defsetf symbol-package set-symbol-package)
+(defsetf symbol-package setf-symbol-package)

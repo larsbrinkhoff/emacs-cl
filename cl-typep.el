@@ -1,8 +1,13 @@
 ;;;; -*- emacs-lisp -*-
+;;;;
+;;;; This file implements the Common Lisp TYPEP operator.
+
+(in-package "CL")
 
 (defvar *atomic-typespecs* (make-hash-table))
 (defvar *compound-typespecs* (make-hash-table))
 
+;;; Implements TYPEP for "typespec".
 (defmacro* define-typep ((var typespec env &optional compound-only) &body body)
   (if (consp typespec)
       `(setf (gethash ',(first typespec) *compound-typespecs*)
@@ -15,6 +20,8 @@
 	     (function* (lambda (,var ,env) ,@body)))))
 
 (defun in-range (num low high)
+  "Check that NUM is in the range specified by the interval designators
+   LOW and HIGH."
   (let* ((low-exclusive (consp low))
 	 (low (if low-exclusive (car low) low))
 	 (high-exclusive (consp high))
@@ -28,29 +35,43 @@
 	   (high-exclusive (> high num))
 	   (t (>= high num))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defmacro star-or (type expr)
+  `(or (eq ,type '*) ,expr))
+
+
+;;; Definitions for all type specifiers recognized by TYPEP follows.
 
 (define-typep (object (and &rest types) env :compound-only)
   (every (lambda (type) (cl:typep object type env)) types))
 
-(define-typep (object arithmetic-error env) nil)
+(define-typep (object arithmetic-error env)
+  nil)
 
-(define-typep (object (array &optional type dim) env) nil)
+(define-typep (object (array &optional type dim) env)
+  nil)
 
 (define-typep (object atom env)
   (not (consp object)))
 
-(define-typep (object base-char env) nil)
+(define-typep (object base-char env)
+  (cl:typep object 'character env))
 
-(define-typep (object (base-string) env) nil)
+(define-typep (object (base-string) env)
+  (cl:typep object 'string env))
 
-(define-typep (object bignum env) nil)
+(define-typep (object bignum env)
+  nil)
 
 (define-typep (object bit env)
-  (and (integerp object)
-       (or (eql object 0) (eql object 1))))
+  (or (zerop object) (eql object 1)))
 
-;;; bit-vector
+(define-typep (object (bit-vector &optional (size '*)) env)
+  (and (bool-vector-p object)
+       (star-or size (eql size (length object)))))
+
+(define-typep (object boolean env)
+  (or (null object) (eq object t)))
+
 ;;; broadcast-stream (atomic only)
 ;;; built-in-class (atomic only)
 ;;; cell-error (atomic only)
@@ -60,15 +81,19 @@
 (define-typep (object compiled-function env)
   (compiled-function-p object))
 
-(define-typep (object (complex &optional type) env) nil)
+(define-typep (object (complex &optional (type '*)) env)
+  (and (complexp object)
+       (star-or type
+		(unless (cl:subtypep type 'real)
+		  (error "invalid complex part type: %s" type)))))
 
 ;;; concatenated-stream (atomic only)
 ;;; condition (atomic only)
 
 (define-typep (object (cons &optional (car-type *) (cdr-type *)) env)
   (and (consp object)
-       (or (eq car-type '*) (cl:typep (car object) car-type env))
-       (or (eq cdr-type '*) (cl:typep (cdr object) cdr-type env))))
+       (star-or car-type (cl:typep (car object) car-type env))
+       (star-or cdr-type (cl:typep (car object) cdr-type env))))
 
 ;;; control-error (atomic only)
 ;;; division-by-zero (atomic only)
@@ -83,7 +108,10 @@
   (eql obj1 obj2))
 
 ;;; error (atomic only)
-;;; extended-char (atomic only)
+
+(define-typep (object extended-char env)
+  (cl:typep object '(and character (not base-char))))
+
 ;;; file-error (atomic only)
 ;;; file-stream (atomic only)
 
@@ -111,9 +139,7 @@
   (and (integerp object) (in-range object low high)))
 
 (define-typep (object keyword env)
-  (and (symbolp object)
-       (let ((package (symbol-package object)))
-	 (and package (equal (package-name package) "KEYWORD")))))
+  (keywordp object))
 
 (define-typep (object list env)
   (listp object))
@@ -142,12 +168,14 @@
   (null object))
 
 (define-typep (object number env)
-  (cl:typep object '(or real complex) env))
+  (cl:numberp object))
 
 (define-typep (object (or &rest types) env :compound-only)
   (some (lambda (type) (cl:typep object type env)) types))
 
-;;; package (atomic only)
+(define-typep (object package env)
+  (packagep object))
+
 ;;; package-error (atomic only)
 ;;; parse-error (atomic only)
 ;;; pathname (atomic only)
@@ -156,13 +184,15 @@
 ;;; random-state (atomic only)
 
 (define-typep (object ratio env)
-    nil)
+  (cl::ratiop object))
 
 (define-typep (object (rational &optional (low '*) (high '*)) env)
   (cl:typep object `(or ratio (integer ,low ,high)) env))
 
 ;;; reader-error (atomic only)
-;;; readtable (atomic only)
+
+(define-typep (object readtable env)
+  (readtablep object))
 
 (define-typep (object (real &optional (low '*) (high '*)) env)
   (cl:typep object
@@ -202,7 +232,9 @@
 (define-typep (object (single-float &optional (low '*) (high '*)) env)
   (and (floatp object) (in-range object low high)))
 
-;;; standard-char (atomic only)
+(define-typep (object standard-char env)
+  (find object "\n abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$"'(),_-./:;?+<=>#%&*@[\]{|}`^~"))
+
 ;;; standard-class (atomic only)
 ;;; standard-generic-function (atomic only)
 ;;; standard-method (atomic only)
@@ -210,7 +242,11 @@
 ;;; storage-condition (atomic only)
 ;;; stream (atomic only)
 ;;; stream-error (atomic only)
-;;; string
+
+(define-typep (object (string &optional (size '*)) env)
+  (and (vectorp object)
+       (eq (aref object 0) 'string)))
+
 ;;; string-stream (atomic only)
 ;;; structure-class (atomic only)
 ;;; structure-object (atomic only)
@@ -239,7 +275,7 @@
 ;;; vector
 ;;; warning (atomic only)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (defun cl:typep (object type &optional env)
   (if (consp type)

@@ -1,0 +1,18 @@
+Mapping between Emacs Lisp object types and Common Lisp object types:
+
+EL type			CL type
+bool-vector		simple-bit-vector
+float			single-float
+integer			fixnum
+string			simple-array (unsigned-byte 8)
+vector			various, type in first element
+compiled-function	compiled-function
+cons			cons
+hash-table		hash-table
+symbol			symbol
+
+Common Lisp objects represented by Emacs Lisp vectors:
+
+bignum			[bignum <n0> <n1> ...]
+complex			[complex <realpart> <imagpart>]
+ratio			[ratio <numerator> <denominator>]
