@@ -88,7 +88,12 @@
 		(*print-circle-counter* 0))
 	    (check-circles object)
 	    (write-object object stream)))
-      (PRINT-OBJECT object stream)))
+      (or (and *PRINT-PRETTY*
+	       (MULTIPLE-VALUE-BIND (fn found) (PPRINT-DISPATCH object)
+		 (when found
+		   (FUNCALL fn stream object)
+		   t)))
+	  (PRINT-OBJECT object stream))))
 
 (defun integer-and-plus-p (object)
   (and (integerp object) (plusp object)))
@@ -329,13 +334,8 @@
 	(*PRINT-RADIX* RADIX)
 	(*PRINT-READABLY* READABLY)
 	(*PRINT-RIGHT-MARGIN* RIGHT-MARGIN))
-    (or (and *PRINT-PRETTY*
-	     (MULTIPLE-VALUE-BIND (fn found) (PPRINT-DISPATCH object)
-	       (when found
-		 (FUNCALL fn stream object)
-		 t)))
-	(write-object object stream))
-    (VALUES object)))
+    (write-object object stream))
+  (VALUES object))
 
 (defun symbol-name-capitalize (string)
   (setq string (copy-sequence string))
