@@ -5,6 +5,11 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+;;; System Class LIST
+;;; System Class NULL
+;;; System Class CONS
+;;; Type ATOM
+
 (mapc (lambda (to from) (fset to (symbol-function from)))
       '(CONS CONSP ATOM)
       '(cons consp atom))
@@ -282,7 +287,7 @@
 (defun TENTH (list)
   (CADR (CDDDDR (CDDDDR list))))
 
-(DEFSETF EIGHTH (list) (new)
+(DEFSETF TENTH (list) (new)
   `(PROGN
      (RPLACA (CDR (CDDDDR (CDDDDR ,list))) ,new)
      ,new))
@@ -380,6 +385,10 @@
        (mapcar fn (car seqs))
        (cl-mapcar-many fn seqs))))
 
+;;; TODO: MAPL
+;;; TODO: MAPLIST
+;;; TODO: MAPCON
+
 (defun ACONS (key datum alist)
   (CONS (CONS key datum) alist))
 
@@ -456,6 +465,8 @@
 
 ;;; TODO: REMF
 
+;;; TODO: INTERSECTION, NINTERSECTION
+
 (defun* ADJOIN (object list &key test test-not)
   (if (MEMBER object list :test test :test-not test-not)
       list
@@ -488,3 +499,11 @@
       (unless (MEMBER x list2 :key key :test test :test-not test-not)
 	(push x result)))
     result))
+
+;;; TODO: NSET-DIFFERENCE
+
+;;; TODO: SET-EXCLUSIVE-OR, NSET-EXCLUSIVE-OR
+
+;;; TODO: SUBSETP
+
+;;; TODO: UNION, NUNION
