@@ -93,6 +93,9 @@
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     (setq *package* (find-package ,package))))
 
+(defun ensure-list (x)
+  (if (listp x) x (list x)))
+
 (defun* unuse-package (packages-to-unuse &optional (package *package*))
   (let ((package (find-package package)))
     (dolist (p (ensure-list packages-to-unuse))
@@ -168,5 +171,5 @@
 
 (defvar *package* (find-package "CL-USER"))
 
-(defun ensure-list (x)
-  (if (listp x) x (list x)))
+(dolist (sym '(BACKQUOTE COMMA COMMA-AT COMMA-DOT FUNCTION SETF QUOTE))
+  (setf (symbol-package sym) (find-package "COMMON-LISP")))
