@@ -103,7 +103,17 @@
       (t
        (type-error x `(OR BOOLEAN (EQL ,(kw DEFAULT))))))))
 
-;;; TODO: Function ED
+(defun ED (&optional x)
+  (cond
+    ((null x)
+     (switch-to-buffer (generate-new-buffer "*ED*")))
+    ((or (PATHNAMEP x) (STRINGP x))
+     (load-file (NAMESTRING (PATHNAME x))))
+    ((or (SYMBOLP x) (setf-name-p x))
+     (find-tag (prin1-to-string x)))
+    (t
+     (type-error x '(OR NULL PATHNAME STRING SYMBOL
+		        (CONS (EQ SETF) (CONS SYMBOL NULL)))))))
 
 ;;; TODO: Function INSPECT
 
@@ -147,4 +157,6 @@
 (defun SOFTWARE-VERSION ()
   nil)
 
-;;; TODO: Function USER-HOMEDIR-PATHNAME
+(defun USER-HOMEDIR-PATHNAME (&optional host)
+  ;; TODO: look at host
+  (PATHNAME "~/"))
