@@ -5,7 +5,7 @@
 
 (IN-PACKAGE "EMACS-CL")
 
-;;; TODO:
+;;; TODO: COMPILE-FILE
 ; (cl:defun COMPILE-FILE (input-file &rest keys
 ; 			&key OUTPUT-FILE
 ; 			     (VERBOSE *COMPILE-VERBOSE*)

@@ -5,6 +5,7 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+;;; TODO: complex form of LOOP
 (cl:defmacro LOOP (&rest forms)
   (if (every #'consp forms)
       `(DO () (nil) (PROGN ,@forms))

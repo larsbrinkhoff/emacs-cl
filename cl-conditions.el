@@ -236,7 +236,7 @@
 
 ;;; TODO: WITH-CONDITION-RESTARTS
 
-;;; TODO:
+;;; TODO: WITH-SIMPLE-RESTART
 ; (cl:defmacro WITH-SIMPLE-RESTART ((name format &rest args)
 ; 				  &body body)
 ;   `(RESTART-CASE (PROGN ,@body)

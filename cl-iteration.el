@@ -48,9 +48,4 @@
      (MAPC (LAMBDA (,var) ,@body) ,list)
      ,result))
 
-(cl:defmacro LOOP (&rest forms)
-  (if (every #'consp forms)
-      `(DO () (nil) (PROGN ,@forms))
-      (error "TODO")))
-
-;;; TODO: LOOP-FINISH
+;;; LOOP and LOOP-FINISH are implemented in cl-loop.el.
