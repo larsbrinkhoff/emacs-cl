@@ -12,50 +12,117 @@
 ;;; System Class	BIT-VECTOR
 ;;; Type		SIMPLE-BIT-VECTOR
 
+(defun set-initial-contents (n i array contents fn)
+  (cond
+    ((zerop n)	(aset array 0 (funcall fn contents)))
+    ((eq n 1)	(dosequence (x contents i)
+		  (aset array i (funcall fn x))
+		  (incf i)))
+    (t		(dosequence (x contents i)
+		  (setq i (set-initial-contents (1- n) i array x fn))))))
+
+(defun bit-bool (bit)
+  (ecase bit
+    (0 nil)
+    (1 t)))
+
+(defun make-simple-vector (size initial-element)
+  (let ((vector (make-vector (1+ size) initial-element)))
+    (aset vector 0 'SIMPLE-VECTOR)
+    vector))
+
 (cl:defun MAKE-ARRAY (dimensions &key (ELEMENT-TYPE T) INITIAL-ELEMENT
 		      INITIAL-CONTENTS ADJUSTABLE FILL-POINTER
 		      DISPLACED-TO DISPLACED-INDEX-OFFSET)
-  (let* ((vectorp (or (atom dimensions) (null (cdr dimensions))))
-	 (simplep (not (or ADJUSTABLE FILL-POINTER
-			   DISPLACED-TO (not vectorp))))
-	 (size (if (atom dimensions)
-		   dimensions
-		   (apply #'cl:* dimensions))))
-    (when (eq FILL-POINTER T)
-      (setq FILL-POINTER (just-one dimensions)))
-    (ecase (UPGRADED-ARRAY-ELEMENT-TYPE ELEMENT-TYPE)
-      (BIT
-       (let ((bit-vector (or DISPLACED-TO
-			     (make-bool-vector size (ecase INITIAL-ELEMENT
-						      ((0 nil) nil) (1 t))))))
-	 (cond
-	   (simplep	bit-vector)
-	   (vectorp	(vector 'BIT-VECTOR FILL-POINTER bit-vector
+  (setq dimensions (ensure-list dimensions))
+  (when (eq FILL-POINTER T)
+    (setq FILL-POINTER (just-one dimensions)))
+  (let* ((size (apply #'cl:* dimensions))
+	 (start-index 0)
+	 (ndims (length dimensions))
+	 (vectorp (eq ndims 1))
+	 (simplep (not (or ADJUSTABLE
+			   FILL-POINTER
+			   DISPLACED-TO
+			   (not vectorp)))))
+    (multiple-value-bind (initial-element make-fn convert-fn
+			  vector-type array-type)
+	(ecase (UPGRADED-ARRAY-ELEMENT-TYPE ELEMENT-TYPE)
+	  (BIT
+	   (values (or INITIAL-ELEMENT 0)
+		   #'make-bool-vector
+		   #'bit-bool
+		   'BIT-VECTOR
+		   'bit-array))
+	  (CHARACTER
+	   (values (or INITIAL-ELEMENT (ch 0))
+		   #'make-string
+		   #'CHAR-CODE
+		   'STRING
+		   'char-array))
+	  ((T)
+	   (when simplep
+	     (setq start-index 1))
+	   (values INITIAL-ELEMENT
+		   (if simplep #'make-simple-vector #'make-vector)
+		   #'IDENTITY
+		   'VECTOR
+		   'ARRAY)))
+      (let ((storage (or DISPLACED-TO
+			 (funcall make-fn size
+				  (funcall convert-fn initial-element)))))
+	(when INITIAL-CONTENTS
+	  (set-initial-contents
+	   ndims start-index storage INITIAL-CONTENTS convert-fn))
+	(cond
+	  (simplep	storage)
+	  (vectorp	(vector vector-type FILL-POINTER storage
 				DISPLACED-INDEX-OFFSET))
-	   (t		(vector 'bit-array dimensions bit-vector
-				DISPLACED-INDEX-OFFSET)))))
-      (CHARACTER
-       (let ((string (or DISPLACED-TO
-			 (make-string size
-				      (if INITIAL-ELEMENT
-					  (CHAR-CODE INITIAL-ELEMENT)
-					  0)))))
-	 (cond
-	   (simplep	string)
-	   (vectorp	(vector 'STRING FILL-POINTER string
-				DISPLACED-INDEX-OFFSET))
-	   (t		(vector 'char-array dimensions string
-				DISPLACED-INDEX-OFFSET)))))
-      ((T)
-       (when simplep
-	 (incf size))
-       (let ((array (or DISPLACED-TO (make-vector size INITIAL-ELEMENT))))
-	 (cond
-	   (simplep	(aset array 0 'SIMPLE-VECTOR) array)
-	   (vectorp	(vector 'VECTOR FILL-POINTER array
-				DISPLACED-INDEX-OFFSET))
-	   (t		(vector 'ARRAY dimensions array
-				DISPLACED-INDEX-OFFSET))))))))
+	  (t		(vector array-type dimensions storage
+				DISPLACED-INDEX-OFFSET)))))))
+
+;     (ecase (UPGRADED-ARRAY-ELEMENT-TYPE ELEMENT-TYPE)
+;       (BIT
+;        (let* ((initial-element (bit-bool (or INITIAL-ELEMENT 0)))
+; 	      (storage (or DISPLACED-TO
+; 			   (make-bool-vector size initial-element)))
+; 	      (array (cond
+; 		       (simplep	storage)
+; 		       (vectorp	(vector 'BIT-VECTOR FILL-POINTER storage
+; 					DISPLACED-INDEX-OFFSET))
+; 		       (t	(vector 'bit-array dimensions storage
+; 					DISPLACED-INDEX-OFFSET)))))
+; 	 (when INITIAL-CONTENTS
+; 	   (set-initial-contents (length dimensions) 0 storage
+; 				 INITIAL-CONTENTS #'bit-bool))
+; 	 array))
+;       (CHARACTER
+;        (let* ((initial-element (CHAR-CODE (or INITIAL-ELEMENT (ch 0))))
+; 	      (storage (or DISPLACED-TO (make-string size initial-element)))
+; 	      (array (cond
+; 		       (simplep	storage)
+; 		       (vectorp	(vector 'STRING FILL-POINTER storage
+; 					DISPLACED-INDEX-OFFSET))
+; 		       (t	(vector 'char-array dimensions storage
+; 					DISPLACED-INDEX-OFFSET)))))
+; 	 (when INITIAL-CONTENTS
+; 	   (set-initial-contents (length dimensions) 0 storage
+; 				 INITIAL-CONTENTS #'CHAR-CODE)
+; 	 array))
+;       ((T)
+;        (when simplep
+; 	 (incf size))
+;        (let* ((storage (or DISPLACED-TO (make-vector size INITIAL-ELEMENT)))
+; 	      (array (cond
+; 		       (simplep	(aset storage 0 'SIMPLE-VECTOR) storage)
+; 		       (vectorp	(vector 'VECTOR FILL-POINTER storage
+; 					DISPLACED-INDEX-OFFSET))
+; 		       (t	(vector 'ARRAY dimensions storage
+; 					DISPLACED-INDEX-OFFSET)))))
+; 	 (when INITIAL-CONTENTS
+; 	   (set-initial-contents (length dimensions) (if simplep 1 0)
+; 				 storage INITIAL-CONTENTS #'IDENTITY))
+; 	 array)))))
 
 (cl:defun ADJUST-ARRAY (array new-dimensions
 			&key ELEMENT-TYPE INITIAL-ELEMENT INITIAL-CONTENTS
