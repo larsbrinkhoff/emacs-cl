@@ -203,11 +203,32 @@
 	`(LET ((,x ,(first forms)))
 	   (IF ,x ,x (OR ,@(rest forms)))))))
 
-(defmacro* WHEN (condition &body body)
-  `(if ,condition (progn ,@body)))
+(cl:defmacro WHEN (condition &body body)
+  `(IF ,condition (PROGN ,@body)))
 
-(defmacro* UNLESS (condition &body body)
-  `(if ,condition nil (progn ,@body)))
+(cl:defmacro UNLESS (condition &body body)
+  `(IF ,condition nil (PROGN ,@body)))
+
+(cl:defmacro CASE (form &rest clauses)
+  (let ((val (gensym))
+	(seen-otherwise nil))
+    `(LET ((,val ,form))
+       (COND
+	 ,@(mapcar (lambda (clause)
+		     (when seen-otherwise
+		       (error "syntax error"))
+		     (setq seen-otherwise
+			   (member (first clause) '(T OTHERWISE)))
+		     (cond
+		       (seen-otherwise
+			`(T ,@(rest clause)))
+		       ((atom (first clause))
+			`((EQL ,val ,(first clause))
+			  ,@(rest clause)))
+		       (t
+			`((MEMBER ,val (QUOTE ,(first clause)))
+			  ,@(rest clause)))))
+		   clauses)))))
 
 (defmacro* MULTIPLE-VALUE-BIND (vars form &body body)
   (if (null vars)
