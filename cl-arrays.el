@@ -5,6 +5,13 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+;;; System Class	ARRAY
+;;; Type		SIMPLE-ARRAY
+;;; System Class	VECTOR
+;;; Type		SIMPLE-VECTOR
+;;; System Class	BIT-VECTOR
+;;; Type		SIMPLE-BIT-VECTOR
+
 (cl:defun MAKE-ARRAY (dimensions &key (element-type T) initial-element
 		      initial-contents adjustable fill-pointer
 		      displaced-to displaced-index-offset)
@@ -167,22 +174,44 @@
   (and (VECTORP array)
        (not (SIMPLE-VECTOR-P array))))
 
+(defun ARRAY-DISPLACEMENT (array)
+  (unless (ARRAYP array)
+    (type-error array 'ARRAY))
+  (if (or (bool-vector-p array)
+	  (stringp array)
+	  (eq (aref array 0) 'SIMPLE-VECTOR))
+      (VALUES nil 0)
+      (VALUES (aref array 2) (aref array 3))))
+
 (defun ARRAY-IN-BOUNDS-P (array &rest subscripts)
+  (unless (ARRAYP array)
+    (type-error array 'ARRAY))
   (and (not (some #'MINUSP subscripts))
        (every #'cl:< subscripts (ARRAY-DIMENSIONS array))))
 
 (defun ARRAY-RANK (array)
+  (unless (ARRAYP array)
+    (type-error array 'ARRAY))
   (length (ARRAY-DIMENSIONS array)))
 
 (defun ARRAY-ROW-MAJOR-INDEX (array &rest subscripts)
+  (unless (ARRAYP array)
+    (type-error array 'ARRAY))
   (apply #'cl:+ (maplist (lambda (x y) (cl:* (car x) (apply #'cl:* (cdr y))))
 			 subscripts (ARRAY-DIMENSIONS array))))
 
+(defun ARRAY-TOTAL-SIZE (array)
+  (unless (ARRAYP array)
+    (type-error array 'ARRAY))
+  (reduce #'* (ARRAY-DIMENSIONS array)))
+
 (defun ARRAYP (object)
-  (or (VECTORP object)
+  (or (stringp object)
+      (bool-vector-p object)
       (and (vectorp object)
 	   (case (aref object 0)
-	     ((bit-array char-array array) T)))))
+	     ((BIT-VECTOR bit-array STRING char-array
+	       SIMPLE-VECTOR VECTOR ARRAY) T)))))
 
 (defun FILL-POINTER (vector)
   (unless (ARRAY-HAS-FILL-POINTER-P vector)
@@ -220,6 +249,10 @@
     ((SUBTYPEP typespec 'BIT)		'BIT)
     ((SUBTYPEP typespec 'CHARACTER)	'CHARACTER)
     (t					T)))
+
+(DEFCONSTANT ARRAY-DIMENSION-LIMIT MOST-POSITIVE-FIXNUM)
+(DEFCONSTANT ARRAY-RANK-LIMIT MOST-POSITIVE-FIXNUM)
+(DEFCONSTANT ARRAY-TOTAL-SIZE-LIMIT MOST-POSITIVE-FIXNUM)
 
 (defun SIMPLE-VECTOR-P (object)
   (or (stringp object)
@@ -307,6 +340,74 @@
 
 (defsetf SBIT (array index) (bit)
   `(aset ,array ,index (not (zerop ,bit))))
+
+(defun bit-array-p (object)
+  (or (bool-vector-p object)
+      (vector-and-typep object 'bit-array)))
+
+(defun default-result (array result)
+  (cond
+    ((bit-array-p result)	result)
+    ((eq result T)		array)
+    (t				(if (BIT-VECTOR-P array)
+				    (make-bool-vector (LENGTH array) nil)
+				    (vector 'bit-array
+					    (ARRAY-DIMENSIONS array)
+					    (make-bool-vector
+					     (ARRAY-TOTAL-SIZE array nil))
+					    0)))))
+
+(defun BIT-AND (array1 array2 &optional result)
+  (let ((result (default-result array1 result))
+	(storage1 (if (bool-vector-p array1) array1 (aref array1 2)))
+	(storage2 (if (bool-vector-p array2) array2 (aref array2 2))))
+    (dotimes (i (ARRAY-TOTAL-SIZE result))
+      (aset result i (and (aref storage1 i) (aref storage2 i))))))
+
+(defun BIT-ANDC1 (array1 array2 &optional result)
+  (BIT-AND (BIT-NOT array1) array2 result))
+
+(defun BIT-ANDC2 (array1 array2 &optional result)
+  (BIT-AND (BIT-NOT array1) array2 result))
+
+(defun BIT-EQV (array1 array2 &optional result)
+  (BIT-NOT (BIT-XOR array1 array2 result)))
+
+(defun BIT-IOR (array1 array2 &optional result)
+  (let ((result (default-result array1 result))
+	(storage1 (if (bool-vector-p array1) array1 (aref array1 2)))
+	(storage2 (if (bool-vector-p array2) array2 (aref array2 2))))
+    (dotimes (i (ARRAY-TOTAL-SIZE result))
+      (aset result i (or (aref storage1 i) (aref storage2 i))))))
+
+(defun BIT-NAND (array1 array2 &optional result)
+  (BIT-NOT (BIT-AND array1 array2 result)))
+
+(defun BIT-NOR (array1 array2 &optional result)
+  (BIT-NOT (BIT-IOR array1 array2 result)))
+
+(defun BIT-ORC1 (array1 array2 &optional result)
+  (BIT-IOR (BIT-NOT array1) array2 result))
+
+(defun BIT-ORC2 (array1 array2 &optional result)
+  (BIT-IOR array1 (BIT-NOT array2) result))
+
+(defun binary-xor (x y)
+  (and (or x y)
+       (not (and x y))))
+
+(defun BIT-XOR (array1 array2 &optional result)
+  (let ((result (default-result array1 result))
+	(storage1 (if (bool-vector-p array1) array1 (aref array1 2)))
+	(storage2 (if (bool-vector-p array2) array2 (aref array2 2))))
+    (dotimes (i (ARRAY-TOTAL-SIZE result))
+      (aset result i (binary-xor (aref storage1 i) (aref storage2 i))))))
+
+(defun BIT-NOT (array &optional result)
+  (let ((result (default-result array result))
+	(storage (if (bool-vector-p array) array (aref array 2))))
+    (dotimes (i (ARRAY-TOTAL-SIZE array))
+      (aset result i (not (aref storage i))))))
 
 (defun BIT-VECTOR-P (object)
   (or (bool-vector-p object)
