@@ -1,8 +1,7 @@
 ;;;; -*- emacs-lisp -*-
-;;;;
-;;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;;
-;;;; This file implements operators in chapter 8, Structures.
+;;;
+;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; This file implements operators in chapter 8, Structures.
 
 (IN-PACKAGE "CL")
 
@@ -17,7 +16,10 @@
       (member type1 (car (gethash type2 *structure-info*)))))
 
 (defun add-struct-subtype (struct sub)
-  (pushnew sub (car (gethash struct *structure-info*))))
+  (maphash (lambda (key val)
+	     (setf (car val) (delete sub val)))
+	   *structure-info*)
+  (push sub (car (gethash struct *structure-info*))))
 
 (defun struct-slots (struct)
   (cdr (gethash struct *structure-info*)))
@@ -37,6 +39,42 @@
 (defun slot-read-only-p (slot)
   (fourth slot))
 
+(defun param-with-default (param slots)
+  (cond
+    ((consp param)
+     (if (> (length param) 1)
+	 param
+	 (param-with-default (first param) slots)))
+    ((let ((slot (find param slots :key #'slot-name)))
+       (when slot
+	 (list param (slot-initval slot)))))
+    (t
+     param)))
+
+(defun lambda-list-with-defaults (lambda-list slots)
+  (let ((required t))
+    (mapcar
+     (lambda (param)
+       (cond
+	 ;; A lambda list keyword is passed
+	 ;; through unchanged.
+	 ((member param lambda-list-keywords)
+	  (setq required nil)
+	  param)
+	 ;; A required argument is passed
+	 ;; through unchanged.
+	 (required
+	  param)
+	 ;; If a non-required argument
+	 ;; doesn't have a default value,
+	 ;; supply the default value of the
+	 ;; slot.
+	 (t
+	  (param-with-default param slots))))
+     lambda-list)))
+
+
+;;; The defstruct macro proper.
 (defmacro* DEFSTRUCT (name &rest slots)
   (multiple-value-bind (name options) (if (consp name)
 					  (values (first name) (rest name))
@@ -53,7 +91,7 @@
 	  (print-function	nil)
 	  (type			nil)
 	  (struct-size		nil)
-	  (unbound		(cons nil nil)))
+	  (unbound		nil))
 
       ;; Process structure options.
       (dolist (option options)
@@ -118,39 +156,49 @@
       (unless predicate
 	(setq predicate (symcat name "-P")))
 
+      ;; Generate or process the lambda lists of the constructors.
+      (setq constructors
+	    (mapcar (lambda (constructor)
+		      (if (atom constructor)
+			  `(,constructor
+			    ,(lambda-list-with-defaults
+			      `(&key ,@(mapcar #'slot-name slots)) slots))
+			  `(,(first constructor)
+			    ,(lambda-list-with-defaults
+			      (second constructor) slots))))
+		    constructors))
+
       ;; Macro expansion.
       `(eval-when (:compile-toplevel :load-toplevel :execute)
 
 	;; Constructors.
 	,@(mapcar
 	   (lambda (constructor)
-	     `(defun* ,@(if (consp constructor)
-			    `(,(first constructor) ,(second constructor))
-			    `(,constructor (&key
-					    ,@(mapcar #'slot-name slots))))
-	       ,(ecase type
-		  ((nil)
-		   `(let ((object (make-vector ,struct-size ',name)))
-		     ,@(let ((index initial-offset))
-		         (mapcar (lambda (slot)
-				   `(aset object ,(incf index)
-				          ,(slot-name slot)))
-				 slots))
-		      object))
-		  (vector
-		   `(let ((object (MAKE-ARRAY ,struct-size)))
-		     ,@(let ((index (1- initial-offset)))
-		         `(,@(when named
-			       `((setf (AREF object ,(incf index) ',name))))
-			   ,@(mapcar (lambda (slot)
-				       `(setf (AREF object ,(incf index))
-					      ,(slot-name slot)))
-				     slots)))
-		     object))
-		  (list
-		   `(list ,@(make-list initial-offset nil)
-		          ,@(when named (list (list 'quote name)))
-		          ,@(mapcar #'slot-name slots))))))
+	     (let ((slotps (mapcar (lambda (x) (gensym)) slots)))
+	       `(defun* ,@constructor
+		 ,(ecase type
+		    ((nil)
+		     `(let ((object (make-vector ,struct-size ',name)))
+		       ,@(let ((index initial-offset))
+			      `(mapcar (lambda (slot)
+					 `((aset object ,(incf index)
+					         ,(slot-name slot)))
+					 slots)))
+		       object))
+		    (vector
+		     `(let ((object (MAKE-ARRAY ,struct-size)))
+		       ,@(let ((index (1- initial-offset)))
+		           `(,@(when named
+			         `((setf (AREF object ,(incf index) ',name))))
+			     ,@(mapcar (lambda (slot)
+					 `(setf (AREF object ,(incf index))
+					        ,(slot-name slot)))
+				       slots)))
+		       object))
+		    (list
+		     `(list ,@(make-list initial-offset nil)
+		            ,@(when named (list (list 'quote name)))
+		            ,@(mapcar #'slot-name slots)))))))
 	   constructors)
 
 	;; Copier.
@@ -198,7 +246,8 @@
 		 (incf index)
 		 (let ((name (symcat conc-name (slot-name slot))))
 		   `((defun ,name (object) ,getter)
-		     (defsetf ,name (object) (new) ,setter)))))
+		     ,@(unless (slot-read-only-p slot)
+		         `((defsetf ,name (object) (new) ,setter)))))))
 	       slots))
 
 	;; Finally, return structure name.
