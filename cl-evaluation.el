@@ -69,7 +69,7 @@
     ((consp form)
      (let ((fn (MACRO-FUNCTION (car form) env)))
        (if fn
-	   (let ((new (funcall *MACROEXPAND-HOOK* fn form env)))
+	   (let ((new (FUNCALL *MACROEXPAND-HOOK* fn form env)))
 	     (VALUES new (not (eq form new))))
 	   (VALUES form nil))))
     ((symbolp form)
