@@ -232,40 +232,6 @@
 
 ;;; Special Operator: UNWIND-PROTECT
 
-(defun expand-tagbody-forms (body start end)
-  (do ((clauses nil)
-       (clause (list (list start)))
-       (forms body (cdr forms)))
-      ((null forms)
-       (setq clause (append clause (list (list 'go end))))
-       (setq clauses (append clauses `(,clause)))
-       clauses)
-    (let ((form (first forms)))
-      (cond
-	((atom form)
-	 (setq clause (append clause `((go ,form))))
-	 (setq clauses (append clauses `(,clause)))
-	 (setq clause `((,form))))
-	(t
-	 (setq clause (append clause `(,form))))))))
-
-(defmacro* tagbody (&body body)
-  (let ((pc (gensym))
-	(start (gensym))
-	(end (gensym))
-	(throw-tag (gensym)))
-    `(let ((,pc ',start))
-      (macrolet ((go (tag)
-		   (list 'throw
-			 (list 'quote ',throw-tag)
-			 (list 'quote tag))))
-	(while (not (eq ,pc ',end))
-	  (setq ,pc
-		(catch ',throw-tag
-		  (case ,pc
-		    ,@(expand-tagbody-forms body start end))))))
-      nil)))
-
 ;;; Constant Variable: NIL
 
 (fset 'NOT (symbol-function 'not))
