@@ -10,11 +10,9 @@
 ;;; list of types that are subtypes of the key type.
 (defvar *structure-subtypes* (make-hash-table))
 
-(defun strcat (&rest string-designators)
-  (apply #'CONCATENATE 'STRING (mapcar #'STRING string-designators)))
-
-(defun symcat (&rest string-designators)
-  (nth-value 0 (INTERN (apply #'strcat string-designators))))
+(defun struct-subtypep (type1 type2)
+  (or (eq type1 type2)
+      (member type1 (gethash type2 *structure-subtypes*))))
 
 (defmacro* DEFSTRUCT (name &rest slots)
   (multiple-value-bind (name options) (if (consp name)
@@ -119,59 +117,48 @@
 
 	;; Predicate.
 	,@(when predicate
-	   `((defun ,predicate (object)
-	       (TYPEP object ',name))))
+	    (multiple-value-bind (type-predicate get-type)
+		(ecase type
+		  ((nil)	(values 'vectorp
+					'(aref object 0)))
+		  (vector	(values 'VECTORP
+					`(AREF object ,initial-offset)))
+		  (list		(values 'listp
+					`(nth ,initial-offset object))))
+	      `((defun ,predicate (object)
+		  (and (,type-predicate object)
+		       (struct-subtypep ,get-type ',name))))))
 
 	;; TYPEP.
-	,@(unless (and type (not named))
+	,@(unless type
 	   `((define-typep (object ,name env)
-	       ,(ecase type
-		  ((nil)
-		   `(and (vectorp object)
-		     (let ((type (aref object 0)))
-		       (or (eq type ',name)
-			   (member type (gethash ',name
-						 *structure-subtypes*))))))
-		  (vector
-		   `(and (VECTORP object)
-		     (let ((type (AREF object ,initial-offset)))
-		       (or (eq type ',name)
-			   (member type (gethash ',name
-						 *structure-subtypes*))))))
-		  (list
-		   `(and (listp object)
-		     (let ((type (nth ,initial-offset object)))
-		       (or (eq type ',name)
-			   (member type (gethash ',name
-						 *structure-subtypes*))))))))))
+	       (and (vectorp object)
+		    (struct-subtypep (aref object 0) ',name)))))
 
 	;; Accessors.
 	,@(let ((index initial-offset))
 	    (when (or named (not type))
 	      (incf index))
-	    (mapcan (lambda (slot)
-		      (let ((name (symcat conc-name slot)))
-			(prog1
-			  (ecase type
-			    ((nil)
-			     `((defun ,name (object)
-				 (aref object ,index))
-			       (defsetf ,name (object) (new)
-				 (list 'aset object ,index new))))
-			    (vector
-			     `((defun ,name (object)
-				 (AREF object ,index))
-			       (defsetf ,name (object) (new)
-				 (list 'setf (list 'AREF object ,index)
-				       new))))
-			    (list
-			     `((defun ,name (object)
-				 (nth ,index object))
-			       (defsetf ,name (object) (new)
-				 (list 'setf (list 'nth ,index object)
-				       new)))))
-			(incf index))))
-		    slots))
+	    (mappend
+	     (lambda (slot)
+	       (multiple-value-bind (getter setter)
+		   (ecase type
+		     ((nil)
+		      (values `(aref object ,index)
+			      `(list 'aset object ,index new)))
+		     (vector
+		      (values `(AREF object ,index)
+			      `(list 'setf (list 'AREF object ,index) new)))
+		     (list
+		      (values `(nth ,index object)
+			      `(list 'setf (list 'nth ,index object) new))))
+		 (incf index)
+		 (let ((name (symcat conc-name slot)))
+		   `((defun ,name (object) ,getter)
+		     (defsetf ,name (object) (new) ,setter)))))
+	       slots))
+
+	;; Finally, return structure name.
 	',name))))
 
 (defun COPY-STRUCTURE (object)

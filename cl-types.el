@@ -27,7 +27,7 @@
 	 (integer	'fixnum)
 	 (string	`(simple-string ,(length object)))
 	 (vector
-	  (ecase (aref object 0)
+	  (case (aref object 0)
 	    (bignum	'bignum)
 	    (ratio	'ratio)
 	    (complex	'complex)
@@ -39,7 +39,8 @@
 	    (simple-vector
 			`(simple-vector (1- (length object))))
 	    (vector	`(vector ,(length (aref object 2))))
-	    (array	`(array t ,(aref object 1)))))
+	    (array	`(array t ,(aref object 1)))
+	    (t		(aref object 0))))
 	 ((compiled-function cons hash-table symbol)
 			type)
 	 ((buffer char-table frame marker overlay process

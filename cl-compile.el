@@ -253,12 +253,6 @@
 		compiled-expr)))
       (compile-declare form))))
 
-(defun mappend (fn &rest lists)
-  (apply #'append
-   (if (null (cdr lists))
-       (mapcar fn (car lists))
-       (cl-mapcar-many fn lists))))
-
 (defun compile-let (form)
   (let ((bindings (second form))
 	(body (cddr form))

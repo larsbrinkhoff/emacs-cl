@@ -1,5 +1,6 @@
 (let ((load-path (cons "~/src/emacs-cl" load-path)))
   (require 'cl)
+  (load "utils")
   (defmacro in-package (name) nil)
   (defmacro IN-PACKAGE (name) nil)
 

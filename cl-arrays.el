@@ -4,12 +4,6 @@
 ;;;
 ;;; This file implements operators in chapter 15, Arrays.
 
-(defun just-one (list)
-  (cond
-    ((atom list)	list)
-    ((cdr list)		(error))
-    (t			(car list))))
-
 (defun* MAKE-ARRAY (dimensions &key (element-type t) initial-element
 		    initial-contents adjustable fill-pointer
 		    displaced-to displaced-index-offset)
