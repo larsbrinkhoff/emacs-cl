@@ -65,11 +65,22 @@
   (eq (NTH-VALUE 1 (FIND-SYMBOL (SYMBOL-NAME symbol) (SYMBOL-PACKAGE symbol)))
       (kw EXTERNAL)))
 
-(defun print-symbol-name (symbol stream)
-  (let* ((name (SYMBOL-NAME symbol))
-	 (read-sym (READ-FROM-STRING name))
+(defun print-symbol-prefix (symbol stream)
+  (cond
+    ((eq (SYMBOL-PACKAGE symbol) *keyword-package*)
+     (WRITE-STRING ":" stream))
+    ((eq (NTH-VALUE 0 (FIND-SYMBOL (symbol-name symbol) *PACKAGE*)) symbol))
+    ((null (SYMBOL-PACKAGE symbol))
+     (when *PRINT-GENSYM*
+       (WRITE-STRING "#:" stream)))
+    (t
+     (WRITE-STRING (PACKAGE-NAME (SYMBOL-PACKAGE symbol)) stream)
+     (WRITE-STRING (if (external-symbol-p symbol) ":" "::") stream))))
+
+(defun print-symbol-name (name stream)
+  (let* ((read-sym (READ-FROM-STRING name))
 	 (escape (if (and (symbolp read-sym)
-			  (string= name (SYMBOL-NAME read-sym)))
+			  (string= name (symbol-name read-sym)))
 		     "" "|")))
     (WRITE-STRING escape stream)
     (WRITE-STRING name stream)
@@ -117,25 +128,21 @@
       ((floatp object)
        (print-float object stream))
       ((symbolp object)
-       (cond
+       (let ((name (symbol-name object)))
 	 (if (printer-escaping-p)
 	     (progn
-	       ((eq (NTH-VALUE 0 (FIND-SYMBOL (SYMBOL-NAME object) *PACKAGE*))
-		    object)
-		(print-symbol-name object stream))
-	       ((null (SYMBOL-PACKAGE object))
-		(when *PRINT-GENSYM*
-		  (WRITE-STRING "#:" stream))
-		(print-symbol-name object stream))
-	       ((eq (SYMBOL-PACKAGE object) *keyword-package*)
-		(WRITE-STRING ":" stream)
-		(print-symbol-name object stream))
+	       (print-symbol-prefix object stream)
+	       (print-symbol-name name stream))
+	     (cond
+	       ((eq *PRINT-CASE* (kw UPCASE))
+		(WRITE-STRING name stream))
+	       ((eq *PRINT-CASE* (kw DOWNCASE))
+		(WRITE-STRING (STRING-DOWNCASE name) stream))
+	       ((eq *PRINT-CASE* (kw CAPITALIZE))
+		(WRITE-STRING (symbol-name-capitalize name) stream))
 	       (t
-		(WRITE-STRING (PACKAGE-NAME (SYMBOL-PACKAGE object)) stream)
-		(WRITE-STRING (if (external-symbol-p object) ":" "::") stream)
-		(print-symbol-name object stream)))
-	     ;; TODO: *PRINT-CASE*
-	     (WRITE-STRING (symbol-name object) stream))))
+		(type-error *PRINT-CASE* `(MEMBER ,(kw UPCASE) ,(kw DOWNCASE)
+						  ,(kw CAPITALIZE))))))))
       ((CHARACTERP object)
        (if (printer-escaping-p)
 	   (progn
@@ -247,6 +254,19 @@
        (error)))
     (VALUES object)))
 
+(defun symbol-name-capitalize (string)
+  (setq string (copy-sequence string))
+  (do* ((i 0 (1+ i))
+	(in-word-p nil))
+       ((eq i (length string))
+	string)
+    (let* ((char (CHAR string i))
+	   (alnump (ALPHANUMERICP char)))
+      (when (UPPER-CASE-P char)
+	(setf (CHAR string i)
+	      (if in-word-p (CHAR-DOWNCASE char) (CHAR-UPCASE char))))
+      (setq in-word-p alnump))))
+
 (defun write-char-to-*standard-output* (char)
   (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*))
 
@@ -316,7 +336,8 @@
 
 (defun PPRINT (object &optional stream)
   (TERPRI stream)
-  (WRITE object (kw STREAM) stream (kw ESCAPE) t (kw PRETTY) t))
+  (WRITE object (kw STREAM) stream (kw ESCAPE) t (kw PRETTY) t)
+  (VALUES))
 
 (defun PRINC (object &optional stream)
   (WRITE object (kw STREAM) stream (kw ESCAPE) nil (kw READABLY) nil))
