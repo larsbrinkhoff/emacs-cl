@@ -30,7 +30,7 @@
   (when (eq DIRECTORY (kw WILD))
     (setq DIRECTORY `(,(kw ABSOLUTE) ,(kw WILD-INFERIORS))))
   (MERGE-PATHNAMES (mkpathname HOST DEVICE DIRECTORY NAME TYPE VERSION)
-		   DEFAULTS))
+		   DEFAULTS nil))
 
 (defun PATHNAMEP (object)
   (vector-and-typep object 'PATHNAME))
@@ -258,7 +258,6 @@
        (EQUAL (,fn ,wildcard) (,fn ,pathname))))
 
 (defun directories-match-p (pathname wildcard)
-  (print (format "%s %s" pathname wildcard))
   (cond
     ((null pathname)
      (null wildcard))
@@ -277,7 +276,7 @@
 
 (defun PATHNAME-MATCH-P (pathname-designator wildcard)
   (let ((pathname (PATHNAME pathname-designator))
-	(wildcard (MERGE-PATHNAMES wildcard *all-wild-pathname*)))
+	(wildcard (MERGE-PATHNAMES wildcard *all-wild-pathname* (kw WILD))))
     (and (wild-test PATHNAME-HOST pathname wildcard)
 	 (wild-test PATHNAME-DEVICE pathname wildcard)
 	 (or (wild-test PATHNAME-DIRECTORY pathname wildcard)
@@ -322,11 +321,12 @@
      (wild-or-nil (PATHNAME-TYPE to-wildcard) (PATHNAME-TYPE source))
      (wild-or-nil (PATHNAME-VERSION to-wildcard) (PATHNAME-VERSION source)))))
 
-(cl:defun MERGE-PATHNAMES (pathname-d &OPTIONAL (default-d
-						 *DEFAULT-PATHNAME-DEFAULTS*)
-					        (default-version (kw NEWEST)))
-  (let ((pathname (PATHNAME pathname-d))
-	(default (PATHNAME default-d)))
+(cl:defun MERGE-PATHNAMES (pathname-designator
+			   &OPTIONAL
+			   (default-designator *DEFAULT-PATHNAME-DEFAULTS*)
+			   (default-version (kw NEWEST)))
+  (let ((pathname (PATHNAME pathname-designator))
+	(default (PATHNAME default-designator)))
     ;; TODO: read spec more closely.
     (mkpathname (or (PATHNAME-HOST pathname) (PATHNAME-HOST default))
 		(or (PATHNAME-DEVICE pathname) (PATHNAME-DEVICE default))
