@@ -52,6 +52,9 @@
 (defsetf SYMBOL-FUNCTION (symbol) (fn)
   `(fset ,symbol ,fn))
 
+(DEFSETF SYMBOL-FUNCTION (symbol) (fn)
+  `(fset ,symbol ,fn))
+
 (defun SYMBOL-NAME (symbol)
   (if symbol
       (symbol-name symbol)
