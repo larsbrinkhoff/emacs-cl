@@ -516,7 +516,7 @@
                env))
 
 (defun compile-lambda (lambda-list forms env &optional keep-bindings)
-  (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
+  (MULTIPLE-VALUE-BIND (body decls doc) (parse-body forms t)
     (let* ((vars lambda-list)
 	   (*bound* (when keep-bindings *bound*))
 	   (new-env (env-with-vars env vars decls))
@@ -528,6 +528,8 @@
 	  ((and (consp (second decl))
 		(eq (first (second decl)) 'INTERACTIVE))
 	   (push `(interactive ,(second (second decl))) compiled-body))))
+      (when doc
+	(push doc compiled-body))
       (cond
 	((null *free*)
 	 (expand-lambda lambda-list compiled-body new-env))
