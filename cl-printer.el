@@ -147,8 +147,8 @@
 	(if (eq (CHAR-CODE char) 126)
 	    (case (CHAR-CODE (CHAR format (incf i)))
 	      (37	(TERPRI))
-	      (65	(PRINT (pop args) stream))
-	      (68	(PRINT (pop args) stream)))
+	      (65	(PRIN1 (pop args) stream))
+	      (68	(PRIN1 (pop args) stream)))
 	    (WRITE-CHAR char stream)))
       (incf i))
     (if stream-designator

@@ -300,7 +300,7 @@
        (t
 	(cons 'APPEND (expand-bq-list form)))))
     ((VECTORP form)
-     (apply #'VECTOR nil))
+     `(APPLY (FUNCTION VECTOR) ,(expand-bq (MAP 'LIST #'IDENTITY form))))
     (t
      form)))
 
@@ -315,7 +315,7 @@
 	   (t				`(LIST ,(expand-bq car))))
 	 (case car
 	   (COMMA			(return-from expand-bq-list
-					  (list (second list)))
+					  (list (second list))))
 	   ((COMMA-AT COMMA-DOT)	(error "syntax error"))
 	   (t				`(LIST ,(expand-bq car)))))
      (if (consp cdr)
