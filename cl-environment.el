@@ -101,9 +101,65 @@
 	  (push symbol result))))
     result))
 
-;;; TODO: Function DESCRIBE
+(defun DESCRIBE (object &optional stream-designator)
+  (let ((stream (output-stream stream-designator)))
+    (DESCRIBE-OBJECT object stream)
+    (VALUES)))
 
-;;; TODO: Standard Generic Function DESCRIBE-OBJECT
+;;; TODO: DESCRIBE-OBJECT should be a generic function.
+(defun DESCRIBE-OBJECT (object stream)
+  (cond
+    ((symbolp object)
+     (FORMAT stream
+	     "~&~S is an ~A symbol in ~S."
+	     object
+	     (NTH-VALUE 1 (FIND-SYMBOL (SYMBOL-NAME object)
+				       (SYMBOL-PACKAGE object)))
+	     (SYMBOL-PACKAGE object))
+     (when (SPECIAL-OPERATOR-P object)
+       (FORMAT stream "~%It is a special operator."))
+     (when (boundp object)
+       (FORMAT stream "~%~AValue: ~S"
+	       (if (CONSTANTP object) "Constant " "")
+	       (symbol-value object)))
+     (when (fboundp object)
+       (FORMAT stream "~%Function: ~S" (symbol-function object)))
+     (when (MACRO-FUNCTION object)
+       (FORMAT stream "~%Macro Function: ~S" (MACRO-FUNCTION object)))
+     (when (symbol-plist object)
+       (FORMAT stream "~%Property list: ~S" (symbol-plist object))))
+    ((integerp object)
+     (FORMAT stream "~&~A is a fixnum." object))
+    ((bignump object)
+     (FORMAT stream "~&~A is a bignum." object)
+     (FORMAT stream "~%It is encoded in ~D fixnums." (1- (length object))))
+    ((ratiop object)
+     (FORMAT stream "~&~A is a ratio." object)
+     (FORMAT stream "~%Numerator: ~D" (NUMERATOR object))
+     (FORMAT stream "~%Denominator: ~D" (DENOMINATOR object)))
+    ((INTERPRETED-FUNCTION-P object)
+     (FORMAT stream "~&~A is an interpreted function." object)
+     (FORMAT stream "~%Lambda expression: ~S"
+	     (FUNCTION-LAMBDA-EXPRESSION object))
+     (FORMAT stream "~%Name: ~A" (function-name object)))
+    ((byte-code-function-p object)
+     (FORMAT stream "~&~A is a byte-compiled function." object)
+     (FORMAT stream "~%Lambda list: ~A" (aref object 0))
+     (FORMAT stream "~%Byte code: ...")
+     (when (> (length object) 2)
+       (FORMAT stream "~%Constants: ..."))
+     (when (> (length object) 3)
+       (FORMAT stream "~%Maximum stack size: ~D" (aref object 3)))
+     (when (documentation object)
+       (FORMAT stream "~%Documentation: ~A" (documentation object)))
+     (when (> (length object) 5)
+       (FORMAT stream "~%Interactive: ~S" (aref object 5))))
+    ((subrp object)
+     (FORMAT stream "~&~A is a built-in subroutine." object)
+     (when (documentation object)
+       (FORMAT stream "~%Documentation: ~A" (documentation object))))
+    (t
+     (FORMAT stream "~&Don't know how to describe ~A" object))))
 
 (defvar *traced-functions* nil)
 
