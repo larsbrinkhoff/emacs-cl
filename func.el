@@ -29,7 +29,7 @@
 	(state :required))
     (dolist (x lambda-list)
       (cond
-	((eq x '&key)
+	((memq x '(&key &rest))
 	 (push '&rest result)
 	 (push rest-sym result)
 	 (return-from simplify-lambda-list (nreverse result)))
@@ -165,7 +165,7 @@
 		   vars defaults)))))
 
 (defmacro cl:lambda (lambda-list &rest body)
-  (byte-compile
+;  (byte-compile
     (if (and (every 'symbolp lambda-list)
 	     (notany (lambda (x) (member x '(&key))) lambda-list))
 	;; Easy case: no defaults, suppliedp, or keyword arguments.
@@ -174,4 +174,4 @@
 	`(lambda ,(simplify-lambda-list lambda-list)
 	   (let* ,(lambda-list-bindings lambda-list)
 	     ,@(keyword-bindings lambda-list)
-	     ,@body)))))
+	     ,@body))));)
