@@ -18,27 +18,22 @@
 	       `(,(first var) ,(third var))))
 	   vars))
 
-(cl:defmacro DO (vars (test &rest result) &body body)
+(defun expand-do (vars test result body let setq)
   (with-gensyms (block start)
-    `(LET* ,(var-inits vars)
+    `(,let ,(var-inits vars)
        (BLOCK ,block
 	 (TAGBODY
 	   ,start
 	   (WHEN ,test (RETURN-FROM ,block (PROGN ,@result)))
 	   ,@body
-	   (PSETQ ,@(var-steps vars))
+	   (,setq ,@(var-steps vars))
 	   (GO ,start))))))
 
+(cl:defmacro DO (vars (test &rest result) &body body)
+  (expand-do vars test result body 'LET 'PSETQ))
+
 (cl:defmacro DO* (vars (test &rest result) &body body)
-  (with-gensyms (block start)
-    `(LET* ,(var-inits vars)
-       (BLOCK ,block
-	 (TAGBODY
-	   ,start
-	   (WHEN ,test (RETURN-FROM ,block (PROGN ,@result)))
-	   ,@body
-	   (SETQ ,@(var-steps vars))
-	   (GO ,start))))))
+  (expand-do vars test result body 'LET* 'SETQ))
 
 (cl:defmacro DOTIMES ((var count &optional result) &body body)
   (with-gensyms (end)

@@ -87,7 +87,7 @@
       (dolist (form body lastval)
 	(setq lastval (eval-with-env form new-env))))))
 
-(define-special-operator LET (bindings &rest forms) env
+(eval-let (bindings forms env old-env)
   (let* ((vars (mappend (lambda (binding)
 			  (let ((var (if (symbolp binding)
 					 binding
@@ -105,10 +105,12 @@
 					 (values (first binding)
 						 (second binding)))
 	(if (member var vars)
-	    (setf (lexical-value var new-env) (eval-with-env val env))
+	    (setf (lexical-value var new-env)
+		  (eval-with-env val (or old-env new-env)))
 	    (progn
 	      (push (symbol-value var) oldvals)
-	      (setf (symbol-value var) (eval-with-env val env))))))
+	      (setf (symbol-value var)
+		    (eval-with-env val (or old-env new-env)))))))
     (unwind-protect
 	 (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
 	   (dolist (form body lastval)
@@ -121,39 +123,12 @@
 	  (unless (member var vars)
 	    (setf (symbol-value var) (pop oldvals))))))))
 
+
+(define-special-operator LET (bindings &rest forms) env
+  (eval-let bindings forms env))
+
 (define-special-operator LET* (bindings &rest forms) env
-  (let* ((vars (mappend (lambda (binding)
-			  (let ((var (if (symbolp binding)
-					 binding
-					 (car binding))))
-			    (unless (eq (nth-value 0 (variable-information var env))
-					:special)
-			      (list var))))
-			bindings))
-	 (new-env (if vars (augment-environment env :variable vars) env))
-	 (lastval nil)
-	 (oldvals nil))
-    (dolist (binding bindings)
-      (multiple-value-bind (var val) (if (symbolp binding)
-					 (values binding nil)
-					 (values (first binding)
-						 (second binding)))
-	(if (member var vars)
-	    (setf (lexical-value var new-env) (eval-with-env val new-env))
-	    (progn
-	      (push (symbol-value var) oldvals)
-	      (setf (symbol-value var) (eval-with-env val env))))))
-    (unwind-protect
-	 (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
-	   (dolist (form body lastval)
-	     (setq lastval (eval-with-env form new-env))))
-      (dolist (binding bindings)
-	(multiple-value-bind (var val) (if (symbolp binding)
-					   (values binding nil)
-					   (values (first binding)
-						   (second binding)))
-	  (unless (member var vars)
-	    (setf (symbol-value var) (pop oldvals))))))))
+  (eval-let bindings forms nil))
 
 ;;; TODO: LOAD-TIME-VALUE
 
