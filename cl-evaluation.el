@@ -5,6 +5,9 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+;;; Assigned later in populate-packages.
+(defvar *global-environment* nil)
+
 (defvar *compiler-macro-functions* (make-hash-table))
 
 (defvar *macro-functions* (make-hash-table))
@@ -24,6 +27,10 @@
 	    (destructuring-bind ,lambda-list (cdr form)
 	      ,@body)))
     ',name))
+
+;;; Redefined later in cl-eval.el.
+(defun lexical-function (name env)
+  nil)
 
 (defun MACRO-FUNCTION (name &optional env)
   (when (null env)

@@ -11,9 +11,6 @@
   `(setf (gethash ',name *special-operator-evaluators*)
          (function* (lambda (,env ,@args) ,@body))))
 
-;;; Redefined later in populate-packages.
-(defvar *global-environment* nil)
-
 
 ;;; Definitions for all special operators follows.
 
