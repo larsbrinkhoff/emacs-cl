@@ -158,6 +158,26 @@
      (FORMAT stream "~&~A is a built-in subroutine." object)
      (when (documentation object)
        (FORMAT stream "~%Documentation: ~A" (documentation object))))
+    ((PACKAGEP object)
+     (FORMAT stream "~&~A is a package." object)
+     (FORMAT stream "~%Nicknames:~{ ~S~}" (PACKAGE-NICKNAMES object))
+     (let* ((ext (length (package-exported object)))
+	    (int (- (hash-table-count (package-table object)) ext)))
+       (FORMAT stream "~%Internal symbols: ~D" int)
+       (FORMAT stream "~%External symbols: ~D" ext))
+     (FORMAT stream "~%Shadowing symbols: ~D"
+	     (length (PACKAGE-SHADOWING-SYMBOLS object)))
+     (FORMAT stream "~%Use list: ~S" (PACKAGE-USE-LIST object))
+     (FORMAT stream "~%Used by list: ~S" (PACKAGE-USED-BY-LIST object)))
+    ((arrayp object)
+     ;; TODO:
+     (FORMAT stream "~&FIXME: This is a fall-back description.")
+     (FORMAT stream "~%~A is an instance of ~S" object (TYPE-OF object))
+     (FORMAT stream "~%The values of its slots are:")
+     (do* ((len (length object))
+	   (i 1 (1+ i)))
+	  ((eq i len))
+       (FORMAT stream "~%  Slot ~D: ~S" i (aref object i))))
     (t
      (FORMAT stream "~&Don't know how to describe ~A" object))))
 
