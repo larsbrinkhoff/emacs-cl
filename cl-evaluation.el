@@ -3,8 +3,6 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 3, Evaluation and Compilation.
 
-(defvar *MACROEXPAND-HOOK* #'funcall)
-
 (defvar *compiler-macro-functions* (make-hash-table))
 
 (defvar *macro-functions* (make-hash-table))
@@ -68,3 +66,16 @@
     (setf (gethash ',symbol *symbol-macro-functions*)
           (function* (lambda (form env) ',expansion)))
     ',symbol))
+
+;;; TODO: symbol-macrolet
+
+(defvar *MACROEXPAND-HOOK* #'funcall)
+
+;;;
+
+(defun SPECIAL-OPERATOR-P (symbol)
+  (member symbol
+	  '(block catch eval-when flet function go if labels let let*
+	    load-time-value locally macrolet multiple-value-call
+	    multiple-value-prog1 progn progv quote return-from setq
+	    symbol-macrolet tagbody the throw unwind-protect)))
