@@ -984,24 +984,18 @@
 	    (throw 'PARSE-INTEGER (VALUES nil i))
 	    (ERROR 'PARSE-ERROR)))
       (while (setq digit (DIGIT-CHAR-P char radix))
-;       (print (format "before: %s %s" (cl:* integer 10) digit))
 	(setq integer (cl:+ (cl:* integer radix) digit))
-;     	(PRINT integer)
-;     	(print (format "after: %s" integer))
 	(incf i)
 	(when (= i end)
-;	  (print (format "int: %s" integer))
 	  (throw 'PARSE-INTEGER (VALUES (cl:* sign integer) i)))
 	(setq char (CHAR string i)))
-      (cond
-	(junk-allowed
-	 (VALUES (cl:* sign integer) i))
-	(t
-	 (do ((j i (1+ j)))
-	     ((= j end)
-	      (VALUES (cl:* sign integer) i))
-	   (unless (whitespacep (CHAR string j))
-	     (ERROR 'PARSE-ERROR))))))))
+      (if junk-allowed
+	  (VALUES (cl:* sign integer) i)
+	  (do ((i i (1+ i)))
+	      ((= i end)
+	       (VALUES (cl:* sign integer) i))
+	    (unless (whitespacep (CHAR string i))
+	      (ERROR 'PARSE-ERROR)))))))
 
 (DEFCONSTANT BOOLE-1		 1)
 (DEFCONSTANT BOOLE-2		 2)
