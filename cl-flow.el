@@ -34,7 +34,9 @@
 (defun FDEFINITION (name)
   (cond
     ((symbolp name)
-     (symbol-function name))
+     (if (or (SPECIAL-OPERATOR-P name) (MACRO-FUNCTION name))
+	 nil
+	 (symbol-function name)))
     ((and (consp name) (eq (first name) 'SETF) (eq (cddr name) nil))
      (let ((fn (gethash (second name) *setf-definitions*)))
        (if (null fn)
