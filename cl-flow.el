@@ -35,7 +35,7 @@
     `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
       (cl-defun (QUOTE ,name) (LAMBDA ,lambda-list
 				,@(when doc `(,doc))
-				,@decls
+				,@(when decls `((DECLARE ,@decls)))
 				(BLOCK ,name ,@body))))))
 
 (defun cl-defun (name fn)
