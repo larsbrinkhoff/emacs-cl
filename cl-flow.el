@@ -25,11 +25,13 @@
 
 (cl:defmacro DEFUN (name lambda-list &body body)
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
-     (SETF (FDEFINITION (QUOTE ,name))
-           (FUNCTION (LAMBDA ,lambda-list (BLOCK ,name ,@body))))
-     (SETF (function-name (FDEFINITION (QUOTE ,name)))
-	   (QUOTE ,name))
-     (QUOTE ,name)))
+     (cl-defun (QUOTE name) (FUNCTION (LAMBDA ,lambda-list
+			                (BLOCK ,name ,@body))))))
+
+(defun cl-defun (name fn)
+  (setf (FDEFINITION name) fn)
+  (setf (function-name fn) name)
+  name)
 
 (defun setf-name-p (name)
   (and (consp name)
