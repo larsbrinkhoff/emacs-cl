@@ -65,7 +65,7 @@
 (cl:defmacro LAMBDA (lambda-list &body body)
   `(FUNCTION (LAMBDA ,lambda-list ,@body)))
 
-;;; TODO: COMPILE
+;;; COMPILE is defined in cl-compile.el.
 
 (defun MACROEXPAND-1 (form &optional env)
   (cond
@@ -108,8 +108,6 @@
      (puthash (QUOTE ,symbol) (LAMBDA (form env) (QUOTE ,expansion))
               *symbol-macro-functions*)
      (QUOTE ,symbol)))
-
-;;; TODO: SYMBOL-MACROLET
 
 (defvar *MACROEXPAND-HOOK* 'FUNCALL)
 

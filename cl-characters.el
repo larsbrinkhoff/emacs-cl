@@ -10,8 +10,6 @@
 ;;; Type STANDARD-CHAR
 ;;; Type EXTENDED-CHAR
 
-;;; TODO: use the XEmacs character type
-
 (unless use-character-type-p
   (define-storage-layout char (code)))
 
