@@ -76,13 +76,16 @@
     (push package *all-packages*)
     package))
 
-(defvar *keyword-package* (MAKE-PACKAGE "KEYWORD"))
-(defvar *emacs-lisp-package* (MAKE-PACKAGE "EMACS-LISP"
-					   (kw NICKNAMES) '("EL")))
-(defvar *emacs-cl-package* (MAKE-PACKAGE "EMACS-CL" (kw NICKNAMES) '("E-CL")))
-(defvar *cl-package* (MAKE-PACKAGE "COMMON-LISP" (kw NICKNAMES) '("CL")))
-(MAKE-PACKAGE "COMMON-LISP-USER" (kw NICKNAMES) '("CL-USER")
-	      (kw USE) '("CL" "E-CL" "EL"))
+(defvar *keyword-package*
+  (MAKE-PACKAGE "KEYWORD"))
+(defvar *emacs-lisp-package*
+  (MAKE-PACKAGE "EMACS-LISP" (kw NICKNAMES) '("EL")))
+(defvar *emacs-cl-package*
+  (MAKE-PACKAGE "EMACS-CL" (kw NICKNAMES) '("E-CL")))
+(defvar *cl-package*
+  (MAKE-PACKAGE "COMMON-LISP" (kw NICKNAMES) '("CL")))
+(MAKE-PACKAGE "COMMON-LISP-USER"
+	      (kw NICKNAMES) '("CL-USER") (kw USE) '("CL" "E-CL" "EL"))
 
 (defconst not-found (cons nil nil))
 
@@ -347,4 +350,4 @@
 
 ;;; Redefine the keyword function (initially defined in utils.el).
 (defun keyword (name)
-  (NTH-VALUE 0 (INTERN (upcase name) *keyword-package*)))
+  (VALUES (INTERN (upcase name) *keyword-package*)))
