@@ -230,8 +230,31 @@
 			  ,@(rest clause)))))
 		   clauses)))))
 
+;;; TODO: CCASE
+
 (cl:defmacro ECASE (form &rest clauses)
   `(CASE ,form ,@clauses (T (error "type error"))))
+
+(cl:defmacro TYPECASE (form &rest clauses)
+  (let ((val (gensym))
+	(seen-otherwise nil))
+    `(LET ((,val ,form))
+       (COND
+	 ,@(mapcar (lambda (clause)
+		     (when seen-otherwise
+		       (error "syntax error"))
+		     (setq seen-otherwise
+			   (member (first clause) '(T OTHERWISE)))
+		     `(,(if seen-otherwise
+			    T
+			    `(TYPEP ,val (QUOTE ,(first clause))))
+		       ,@(rest clause)))
+		   clauses)))))
+
+;;; TODO: CTYPECASE
+
+(cl:defmacro ETYPECASE (form &rest clauses)
+  `(TYPECASE ,form ,@clauses (T (error "type error"))))
 
 (defmacro* MULTIPLE-VALUE-BIND (vars form &body body)
   (if (null vars)
