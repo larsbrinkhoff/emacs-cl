@@ -256,25 +256,38 @@
 (defun keyword (string)
   (NTH-VALUE 0 (INTERN string *keyword-package*)))
 
-(defmacro* DEFSETF (access-fn &rest args)
-  (if (<= (length args) 2)
-      `(DEFINE-SETF-EXPANDER ,access-fn (&rest args2)
-	(let ((fn ',(first args))
-	      (var (gensym))
-	      (temps (mapcar (lambda (x) (gensym)) args2)))
-	  (VALUES temps
-		  args2
-		  (list var)
-		  `(,fn ,@temps ,var)
-		  ())))
-      `(long-form-defsetf ,access-fn ,@args)))
+;;; TODO:
+; (defmacro DEFINE-MODIFY-MACRO (name lambda-list fn &optional documentation)
+;   `',name)
 
-(defmacro* long-form-defsetf (access-fn lambda-list variables &body body)
-  `(DEFINE-SETF-EXPANDER ,access-fn ,lambda-list
-    (VALUES ()
-            ()
-            ',variables
-            ,(cons 'progn body))))
+(defmacro* DEFSETF (access-fn &rest args)
+  (case (length args)
+    (0 (error "syntax error"))
+    (1 (short-form-defsetf access-fn (first args)))
+    (t (apply #'long-form-defsetf access-fn args))))
+
+(defun short-form-defsetf (access-fn update-fn)
+  `(DEFINE-SETF-EXPANDER ,access-fn (&rest args)
+     (let ((var (gensym))
+	   (temps (map-to-gensyms args)))
+       (VALUES temps
+	       args
+	       (list var)
+	       (append '(,update-fn) temps (list var))
+	       (list* ',access-fn temps)))))
+
+(defun* long-form-defsetf (access-fn lambda-list variables &body body)
+  (let ((args (remove-if (lambda (x) (member x LAMBDA-LIST-KEYWORDS))
+			 lambda-list)))
+    `(DEFINE-SETF-EXPANDER ,access-fn ,lambda-list
+       (let* ((var (gensym))
+	     (temps (map-to-gensyms ',args))
+	     (,(first variables) var))
+	 (VALUES temps
+		 (list ,@args)
+		 (list var)
+		 (apply (lambda ,lambda-list ,@body) temps)
+		 (cons ',access-fn temps))))))
 
 (defvar *setf-expanders* (make-hash-table))
 
@@ -283,7 +296,8 @@
   (remf lambda-list '&environment)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (setf (gethash ',access-fn *setf-expanders*)
-           (lambda ,lambda-list ,@body))))
+           (lambda ,lambda-list ,@body))
+     ',access-fn))
 
 (cl:defmacro DEFINE-SETF-EXPANDER (access-fn lambda-list &body body)
   (setq lambda-list (copy-list lambda-list))
@@ -292,7 +306,8 @@
 	       ,(keyword "LOAD-TOPLEVEL")
 	       ,(keyword "EXECUTE"))
      (SETF (GETHASH ',access-fn *setf-expanders*)
-           (LAMBDA ,lambda-list ,@body))))
+           (LAMBDA ,lambda-list ,@body))
+     (QUOTE ,access-fn)))
 
 (defun GET-SETF-EXPANSION (place &optional env)
   (setq place (MACROEXPAND place))
@@ -301,13 +316,13 @@
     (let ((fn (gethash (first place) *setf-expanders*)))
       (if fn
 	  (apply fn (rest place))
-	  (let ((temps (mapcar (lambda (x) (gensym)) (rest place)))
+	  (let ((temps (map-to-gensyms (rest place)))
 		(var (gensym)))
 	    (VALUES temps
 		    (rest place)
 		    (list var)
 		    `(FUNCALL '(SETF ,(first place)) ,var ,@temps)
-		    place)))))
+		    `(,(first place) ,@temps))))))
    ((symbolp place)
     (let ((var (gensym)))
       (VALUES nil nil (list var) `(SETQ ,place ,var) place)))
