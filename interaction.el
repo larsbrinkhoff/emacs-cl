@@ -25,6 +25,8 @@
 			  *STANDARD-OUTPUT*))
   (setq *TERMINAL-IO* (MAKE-TWO-WAY-STREAM *STANDARD-INPUT* *STANDARD-OUTPUT*)
 	*QUERY-IO* *TERMINAL-IO*)
+  (setq standard-output
+	(lambda (char) (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*)))
   (insert (PACKAGE-NAME *PACKAGE*) "> ")
   (setq emacs-cl-prompt-marker (point-marker)))
 
