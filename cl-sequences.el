@@ -380,7 +380,36 @@
 	    (throw 'SEARCH (+ i (- END1 START1) -1)))))
     nil))
 
-;;; TODO: MISMATCH
+(cl:defun MISMATCH (seq1 seq2 &key FROM-END TEST TEST-NOT KEY
+				   (START1 0) (START2 0) END1 END2)
+  (unless KEY
+    (setq KEY #'IDENTITY))
+  (when (and TEST TEST-NOT)
+    (error))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
+  (unless END1
+    (setq END1 (LENGTH seq1)))
+  (unless END2
+    (setq END2 (LENGTH seq2)))
+  (catch 'MISMATCH
+    (if FROM-END
+	(do ((i (1- END1) (1- i))
+	     (j (1- END2) (1- j)))
+	    ((or (< i START1) (< j START2))
+	     (unless (and (< i START1) (< j START2)) i))
+	  (unless (FUNCALL TEST (FUNCALL KEY (ELT seq1 i))
+				(FUNCALL KEY (ELT seq2 j)))
+	    (throw 'MISMATCH i)))
+	(do ((i START1 (1+ i))
+	     (j START2 (1+ j)))
+	    ((or (eq i END1) (eq j END2))
+	     (unless (and (eq i END1) (eq j END2)) i))
+	  (unless (FUNCALL TEST (FUNCALL KEY (ELT seq1 i))
+				(FUNCALL KEY (ELT seq2 j)))
+	    (throw 'MISMATCH i))))))
 
 (cl:defun REPLACE (seq1 seq2 &key (START1 0) (START2 0) END1 END2)
   (unless END1
