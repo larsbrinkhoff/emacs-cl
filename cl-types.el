@@ -30,7 +30,9 @@
     ((SUBTYPEP type 'FLOAT)
      (float object))
     ((eq type 'FUNCTION)
-     (FDEFINITION object))
+     (if (lambda-expr-p object)
+	 (cl:values (COMPILE nil object))
+	 (FDEFINITION object)))
     ((eq type 'T)
      object)
     (t
