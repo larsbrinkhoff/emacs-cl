@@ -24,14 +24,14 @@
 
 (defun* get-macro-character (char &optional (readtable *readtable*))
   (values
-   (aref (readtable-macro-table readtable) char)
+   (aref (readtable-macro-table readtable) (char-code char))
    (eq (char-syntx char readtable) :non-terminating-macro)))
 
 (defun* set-macro-character (char new-function
 			    &optional non-terminating-p
 			              (readtable *readtable*))
-  (setf (aref (readtable-macro-table readtable) char) new-function)
-  (setf (aref (readtable-syntax-type readtable) char)
+  (setf (aref (readtable-macro-table readtable) (char-code char)) new-function)
+  (setf (aref (readtable-syntax-type readtable) (char-code char))
 	(if non-terminating-p
 	    :non-terminating-macro
 	    :terminating-macro))
@@ -40,12 +40,12 @@
 (defun* set-syntax-from-char (to-char from-char
 			      &optional (to-readtable *readtable*)
 			                (from-readtable *standard-readtable*))
-  (setf (aref (readtable-syntax-type to-readtable) to-char)
+  (setf (aref (readtable-syntax-type to-readtable) (char-code to-char))
 	(char-syntx from-char from-readtable))
   t)
 
 (defun* char-syntx (char &optional (readtable *readtable*))
-  (aref (readtable-syntax-type readtable) char))
+  (aref (readtable-syntax-type readtable) (char-code char)))
 
 (defvar *standard-readtable*
   (let ((readtable (make-readtable)))
@@ -166,7 +166,8 @@
   (values (list (cl:intern "FUNCTION" "CL") (cl:read stream t nil t))))
 
 (defun sharp-left-paren-reader (stream char n)
-  (values (concatenate 'vector (read-delimited-list (code-char 41) stream))))
+  (values (cl:concatenate 'vector
+			  (read-delimited-list (code-char 41) stream))))
 
 (defun sharp-asterisk-reader (stream char n) nil)
 
