@@ -5,19 +5,7 @@
 
 (IN-PACKAGE "EMACS-CL")
 
-;;; TODO: COMPILE-FILE
-; (cl:defun COMPILE-FILE (input-file &rest keys
-; 			&key OUTPUT-FILE
-; 			     (VERBOSE *COMPILE-VERBOSE*)
-; 			     (PRINT *COMPILE-PRINT*)
-; 			     EXTERNAL-FORMAT)
-;   (let* ((*PACKAGE* *PACKAGE*)
-; 	 (*READTABLE* *READTABLE*)
-; 	 (*COMPILE-FILE-PATHNAME* (MERGE-PATHNAMES input-file))
-; 	 (*COMPILE-FILE-TRUENAME* (TRUENAME *COMPILE-FILE-PATHNAME*))
-; 	 (output (apply #'COMPILE-FILE-PATHNAME input-file keys)))
-;     (WITH-COMPILATION-UNIT ()
-;       (cl:values (TRUENAME output) warnings-p failure-p))))
+;;; COMPILE-FILE is defined in cl-compile.el.
 
 (defun elc-file (filename)
   (MERGE-PATHNAMES (MAKE-PATHNAME (kw TYPE) "elc") filename))
@@ -38,20 +26,21 @@
 	 (*LOAD-TRUENAME* (TRUENAME *LOAD-PATHNAME*)))
     (cond
       ((STREAMP file)
-       (let ((val (EVAL (READ file))))
-	 (when PRINT
-	   (PRINT val)))
-       T)
-      ((STRING= (PATHNAME-TYPE file) "elc")
-       (when VERBOSE
-	 (PRINT "; Loading file ~S" file))
-       (load (NAMESTRING *LOAD-PATHNAME*))
-       T)
+       (let ((eof (gensym)))
+	 (do ((form #1=(READ file nil eof) #1#))
+	     ((eq form eof)
+	      T)
+	   (let ((val (EVAL form)))
+	     (when PRINT
+	       (PRINT val))))))
       ((or (STRINGP file) (PATHNAMEP file))
-       (WITH-OPEN-FILE (stream file)
-	 (when VERBOSE
-	   (PRINT "; Loading file ~S" file))
-	 (LOAD stream (kw PRINT) PRINT)))
+       (when VERBOSE
+	 (PRINT "; Loading file ~S" (NAMESTRING file)))
+       (if (STRING= (PATHNAME-TYPE file) "elc")
+	   (load (NAMESTRING *LOAD-PATHNAME*))
+	   (WITH-OPEN-FILE (stream file)
+	     (LOAD stream (kw PRINT) PRINT)))
+       T)
       (t
        (type-error file '(OR PATHNAME STRING STREAM))))))
 
