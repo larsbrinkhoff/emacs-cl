@@ -49,10 +49,44 @@
   ;;(CHECK-TYPE char 'character)
   (aref char 1))
 
-(defun CHAR= (ch1 ch2)
-  ;;(CHECK-TYPE ch1 'character)
-  ;;(CHECK-TYPE ch2 'character)
-  (EQ (CHAR-CODE ch1) (CHAR-CODE ch2)))
+(defun CHAR= (&rest chars)
+  (apply #'cl:= (mapcar #'CHAR-CODE chars)))
+
+(defun CHAR/= (&rest chars)
+  (apply #'cl:/= (mapcar #'CHAR-CODE chars)))
+
+(defun CHAR< (&rest chars)
+  (apply #'cl:< (mapcar #'CHAR-CODE chars)))
+
+(defun CHAR> (&rest chars)
+  (apply #'cl:> (mapcar #'CHAR-CODE chars)))
+
+(defun CHAR<= (&rest chars)
+  (apply #'cl:<= (mapcar #'CHAR-CODE chars)))
+
+(defun CHAR>= (&rest chars)
+  (apply #'cl:>= (mapcar #'CHAR-CODE chars)))
+
+(defun char-downcase-code (char)
+  (CHAR-CODE (CHAR-DOWNCASE char)))
+
+(defun CHAR-EQUAL (&rest chars)
+  (apply #'cl:= (mapcar #'char-downcase-code chars)))
+
+(defun CHAR-NOT-EQUAL (&rest chars)
+  (apply #'cl:/= (mapcar #'char-downcase-code chars)))
+
+(defun CHAR-LESSP (&rest chars)
+  (apply #'cl:< (mapcar #'char-downcase-code chars)))
+
+(defun CHAR-GREATERP (&rest chars)
+  (apply #'cl:> (mapcar #'char-downcase-code chars)))
+
+(defun CHAR-NOT-GREATERP (&rest chars)
+  (apply #'cl:<= (mapcar #'char-downcase-code chars)))
+
+(defun CHAR-NOT-LESSP (&rest chars)
+  (apply #'cl:>= (mapcar #'char-downcase-code chars)))
 
 (defun CHAR-UPCASE (char)
   (if (LOWER-CASE-P char)
