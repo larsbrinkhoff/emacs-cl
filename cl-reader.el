@@ -124,11 +124,17 @@
 	(return-from read1 (process-token package colons token escape))))))
 
 (cl:defun READ (&optional stream (eof-error-p T) eof-value recursive-p)
-  (read1 stream eof-error-p eof-value recursive-p nil))
+  (if recursive-p
+      (read1 stream eof-error-p eof-value recursive-p nil)
+      (let ((*sharp-equal-table* (make-hash-table :test #'equal)))
+	(read1 stream eof-error-p eof-value recursive-p nil))))
 
 (cl:defun READ-PRESERVING-WHITESPACE (&optional stream (eof-error-p T)
 				      eof-value recursive-p)
-  (read1 stream eof-error-p eof-value recursive-p t))
+  (if recursive-p
+      (read1 stream eof-error-p eof-value recursive-p t)
+      (let ((*sharp-equal-table* (make-hash-table :test #'equal)))
+	(read1 stream eof-error-p eof-value recursive-p t))))
 
 (defmacro* unless-read-suppress-let ((var form) &body body)
   `(let ((,var ,form))
@@ -461,9 +467,9 @@
 	  (VALUES (COMPLEX (first list) (second list)))
 	  (error "syntax error")))))
 
-;;; TODO:
+;;; TODO: #nA
 (defun sharp-a-reader (stream char n) nil)
-;;; TODO:
+;;; TODO: #S
 (defun sharp-s-reader (stream char n) nil)
 
 (defun sharp-p-reader (stream char n)
@@ -473,13 +479,35 @@
       (ERROR 'READER-ERROR))
     (PARSE-NAMESTRING string)))
 
-(defun sharp-equal-reader (stream char n)
-  (unless-read-suppress-let (object (READ stream T nil T))
-    ;; TODO: remember label "n" for this object
-    object))
+(defvar *sharp-equal-table* nil)
 
-;;; TODO:
-(defun sharp-sharp-reader (stream char n) nil)
+(defun replace-sharp-equal (tree object gensym)
+  (cond
+    ((eq tree gensym)
+     object)
+    ((consp tree)
+     (RPLACA tree (replace-sharp-equal (car tree) object gensym))
+     (RPLACD tree (replace-sharp-equal (cdr tree) object gensym)))
+    ((arrayp tree)
+     (dotimes (i (length tree) tree)
+       (aset tree i
+	     (replace-sharp-equal (aref tree i) object gensym))))
+    (t
+     tree)))
+
+(defun sharp-equal-reader (stream char n)
+  (with-gensyms (temp)
+    (setf (gethash n *sharp-equal-table*) temp)
+    (let ((object (READ stream T nil T)))
+      (unless *READ-SUPPRESS*
+	(replace-sharp-equal object object temp)
+	(setf (gethash n *sharp-equal-table*) object)))))
+
+(defun sharp-sharp-reader (stream char n)
+  (let ((object (gethash n *sharp-equal-table* not-found)))
+    (if (eq object not-found)
+	(ERROR "No object is labelled #~D#" n)
+	object)))
 
 (defun eval-feature-test (expr)
   (cond
