@@ -207,7 +207,7 @@
 		     `(let ((object (MAKE-ARRAY ,struct-size)))
 		        ,@(let ((index (1- initial-offset)))
 			    `(,@(when named
-				  `((setf (AREF object ,(incf index) ',name))))
+				  `((setf (AREF object ,(incf index)) ',name)))
 			      ,@(mapcar (lambda (slot)
 					  `(setf (AREF object ,(incf index))
 					         ,(slot-name-or-initval
@@ -272,6 +272,207 @@
 
 	;; Finally, return structure name.
 	',name))))
+
+;;; The defstruct macro proper.
+(cl:defmacro DEFSTRUCT (name &rest slots)
+  (multiple-value-bind (name options) (if (consp name)
+					  (values (first name) (rest name))
+					  (values name nil))
+    (let ((conc-name		(strcat name "-"))
+	  (constructors		nil)
+	  (no-constructor	nil)
+	  (copier		(symcat "COPY-" name))
+	  (include		nil)
+	  (initial-offset	nil)
+	  (named		nil)
+	  (predicate		nil)
+	  (print-object		nil)
+	  (print-function	nil)
+	  (type			nil)
+	  (struct-size		nil)
+	  (unbound		nil))
+
+      ;; Process structure options.
+      (dolist (option options)
+	(multiple-value-bind (name args) (if (atom option)
+					     (values option nil)
+					     (values (first option)
+						     (rest option)))
+	  (cond
+	    ((eq name (kw CONC-NAME))
+	     (setq conc-name (STRING (or (first args) ""))))
+	    ((eq name (kw CONSTRUCTOR))
+	     (ecase (length args)
+	       (0)
+	       (1	(if (null (first args))
+			    (setq no-constructor t)
+			    (push (first args)
+				  constructors)))
+	       (2	(push args constructors))))
+	    ((eq name (kw COPIER))
+	     (setq copier (first args)))
+	    ((eq name (kw INCLUDE))
+	     (setq include args))
+	    ((eq name (kw INITIAL-OFFSET))
+	     (setq initial-offset (first args)))
+	    ((eq name (kw NAMED))
+	     (setq named t))
+	    ((eq name (kw PREDICATE))
+	     (setq predicate (first args)))
+	    ((eq name (kw PRINT-OBJECT))
+	     (setq print-object (first args)))
+	    ((eq name (kw PRINT-FUNCTION))
+	     (setq print-function (first args)))
+	    ((eq name (kw TYPE))
+	     (setq type (first args)))
+	    (t
+	     (ERROR "Unknown DEFSTRUCT option: ~S" name)))))
+
+      ;; Provide a default constructor if appropriate.
+      (when (and (null constructors) (not no-constructor))
+	(setq constructors (list (symcat "MAKE-" name))))
+
+      ;; Calculate the effective slot list.
+      (setq slots
+	    (mapcar (lambda (slot)
+		      (cond
+			((atom slot)
+			 (list slot unbound t nil))
+			((= (length slot) 1)
+			 (list (first slot) unbound t nil))
+			(t
+			 (list (first slot) (second slot)
+			       (getf (cddr slot) (kw TYPE) T)
+			       (getf (cddr slot) (kw READ-ONLY))))))
+		    slots))
+      (when include
+	(setq slots (append (struct-slots (first include)) slots)))
+      (setf (struct-slots name) slots)
+
+      ;; Calculate initial-offset and structure size.
+      (when (and initial-offset (not type))
+	(ERROR ":initial-offset used without :type"))
+      (unless initial-offset
+	(setq initial-offset 0))
+      (setq struct-size (+ initial-offset (length slots)))
+      (unless (and type (not named))
+	(incf struct-size))
+
+      ;; Register the structure as a subtype of an included structure,
+      ;; and provide a default predicate if appropriate.
+      (when include
+	(add-struct-subtype (first include) name))
+      (when (and type (not named) predicate)
+	(ERROR "error"))
+      (unless predicate
+	(setq predicate (symcat name "-P")))
+
+      ;; Generate or process the lambda lists of the constructors.
+      (setq constructors
+	    (mapcar (lambda (constructor)
+		      (if (atom constructor)
+			  `(,constructor
+			    ,(lambda-list-with-defaults
+			      `(&KEY ,@(mapcar #'slot-name slots)) slots))
+			  `(,(first constructor)
+			    ,(lambda-list-with-defaults
+			      (second constructor) slots))))
+		    constructors))
+
+      ;; Macro expansion.
+      `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
+
+	;; Constructors.
+	,@(mapcar
+	    (lambda (constructor)
+	      `(DEFUN ,@constructor
+		 ,(ecase type
+		    ((nil)
+		     `(LET ((object (make-vector ,struct-size (QUOTE ,name))))
+		        ,@(let ((index initial-offset))
+			    (mapcar (lambda (slot)
+				      `(aset object ,(incf index)
+					     ,(slot-name-or-initval
+					       slot constructor)))
+				    slots))
+		        object))
+		    (VECTOR
+		     `(LET ((object (MAKE-ARRAY ,struct-size)))
+		        ,@(let ((index (1- initial-offset)))
+			    `(,@(when named
+				  `((SETF (AREF object ,(incf index))
+				          (QUOTE ,name))))
+			      ,@(mapcar (lambda (slot)
+					  `(SETF (AREF object ,(incf index))
+					         ,(slot-name-or-initval
+						   slot constructor)))
+					slots)))
+		        object))
+		    (LIST
+		     `(LIST ,@(make-list initial-offset nil)
+		            ,@(when named (list (list 'QUOTE name)))
+		            ,@(mapcar (lambda (slot)
+					(slot-name-or-initval
+					 slot constructor))
+				      slots))))))
+	    constructors)
+
+	;; Copier.
+	,@(when copier
+	   `((DEFUN ,copier (object)
+	       (copy-sequence object))))
+
+	;; Predicate.
+	,@(when predicate
+	    (multiple-value-bind (type-predicate get-type)
+		(ecase type
+		  ((nil)      (values 'vectorp '(aref object 0)))
+		  (vector     (values 'VECTORP `(AREF object ,initial-offset)))
+		  (list	      (values 'LISTP   `(NTH ,initial-offset object))))
+	      `((DEFUN ,predicate (object)
+		  (AND (,type-predicate object)
+		       (struct-subtypep ,get-type (QUOTE ,name)))))))
+
+	;; TYPEP.
+	,@(unless type
+	    (with-gensyms (obj env)
+	      `((puthash (QUOTE ,name)
+		         (LAMBDA (,obj ,env)
+			   (AND (vectorp ,obj)
+				(struct-typep (aref ,obj 0) (QUOTE ,name))))
+		         *atomic-typespecs*))))
+
+	;; Accessors.
+	,@(let ((index initial-offset))
+	    (when (or named (not type))
+	      (incf index))
+	    (mappend
+	     (lambda (slot)
+	       (multiple-value-bind (getter setter)
+		   (ecase type
+		     ((nil)
+		      (values `(aref object ,index)
+			      `(BACKQUOTE
+				(aset (COMMA object) ,index (COMMA new)))))
+		     (vector
+		      (values `(AREF object ,index)
+			      `(BACKQUOTE
+				(SETF (AREF (COMMA object) ,index)
+				      (COMMA new)))))
+		     (list
+		      (values `(NTH ,index object)
+			      `(BACKQUOTE
+				(SETF (NTH ,index (COMMA object))
+				      (COMMA new))))))
+		 (incf index)
+		 (let ((name (symcat conc-name (slot-name slot))))
+		   `((DEFUN ,name (object) ,getter)
+		     ,@(unless (slot-read-only-p slot)
+		         `((DEFSETF ,name (object) (new) ,setter)))))))
+	       slots))
+
+	;; Finally, return structure name.
+	(QUOTE ,name)))))
 
 (defun COPY-STRUCTURE (object)
   (copy-sequence object))
