@@ -12,7 +12,7 @@
 
 (defun* get-dispatch-macro-character (disp-char sub-char
 				      &optional (readtable *readtable*))
-  (let ((string (concat (list disp-char) (list sub-char))))
+  (let ((string (concat (list (char-code disp-char) (char-code sub-char)))))
     (gethash string (readtable-dispatch-table readtable))))
 
 (defun* set-dispatch-macro-character (disp-char sub-char new-function
@@ -120,9 +120,10 @@
        (values string))
     (setq string
 	  (concat string
-		  (list (if (eq (char-syntx char) :single-escape)
-			    (cl:read-char stream t nil t)
-			    char))))))
+		  (list (char-code
+			 (if (eq (char-syntx char) :single-escape)
+			     (cl:read-char stream t nil t)
+			     char))))))
 
 (defun sharp-reader (stream char1)
   (let* ((char2 (cl:read-char stream t nil t))
@@ -137,7 +138,7 @@
 (defun left-paren-reader (stream char)
   (do ((list nil)
        (char #1=(peek-char t stream) #1#))
-      ((eql char 41)
+      ((eql char (code-char 41))
        (values (nreverse list)))
     (push (cl:read stream t nil t) list)))
 
@@ -163,7 +164,7 @@
        (values (if (= (length string) 1)
 		   (aref string 0)
 		   (name-char string))))
-    (setq string (concat string (list char)))))
+    (setq string (concat string (list (char-code char))))))
 
 (defun sharp-quote-reader (stream char n)
   (values (list (cl:intern "FUNCTION" "CL") (cl:read stream t nil t))))
@@ -180,7 +181,7 @@
       ((not (constituentp char))
        (unread-char char stream)
        (values (make-symbol string)))
-    (setq string (concat string (list char)))))
+    (setq string (concat string (list (char-code char))))))
 
 (defvar *read-eval* t)
 
@@ -278,7 +279,7 @@
 	(:single-escape
 	 (setq escape t)
 	 (setq char (cl:read-char stream t nil t))
-	 (setq token (concat token (list char)))
+	 (setq token (concat token (list (char-code char))))
 	 (go STEP-8))
 	(:multiple-escape
 	 (go STEP-9))
@@ -296,7 +297,7 @@
 	     (setq package token))
 	 (setq token nil))
 	(t
-	 (setq token (concat token (list char)))))
+	 (setq token (concat token (list (char-code char))))))
       STEP-8
       (setq char (cl:read-char stream nil nil t))
       (when (null char)
@@ -308,7 +309,7 @@
 	(:single-escape
 	 (setq escape t)
 	 (setq char (cl:read-char stream t nil t))
-	 (setq token (concat token (list char)))
+	 (setq token (concat token (list (char-code char))))
 	 (go STEP-8))
 	(:multiple-escape
 	 (go STEP-9))
@@ -327,11 +328,11 @@
 	(error "end of file"))
       (case (char-syntx char)
 	((:constituent :non-terminating-macro :terminating-macro :whitespace)
-	 (setq token (concat token (list char)))
+	 (setq token (concat token (list (char-code char))))
 	 (go STEP-9))
 	(:single-escape
 	 (setq char (cl:read-char stream t nil t))
-	 (setq token (concat token (list char)))
+	 (setq token (concat token (list (char-code char))))
 	 (go STEP-9))
 	(:multiple-escape
 	 (when (null token)
