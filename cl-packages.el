@@ -17,8 +17,8 @@
 
 (defconst not-found (cons nil nil))
 
-(defun* find-symbol (string &optional (p *package*))
-  (let* ((package (find-package p))
+(defun* FIND-SYMBOL (string &optional (p *package*))
+  (let* ((package (FIND-PACKAGE p))
 	 (table (package-table
 		 (or package
 		     (error (format "package \"%s\" not found" p)))))
@@ -29,7 +29,7 @@
 
 (defvar *all-packages* nil)
 
-(defun find-package (name)
+(defun FIND-PACKAGE (name)
   (if (packagep name)
       name
       (let ((string (cl:string name)))
@@ -39,17 +39,17 @@
 	       (find string (package-nicknames p) :test 'equal)))
 	 *all-packages*))))
 
-(defun find-all-symbols (name)
+(defun FIND-ALL-SYMBOLS (name)
   (let ((string (cl:string name))
 	(syms nil))
     (dolist (p *all-packages* syms)
-      (multiple-value-bind (sym status) (find-symbol string p)
+      (multiple-value-bind (sym status) (FIND-SYMBOL string p)
 	(if (or (eq status :internal) (eq status :external))
 	    (push sym syms))))))
 
 ;;; import
 
-(defun list-all-packages ()
+(defun LIST-ALL-PACKAGES ()
   (copy-list *all-packages*))
 
 ;;; rename-package
@@ -58,14 +58,14 @@
 
 ;;; shadowing-import
 
-(defun delete-package (package)
+(defun DELETE-PACKAGE (package)
   (dolist (p (package-use-list package))
     (setf (package-used-by-list p) (delete package (package-used-by-list p))))
   (setf *all-packages* (delete package *all-packages*)))
 
-(defun* make-package (name &key nicknames use)
+(defun* MAKE-PACKAGE (name &key nicknames use)
   (let ((package (mk-package))
-	(use-packages (mapcar (lambda (p) (find-package p)) use)))
+	(use-packages (mapcar (lambda (p) (FIND-PACKAGE p)) use)))
     (setf (package-table package) (make-hash-table :test 'equal)
 	  (package-name package) (cl:string name)
 	  (package-nicknames package) nicknames
@@ -79,9 +79,9 @@
 
 ;;; unexport
 
-(defun* cl:unintern (symbol &optional (package *package*))
-  (when (eq (symbol-package symbol) package)
-    (setf (symbol-package symbol) nil))
+(defun* UNINTERN (symbol &optional (package *package*))
+  (when (eq (SYMBOL-PACKAGE symbol) package)
+    (setf (SYMBOL-PACKAGE symbol) nil))
   (let* ((table (package-table package))
 	 (name (symbol-name symbol))
 	 (sym (gethash name table not-found)))
@@ -89,30 +89,30 @@
       (remhash name table)
       t)))
 
-(defmacro in-package (package)
+(defmacro IN-PACKAGE (package)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-    (setq *package* (find-package ,package))))
+    (setq *package* (FIND-PACKAGE ,package))))
 
 (defun ensure-list (x)
   (if (listp x) x (list x)))
 
-(defun* unuse-package (packages-to-unuse &optional (package *package*))
-  (let ((package (find-package package)))
+(defun* UNUSE-PACKAGE (packages-to-unuse &optional (package *package*))
+  (let ((package (FIND-PACKAGE package)))
     (dolist (p (ensure-list packages-to-unuse))
-      (let ((p (find-package p)))
+      (let ((p (FIND-PACKAGE p)))
 	(setf (package-use-list package)
 	      (delete p (package-use-list package))
 	      (package-used-by-list p)
 	      (delete package (package-used-by-list p))))))
   t)
 
-(defun* use-package (packages-to-use &optional (package *package*))
-  (let ((package (find-package package)))
+(defun* USE-PACKAGE (packages-to-use &optional (package *package*))
+  (let ((package (FIND-PACKAGE package)))
     (dolist (p (ensure-list packages-to-use))
-      (pushnew (find-package p) (package-use-list package))))
+      (pushnew (FIND-PACKAGE p) (package-use-list package))))
   t)
 
-(defmacro defpackage (name &body options)
+(defmacro DEFPACKAGE (name &body options)
   (let ((nicknames nil)
 	(documentation nil)
 	(use-list nil)
@@ -131,13 +131,13 @@
 	(:size		nil)))
     (let ((package (gensym)))
       `(eval-when (:compile-toplevel :load-toplevel :execute)
-	(let ((,package (make-package ,name
+	(let ((,package (MAKE-PACKAGE ,name
 				      :nicknames ,nicknames
 				      :use ,use-list)))
 	  (setf (package-doc doc))
 	  ,package)))))
 
-(defmacro* do-symbols ((var &optional (package *package*) result)
+(defmacro* DO-SYMBOLS ((var &optional (package *package*) result)
 		       &body body)
   (let ((ignore (gensym)))
     `(progn
@@ -148,15 +148,15 @@
 
 ;;; do-all-symbols
 
-(defun* cl:intern (name &optional (package-designator *package*))
-  (let ((package (find-package package-designator)))
+(defun* INTERN (name &optional (package-designator *package*))
+  (let ((package (FIND-PACKAGE package-designator)))
     (when (null package)
       (error (format "package \"%s\" not found" package-designator)))
-    (multiple-value-bind (symbol status) (find-symbol name package)
+    (multiple-value-bind (symbol status) (FIND-SYMBOL name package)
       (if status
 	  (values symbol status)
 	  (let ((symbol (make-symbol name)))
-	    (setf (symbol-package symbol) package)
+	    (setf (SYMBOL-PACKAGE symbol) package)
 	    (setf (gethash name (package-table package)) symbol)
 	    (values symbol nil))))))
 
@@ -164,22 +164,25 @@
 
 ;;; package-error-package
 
-(make-package "COMMON-LISP" :nicknames '("CL"))
-(make-package "COMMON-LISP-USER" :nicknames '("CL-USER") :use '("CL"))
-(make-package "KEYWORD")
-(make-package "EMACS-LISP" :nicknames '("EL"))
+(MAKE-PACKAGE "COMMON-LISP" :nicknames '("CL"))
+(MAKE-PACKAGE "COMMON-LISP-USER" :nicknames '("CL-USER") :use '("CL"))
+(MAKE-PACKAGE "KEYWORD")
+(MAKE-PACKAGE "EMACS-LISP" :nicknames '("EL"))
 
-(defvar *package* (find-package "CL-USER"))
+(defvar *package* (FIND-PACKAGE "CL-USER"))
 
 (dolist (sym
 	  '(ADJUST-ARRAY ADJUSTABLE-ARRAY-P AREF ARRAY-DIMENSION
 	    ARRAY-DIMENSIONS ARRAY-ELEMENT-TYPE ARRAY-HAS-FILL-POINTER-P
-	    ARRAYP ASH BACKQUOTE COMMA COMMA-AT COMMA-DOT COPY-SEQ
-	    DEFINE-SETF-EXPANDER DEFSETF ELT FLOAT FUNCTION
-	    GET-SETF-EXPANSION INTEGERP LENGTH LOGAND LOGANDC1 LOGANDC2
-	    LOGEQV LOGIOR LOGNAND LOGNOR LOGNOT LOGORC1 LOGORC2 LOGXOR
-	    MAKE-ARRAY MAX MIN MINUSP NUMBERP PEEK-CHAR PRINT RANDOM READ-CHAR
-	    READ-LINE SETF SIMPLE-BIT-VECTOR-P SIMPLE-VECTOR-P STRINGP SUBTYPEP
-	    TYPEP UNREAD-CHAR UPGRADED-ARRAY-ELEMENT-TYPE VECTORP WRITE-CHAR
-	    WRITE-LINE WRITE-STRING QUOTE ZEROP))
-  (setf (symbol-package sym) (find-package "COMMON-LISP")))
+	    ARRAYP ASH BACKQUOTE COMMA COMMA-AT COMMA-DOT COPY-SEQ COPY-SYMBOL
+	    DEFINE-SETF-EXPANDER DEFPACKAGE DEFSETF DELETE-PACKAGE DO-SYMBOLS
+	    ELT FIND-SYMBOL FIND-ALL-SYMBOLS FIND-PACKAGE FLOAT FUNCTION
+	    GET-SETF-EXPANSION IN-PACKAGE INTEGERP INTERN KEYWORDP LENGTH
+	    LIST-ALL-PACKAGES LOGAND LOGANDC1 LOGANDC2 LOGEQV LOGIOR LOGNAND
+	    LOGNOR LOGNOT LOGORC1 LOGORC2 LOGXOR MAKE-ARRAY MAKE-PACKAGE MAX
+	    MIN MINUSP NUMBERP PEEK-CHAR PRINT RANDOM READ-CHAR READ-LINE SETF
+	    SIMPLE-BIT-VECTOR-P SIMPLE-VECTOR-P STRINGP SUBTYPEP SYMBOL-PACKAGE
+	    TYPEP UNREAD-CHAR UNUSE-PACKAGE UPGRADED-ARRAY-ELEMENT-TYPE
+	    USE-PACKAGE UNINTERN VECTORP WRITE-CHAR WRITE-LINE WRITE-STRING
+	    QUOTE ZEROP))
+  (setf (SYMBOL-PACKAGE sym) (FIND-PACKAGE "COMMON-LISP")))

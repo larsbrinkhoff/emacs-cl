@@ -4,12 +4,12 @@
 ;;;;
 ;;;; This file implements operators in chapter 10, Symbols.
 
-(defun keywordp (sym)
+(defun KEYWORDP (sym)
   (and (symbolp sym)
-       (symbol-package sym)
-       (equal (package-name (symbol-package sym)) "KEYWORD")))
+       (SYMBOL-PACKAGE sym)
+       (equal (package-name (SYMBOL-PACKAGE sym)) "KEYWORD")))
 
-(defun copy-symbol (sym &optional copy-properties)
+(defun COPY-SYMBOL (sym &optional copy-properties)
   (let ((new (make-symbol (symbol-name sym))))
     (when copy-properties
       (when (boundp sym)
@@ -21,9 +21,9 @@
 
 ;;; No closures in Emacs Lisp!
 ; (let ((table (make-hash-table :test 'eq :weakness t)))
-;   (defun symbol-package (sym)
+;   (defun SYMBOL-PACKAGE (sym)
 ;     (gethash sym table))
-;   (defun set-symbol-package (sym package)
+;   (defun set-SYMBOL-PACKAGE (sym package)
 ;     (if (null package)
 ; 	(remhash sym table)
 ; 	(setf (gethash sym table) package))
@@ -31,10 +31,10 @@
 
 (defvar *symbol-package-table* (make-hash-table :test 'eq :weakness t))
 
-(defun symbol-package (sym)
+(defun SYMBOL-PACKAGE (sym)
   (gethash sym *symbol-package-table*))
 
-(defsetf symbol-package (sym) (package)
+(defsetf SYMBOL-PACKAGE (sym) (package)
   `(if (null ,package)
        (progn (remhash ,sym *symbol-package-table*) ,package)
        (setf (gethash ,sym *symbol-package-table*) ,package)))

@@ -369,14 +369,14 @@
       (2 (error "too many colons"))))
   (when (null token)
     (error "token terminated by colon"))
-  (multiple-value-bind (sym status) (find-symbol token package)
+  (multiple-value-bind (sym status) (FIND-SYMBOL token package)
     (case status
       (:external
        (return-from cl:read sym))
       ((:internal :inherited)
        (error))
       ((nil)
-       (return-from cl:read (cl:intern token package))))))
+       (return-from cl:read (INTERN token package))))))
 
 (defvar *read-base* 10)
 

@@ -144,7 +144,7 @@
   (and (INTEGERP object) (in-range object low high)))
 
 (define-typep (object keyword env)
-  (keywordp object))
+  (KEYWORDP object))
 
 (define-typep (object list env)
   (listp object))

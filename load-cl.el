@@ -1,6 +1,6 @@
 (let ((load-path (cons "~/src/emacs-cl" load-path)))
   (require 'cl)
-  (defmacro in-package (name) nil)
+  (defmacro IN-PACKAGE (name) nil)
 
   (load "cl-numbers")
   (load "cl-flow")
