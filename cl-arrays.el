@@ -4,7 +4,7 @@
 ;;;
 ;;; This file implements operators in chapter 15, Arrays.
 
-(defun* MAKE-ARRAY (dimensions &key (element-type t) initial-element
+(defun* MAKE-ARRAY (dimensions &key (element-type T) initial-element
 		    initial-contents adjustable fill-pointer
 		    displaced-to displaced-index-offset)
   (let* ((vectorp (or (atom dimensions) (null (cdr dimensions))))
@@ -13,7 +13,7 @@
 	 (size (if (atom dimensions)
 		   dimensions
 		   (apply #'cl:* dimensions))))
-    (when (eq fill-pointer t)
+    (when (eq fill-pointer T)
       (setq fill-pointer (just-one dimensions)))
     (ecase (UPGRADED-ARRAY-ELEMENT-TYPE element-type)
       (BIT
@@ -66,7 +66,7 @@
   (CHECK-TYPE array 'array)
   (and (vectorp array)
        (case (aref array 0)
-	 ((bit-vector bit-array string char-array vector array) t))))
+	 ((bit-vector bit-array string char-array vector array) T))))
 
 (defun AREF (array &rest subscripts)
   (cond
@@ -126,7 +126,7 @@
   (or (VECTORP object)
       (and (vectorp object)
 	   (case (aref object 0)
-	     ((bit-array char-array array) t)))))
+	     ((bit-array char-array array) T)))))
 
 (defun fill-pointer (vector)
   (aref vector 1))
@@ -210,7 +210,7 @@
   (or (SIMPLE-VECTOR-P object)
       (and (vectorp object)
 	   (case (aref object 0)
-	     ((string bit-vector vector) t)))))
+	     ((string bit-vector vector) T)))))
 
 (defun bit (array &rest subscripts)
   (cond
