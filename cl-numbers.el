@@ -850,7 +850,14 @@
 (defun INTEGER-LENGTH (num)
   (when (MINUSP num)
     (setq num (cl:- num)))
-  (error "TODO"))
+  (cond
+    ((eq num 0)		0)
+    ((integerp num)	(1+ (logb num)))
+    ((cl::bignump num)	(let ((len (length num)))
+			  (+ (* 28 (- len 2))
+			     (logb (aref num (1- len)))
+			     1)))
+    (t			(error "type error"))))
 
 (defun cl::bignump (num)
   (vector-and-typep num 'bignum))
