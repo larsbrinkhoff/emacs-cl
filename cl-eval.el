@@ -46,7 +46,7 @@
 
 (defun lexical-or-global-function (name env)
   (multiple-value-bind (type localp decl) (function-information name env)
-    (ecase type
+    (case type
       ((nil)		(ERROR 'UNDEFINED-FUNCTION (kw NAME) name))
       (:function	(if localp
 			    (lexical-function name env)
