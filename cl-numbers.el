@@ -203,12 +203,30 @@
     (t
      (error "type error"))))
 
+(defconst two^fixnum-bits
+    (* 2 (1+ (float most-positive-fixnum)))))
+
+(defun floor-to-bignum (float)
+  (let ((list nil))
+    (while (or (>= float 1.0) (<= float -1.0))
+      (let ((residue (mod float two^fixnum-bits)))
+	(push (truncate (if (> residue most-positive-fixnum)
+			    (- residue two^fixnum-bits 1)
+			    residue))
+	      list))
+      (setq float (/ float two^fixnum-bits)))
+    (canonical-bignum (nreverse list))))
+
 (cl:defun FLOOR (number &optional (divisor 1))
   (let (quotient remainder)
     (cond
       ((or (floatp number) (floatp divisor))
-       ;; TODO: floor can only output an Emacs Lisp integer.
-       (setq quotient (floor (FLOAT number) (FLOAT divisor))))
+       (setq number (FLOAT number)
+	     divisor (FLOAT divisor)
+	     quotient
+	     (condition-case condition
+		 (floor number divisor)
+	       (range-error (floor-to-bignum (/ number divisor))))))
       ((or (ratiop number) (ratiop divisor))
        (MULTIPLE-VALUE-SETQ (quotient remainder)
 	 (integer-truncate
@@ -227,12 +245,19 @@
   (MULTIPLE-VALUE-BIND (quotient remainder) (FLOOR number divisor)
     (VALUES (FLOAT quotient) remainder)))
 
+(defun ceiling-to-bignum (float)
+  (cl:- (floor-to-bignum (- float))))
+
 (cl:defun CEILING (number &optional (divisor 1))
   (let (quotient remainder)
     (cond
       ((or (floatp number) (floatp divisor))
-       ;; TODO: ceiling can only output an Emacs Lisp integer.
-       (setq quotient (ceiling (FLOAT number) (FLOAT divisor))))
+       (setq number (FLOAT number)
+	     divisor (FLOAT divisor)
+	     quotient
+	     (condition-case condition
+		 (ceiling number divisor)
+	       (range-error (ceiling-to-bignum (/ number divisor))))))
       ((or (ratiop number) (ratiop divisor))
        (MULTIPLE-VALUE-SETQ (quotient remainder)
 	 (integer-truncate
@@ -250,6 +275,11 @@
 (cl:defun FCEILING (number &optional (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (CEILING number divisor)
     (VALUES (FLOAT quotient) remainder)))
+
+(defun truncate-to-bignum (float)
+  (if (minusp float)
+      (ceiling-to-bignum float)
+      (floor-to-bignum float)))
 
 (cl:defun TRUNCATE (number &optional (divisor 1))
   (let (quotient)
@@ -270,27 +300,6 @@
       (t
        (error "type error")))
     (VALUES quotient (binary- number (binary* quotient divisor)))))
-
-(defconst two^fixnum-bits
-    (* 2 (1+ (float most-positive-fixnum)))))
-
-(defun truncate-to-bignum (float)
-  (let ((neg nil)
-	(list nil))
-    (when (minusp float)
-      (setq float (- float)
-	    neg t))
-    (while (>= float 1.0)
-      (let ((residue (mod float two^fixnum-bits)))
-	(push (truncate (if (> residue most-positive-fixnum)
-			    (- residue two^fixnum-bits 1)
-			    residue))
-	      list))
-      (setq float (/ float two^fixnum-bits)))
-    (let ((bignum (canonical-bignum (nreverse list))))
-      (if neg
-	  (cl:- bignum)
-	  bignum))))
 
 (cl:defun FTRUNCATE (number &optional (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (TRUNCATE number divisor)
