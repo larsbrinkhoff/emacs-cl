@@ -456,23 +456,26 @@
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
     (setq TEST #'EQL))
-  (dolist (pair alist)
-    (when (and pair (FUNCALL TEST item (FUNCALL KEY (car pair))))
-      (return-from ASSOC pair))))
+  (catch 'ASSOC
+    (dolist (pair alist)
+      (when (and pair (FUNCALL TEST item (FUNCALL KEY (car pair))))
+	(throw 'ASSOC pair)))))
 
 (cl:defun ASSOC-IF (predicate alist &key KEY)
   (unless KEY
     (setq KEY #'IDENTITY))
-  (dolist (pair alist)
-    (when (and pair (FUNCALL predicate (FUNCALL KEY (car pair))))
-      (return-from ASSOC-IF pair))))
+  (catch 'ASSOC-IF
+    (dolist (pair alist)
+      (when (and pair (FUNCALL predicate (FUNCALL KEY (car pair))))
+	(throw 'ASSOC-IF pair)))))
 
 (cl:defun ASSOC-IF-NOT (predicate alist &key KEY)
   (unless KEY
     (setq KEY #'IDENTITY))
-  (dolist (pair alist)
-    (when (and pair (not (FUNCALL predicate (FUNCALL KEY (car pair)))))
-      (return-from ASSOC-IF-NOT pair))))
+  (catch 'ASSOC-IF-NOT
+    (dolist (pair alist)
+      (when (and pair (not (FUNCALL predicate (FUNCALL KEY (car pair)))))
+	(throw 'ASSOC-IF-NOT pair)))))
 
 (defun COPY-ALIST (alist)
   (mapcar (lambda (pair) (CONS (CAR pair) (CDR pair)))))
@@ -489,23 +492,26 @@
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
     (setq TEST #'EQL))
-  (dolist (pair alist)
-    (when (and pair (FUNCALL TEST item (FUNCALL KEY (cdr pair))))
-      (return-from ASSOC pair))))
+  (catch 'RASSOC
+    (dolist (pair alist)
+      (when (and pair (FUNCALL TEST item (FUNCALL KEY (cdr pair))))
+	(throw 'RASSOC pair)))))
 
 (cl:defun RASSOC-IF (predicate alist &key KEY)
   (unless KEY
     (setq KEY #'IDENTITY))
-  (dolist (pair alist)
-    (when (and pair (FUNCALL predicate (FUNCALL KEY (cdr pair))))
-      (return-from ASSOC-IF pair))))
+  (catch 'RASSOC-IF
+    (dolist (pair alist)
+      (when (and pair (FUNCALL predicate (FUNCALL KEY (cdr pair))))
+	(throw 'RASSOC-IF pair)))))
 
 (cl:defun RASSOC-IF-NOT (predicate alist &key KEY)
   (unless KEY
     (setq KEY #'IDENTITY))
-  (dolist (pair alist)
-    (when (and pair (not (FUNCALL predicate (FUNCALL KEY (cdr pair)))))
-      (return-from ASSOC-IF pair))))
+  (catch 'RASSOC-IF-NOT
+    (dolist (pair alist)
+      (when (and pair (not (FUNCALL predicate (FUNCALL KEY (cdr pair)))))
+	(throw 'RASSOC-IF pair)))))
 
 (defun* GET-PROPERTIES (plist indicators)
   (do ((plist plist (cddr plist)))
