@@ -1,11 +1,10 @@
-TODO: Come up with a name.
-
-This is an implementation of Common Lisp, written in Emacs Lisp.  It
-does not yet purport to conform to the ANSI standard since CLOS,
-extended LOOP, pretty printing, and compilation are missing.  However,
-most other Common Lisp features like lexical closures, packages,
-readtables, multiple values, bignums, adjustable arrays, etc, are
-present.  At this stage many bugs remain and error checking is sparse.
+Emacs Common Lisp is an implementation of Common Lisp, written in
+Emacs Lisp.  It does not yet purport to conform to the ANSI standard
+since CLOS, extended LOOP, pretty printing, and compilation are
+missing.  However, most other Common Lisp features like lexical
+closures, packages, readtables, multiple values, bignums, adjustable
+arrays, etc, are present.  At this stage many bugs remain and error
+checking is sparse.
 
 See INSTALL for usage instructions.
 
@@ -48,7 +47,7 @@ instance of class T	[T <slot> ...]
 
 
 
-Emacs features wish list:
+Emacs feature wish list:
 
  * Hash tables.  Done in later versions.
 

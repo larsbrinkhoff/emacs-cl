@@ -1,7 +1,7 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
 ;;; Copyright (C) 2003 Lars Brinkhoff.
-;;; A major mode implementing a Common Lisp listener.
+;;; A major mode implementing an Emacs Common Lisp listener.
 
 (defvar emacs-cl-prompt-marker nil
   "Position of last prompt.")
@@ -10,7 +10,7 @@
   "Starts a Common Lisp listener."
   (interactive)
   (make-variable-buffer-local 'emacs-cl-prompt-marker)
-  (switch-to-buffer (generate-new-buffer "*Common Lisp Listener*"))
+  (switch-to-buffer (generate-new-buffer "*Emacs Common Lisp*"))
   (emacs-cl-mode)
   (setq *STANDARD-OUTPUT* (make-buffer-output-stream (current-buffer))
 	*ERROR-OUTPUT* *STANDARD-OUTPUT*
@@ -24,16 +24,16 @@
   (setq emacs-cl-prompt-marker (point-marker)))
 
 (defun emacs-cl-mode ()
-  "Major mode for a Common Lisp listener."
+  "Major mode for an Emacs Common Lisp listener."
   (interactive)
   (kill-all-local-variables)
   (setq major-mode 'emacs-cl-mode)
-  (setq mode-name "Common Lisp")
+  (setq mode-name "Emacs Common Lisp")
   (use-local-map emacs-cl-mode-map)
   (run-hooks 'emacs-cl-mode-hooks))
 
 (defvar emacs-cl-mode-map nil
-  "Local keymap for Common Lisp listener buffers.")
+  "Local keymap for Emacs Common Lisp listener buffers.")
 
 (unless emacs-cl-mode-map
   (setq emacs-cl-mode-map (make-keymap))

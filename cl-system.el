@@ -77,7 +77,7 @@
        (setq *deferred-compilation-actions* nil))))
 
 (defvar *FEATURES* (list ;; TODO: (kw ANSI-CL)
-			 ;; TODO: (kw <name>)
+			 (kw EMACS-CL)
 		         (kw COMMON-LISP)))
 
 (let ((cons (ASSOC (emacs-version)

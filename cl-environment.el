@@ -346,8 +346,7 @@
 (defvar /// nil)
 
 (defun LISP-IMPLEMENTATION-TYPE ()
-  ;; TODO: name
-  "<Common Lisp written in Emacs Lisp>")
+  "Emacs Common Lisp")
 
 (defun LISP-IMPLEMENTATION-VERSION ()
   "0.5")
