@@ -26,7 +26,7 @@
 		   nil))))
 
 (defun TRUENAME (filespec)
-  (file-truename filespec))
+  (PATHNAME (file-truename (NAMESTRING filespec))))
 
 (defun FILE-AUTHOR (pathspec)
   (user-login-name (nth 2 (file-attributes pathspec))))
