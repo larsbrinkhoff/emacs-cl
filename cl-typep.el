@@ -242,7 +242,7 @@
   (TYPEP object `(SIMPLE-STRING ,size)))
 
 (define-typep (object (SIMPLE-BIT-VECTOR &optional (size star)) env)
-  (and (bool-vector-p object)
+  (and (bit-vector-p object)
        (star-or size (eq size (LENGTH object)))))
 
 (define-typep (object (SIMPLE-STRING &optional (size star)) env)

@@ -61,7 +61,8 @@
      (ecase (type-of object)
        ;; This is supposed to be an exhaustive enumeration of all
        ;; possible return values for Emacs Lisp type-of.
-       (bool-vector	`(SIMPLE-BIT-VECTOR ,(length object)))
+       ((bit-vector bool-vector)
+			`(SIMPLE-BIT-VECTOR ,(length object)))
        ((compiled-function subr)
 			'COMPILED-FUNCTION)
        (cons		'CONS)

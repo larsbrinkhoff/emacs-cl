@@ -30,6 +30,22 @@
     (0 nil)
     (1 t)))
 
+(if (fboundp 'make-bit-vector)
+    (progn
+      (defmacro bref (vector index)
+	`(aref ,vector ,index))
+      (defsetf bref (vector index) (bit)
+	`(aset ,vector ,index ,bit)))
+    (progn
+      (defun make-bit-vector (length bit)
+	(make-bool-vector length (bit-bool bit)))
+      (defmacro bit-vector-p (object)
+	`(bool-vector-p ,object))
+      (defmacro bref (vector index)
+	`(if (aref ,vector ,index) 1 0))
+      (defsetf bref (vector index) (bit)
+	`(aset ,vector ,index (bit-bool ,bit)))))
+
 (defun make-simple-vector (size initial-element)
   (let ((vector (make-vector (1+ size) initial-element)))
     (aset vector 0 'SIMPLE-VECTOR)
@@ -54,8 +70,11 @@
 	(ecase (UPGRADED-ARRAY-ELEMENT-TYPE ELEMENT-TYPE)
 	  (BIT
 	   (values (or INITIAL-ELEMENT 0)
-		   #'make-bool-vector
-		   #'bit-bool
+		   ;; TODO: clean up
+		   (if (fboundp 'make-bool-vector)
+				#'make-bool-vector
+				#'make-bit-vector)
+		   (if (fboundp 'make-bool-vector) #'bit-bool #'IDENTITY)
 		   'BIT-VECTOR
 		   'bit-array))
 	  (CHARACTER
@@ -87,9 +106,9 @@
 
 ;     (ecase (UPGRADED-ARRAY-ELEMENT-TYPE ELEMENT-TYPE)
 ;       (BIT
-;        (let* ((initial-element (bit-bool (or INITIAL-ELEMENT 0)))
+;        (let* ((initial-element (or INITIAL-ELEMENT 0))
 ; 	      (storage (or DISPLACED-TO
-; 			   (make-bool-vector size initial-element)))
+; 			   (make-bit-vector size initial-element)))
 ; 	      (array (cond
 ; 		       (simplep	storage)
 ; 		       (vectorp	(vector 'BIT-VECTOR FILL-POINTER storage
@@ -235,7 +254,7 @@
 (defun ARRAY-DISPLACEMENT (array)
   (unless (ARRAYP array)
     (type-error array 'ARRAY))
-  (if (or (bool-vector-p array)
+  (if (or (bit-vector-p array)
 	  (stringp array)
 	  (eq (aref array 0) 'SIMPLE-VECTOR))
       (VALUES nil 0)
@@ -265,7 +284,7 @@
 
 (defun ARRAYP (object)
   (or (stringp object)
-      (bool-vector-p object)
+      (bit-vector-p object)
       (and (vectorp object)
 	   (case (aref object 0)
 	     ((BIT-VECTOR bit-array STRING char-array
@@ -314,7 +333,7 @@
 
 (defun SIMPLE-VECTOR-P (object)
   (or (stringp object)
-      (bool-vector-p object)
+      (bit-vector-p object)
       (vector-and-typep object 'SIMPLE-VECTOR)))
 
 (defun SVREF (vector index)
@@ -367,46 +386,51 @@
 
 (defun VECTORP (object)
   (or (stringp object)
-      (bool-vector-p object)
+      (bit-vector-p object)
       (and (vectorp object)
 	   (case (aref object 0)
 	     ((STRING BIT-VECTOR VECTOR SIMPLE-VECTOR) T)))))
 
 (defun BIT (array &rest subscripts)
-  (if (cond
-	((SIMPLE-BIT-VECTOR-P array)
-	 (aref array (just-one subscripts)))
-	((BIT-VECTOR-P array)
-	 (aref (array-storage array) (just-one subscripts)))
-	((vector-and-typep array 'bit-array)
-	 (aref (array-storage array) (apply #'ARRAY-ROW-MAJOR-INDEX subscripts)))
-	(t
-	 (error)))
-      1 0))
+  (cond
+    ((SIMPLE-BIT-VECTOR-P array)
+     (bref array (just-one subscripts)))
+    ((BIT-VECTOR-P array)
+     (bref (array-storage array) (just-one subscripts)))
+    ((vector-and-typep array 'bit-array)
+     (bref (array-storage array) (apply #'ARRAY-ROW-MAJOR-INDEX subscripts)))
+    (t
+     (error))))
 
-(defsetf BIT (array &rest subscripts) (bit)
-  `(let ((bool (not (zerop ,bit))))
-     (cond
-       ((SIMPLE-BIT-VECTOR-P ,array)
-	(aset ,array (just-one ',subscripts) bool))
-       ((BIT-VECTOR-P ,array)
-	(aset (array-storage ,array) (just-one ',subscripts) bool))
-       ((vector-and-typep ,array 'bit-array)
-	(aset (array-storage ,array) (ARRAY-ROW-MAJOR-INDEX ,@subscripts) bool))
-       (t
-	(error)))))
+(defsetf BIT set-bit)
+
+(DEFSETF BIT set-bit)
+
+(defun set-bit (array index bit)
+  (cond
+    ((SIMPLE-BIT-VECTOR-P array)
+     (setf (SBIT array) bit))
+    ((BIT-VECTOR-P array)
+     (setf (SBIT (array-storage array)) bit))
+    ((vector-and-typep array 'bit-array)
+     (setf (SBIT (array-storage array)
+		 (apply #'ARRAY-ROW-MAJOR-INDEX subscripts))
+	   bit))
+    (t
+     (error))))
 
 (defun SBIT (array index)
-  (if (aref array index) 1 0))
+  (bref array index))
 
-(defsetf SBIT (array index) (bit)
-  `(aset ,array ,index (not (zerop ,bit))))
+(defsetf SBIT set-sbit)
 
-(DEFSETF SBIT (array index) (bit)
-  `(aset ,array ,index (NOT (ZEROP ,bit))))
+(DEFSETF SBIT set-sbit)
+
+(defun set-sbit (array index bit)
+  (setf (bref array index) bit))
 
 (defun bit-array-p (object)
-  (or (bool-vector-p object)
+  (or (bit-vector-p object)
       (vector-and-typep object 'bit-array)))
 
 (defun default-result (array result)
@@ -414,17 +438,17 @@
     ((bit-array-p result)	result)
     ((eq result T)		array)
     (t				(if (BIT-VECTOR-P array)
-				    (make-bool-vector (LENGTH array) nil)
+				    (make-bit-vector (LENGTH array) 0)
 				    (vector 'bit-array
 					    (ARRAY-DIMENSIONS array)
-					    (make-bool-vector
-					     (ARRAY-TOTAL-SIZE array nil))
+					    (make-bit-vector
+					     (ARRAY-TOTAL-SIZE array 0))
 					    0)))))
 
 (defun BIT-AND (array1 array2 &optional result)
   (let ((result (default-result array1 result))
-	(storage1 (if (bool-vector-p array1) array1 (array-storage array1)))
-	(storage2 (if (bool-vector-p array2) array2 (array-storage array2))))
+	(storage1 (if (bit-vector-p array1) array1 (array-storage array1)))
+	(storage2 (if (bit-vector-p array2) array2 (array-storage array2))))
     (dotimes (i (ARRAY-TOTAL-SIZE result))
       (aset result i (and (aref storage1 i) (aref storage2 i))))))
 
@@ -439,8 +463,8 @@
 
 (defun BIT-IOR (array1 array2 &optional result)
   (let ((result (default-result array1 result))
-	(storage1 (if (bool-vector-p array1) array1 (array-storage array1)))
-	(storage2 (if (bool-vector-p array2) array2 (array-storage array2))))
+	(storage1 (if (bit-vector-p array1) array1 (array-storage array1)))
+	(storage2 (if (bit-vector-p array2) array2 (array-storage array2))))
     (dotimes (i (ARRAY-TOTAL-SIZE result))
       (aset result i (or (aref storage1 i) (aref storage2 i))))))
 
@@ -462,20 +486,20 @@
 
 (defun BIT-XOR (array1 array2 &optional result)
   (let ((result (default-result array1 result))
-	(storage1 (if (bool-vector-p array1) array1 (array-storage array1)))
-	(storage2 (if (bool-vector-p array2) array2 (array-storage array2))))
+	(storage1 (if (bit-vector-p array1) array1 (array-storage array1)))
+	(storage2 (if (bit-vector-p array2) array2 (array-storage array2))))
     (dotimes (i (ARRAY-TOTAL-SIZE result))
       (aset result i (binary-xor (aref storage1 i) (aref storage2 i))))))
 
 (defun BIT-NOT (array &optional result)
   (let ((result (default-result array result))
-	(storage (if (bool-vector-p array) array (array-storage array))))
+	(storage (if (bit-vector-p array) array (array-storage array))))
     (dotimes (i (ARRAY-TOTAL-SIZE array))
       (aset result i (not (aref storage i))))))
 
 (defun BIT-VECTOR-P (object)
-  (or (bool-vector-p object)
+  (or (bit-vector-p object)
       (vector-and-typep object 'BIT-VECTOR)))
 
 (defun SIMPLE-BIT-VECTOR-P (object)
-  (bool-vector-p object))
+  (bit-vector-p object))
