@@ -5,6 +5,14 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+;;; System Class STRING
+
+;;; Type BASE-STRING
+
+;;; Type SIMPLE-STRING
+
+;;; Type SIMPLE-BASE-STRING
+
 (defun SIMPLE-STRING-P (object)
   (stringp object))
 
@@ -63,7 +71,23 @@
 
 ;;; TODO: NSTRING-CAPITALIZE
 
-;;; TODO: STRING-TRIM, STRING-LEFT-TRIM, STRING-RIGHT-TRIM
+(defun STRING-TRIM (chars string)
+  (STRING-LEFT-TRIM chars (STRING-RIGHT-TRIM chars string)))
+
+(defun STRING-LEFT-TRIM (chars string)
+  (let ((i 0)
+	(len (LENGTH string)))
+    (while (and (FIND (CHAR string i) chars)
+		(< i len))
+      (incf i))
+    (SUBSEQ string i)))
+
+(defun STRING-RIGHT-TRIM (chars string)
+  (let* ((i (1- (LENGTH string))))
+    (while (and (FIND (CHAR string i) chars)
+		(>= i 0))
+      (decf i))
+    (SUBSEQ string 0 (1+ i))))
 
 (cl:defun STRING= (string1 string2 &key (start1 0) end1 (start2 0) end2)
   (string= (substring string1 start1 end1)
@@ -139,9 +163,6 @@
 						 (start2 0) end2)
   (STRING>= (substring (STRING-UPCASE string1) start1 end1)
 	    (substring (STRING-UPCASE string2) start1 end1)))
-
-;;; TODO: STRING-EQUAL, STRING-NOT-EQUAL, STRING-LESSP,
-;;; STRING-GREATERP, STRING-NOT-GREATERP, STRING-NOT-LESSP
 
 (defun STRINGP (object)
   (or (stringp object)
