@@ -8,6 +8,8 @@
 ;;; Note that the Emacs Lisp symbol nil doubles as the Common Lisp
 ;;; symbol NIL.  This requires special attention in SYMBOL-NAME.
 
+;;; The SYMBOL system class is built in.
+
 (fset 'SYMBOLP (symbol-function 'symbolp))
 
 (defun KEYWORDP (sym)
@@ -97,3 +99,5 @@
 (fset 'MAKUNBOUND (symbol-function 'makunbound))
 
 (fset 'SET (symbol-function 'set))
+
+;;; UNBOUND-VARIABLE in cl-conditions.el.
