@@ -29,10 +29,10 @@
 	(setq lastval (eval-with-env form env))))))
 
 (define-special-operator EVAL-WHEN (situations &body body) env
-  ;; TODO: Proper implementation.
-  (let (lastval)
-    (dolist (form body lastval)
-      (setq lastval (eval-with-env form env)))))
+  (when (or (memq (kw EXECUTE) situations) (memq 'EVAL situations))
+    (let (lastval)
+      (dolist (form body lastval)
+	(setq lastval (eval-with-env form env))))))
 
 (define-special-operator FLET (fns &rest forms) env
   (let ((new-env (augment-environment env :function (mapcar #'first fns)))
