@@ -6,7 +6,7 @@
 (IN-PACKAGE "EMACS-CL")
 
 (defun FORMAT (stream-designator format &rest args)
-  (let ((stream (or (and (eq stream-designator t) *STANDARD-OUTPUT*)
+  (let ((stream (or (and (eq stream-designator 'T) *STANDARD-OUTPUT*)
 		    stream-designator
 		    (MAKE-STRING-OUTPUT-STREAM)))
 	(i 0))
