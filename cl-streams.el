@@ -5,20 +5,61 @@
 
 (IN-PACKAGE "EMACS-CL")
 
-(defvar *STANDARD-INPUT* nil)
-
-(defvar *STANDARD-OUTPUT* nil)
-
-(defvar *ERROR-OUTPUT* nil)
-
-(defvar *TERMINAL-IO* nil)
+;;; System Class STREAM
+;;; TODO: System Class BROADCAST-STREAM
+;;; TODO: System Class CONCATENATED-STREAM
+;;; TODO: System Class ECHO-STREAM
+;;; TODO: System Class FILE-STREAM
+;;; TODO: System Class STRING-STREAM
+;;; TODO: System Class SYNONYM-STREAM
+;;; TODO: System Class TWO-WAY-STREAM
 
 (DEFSTRUCT (STREAM (:predicate STREAMP) (:copier nil))
   filename
   content
   index
+  fresh-line-p
   read-fn
   write-fn)
+
+(defun stream-error (stream)
+  (ERROR 'STREAM-ERROR (kw STREAM) stream))
+
+(defvar *STANDARD-INPUT* nil)
+
+(defvar *STANDARD-OUTPUT* nil)
+
+(defvar *TERMINAL-IO* nil)
+
+(defun input-stream (designator)
+  (case designator
+    ((nil)	*STANDARD-INPUT*)
+    ((t)	*TERMINAL-IO*)
+    (t		designator)))
+
+(defun output-stream (designator)
+  (case designator
+    ((nil)	*STANDARD-OUTPUT*)
+    ((t)	*TERMINAL-IO*)
+    (t		designator)))
+
+(defun INPUT-STREAM-P (stream)
+  (not (null (STREAM-read-fn stream))))
+
+(defun OUTPUT-STREAM-P (stream)
+  (not (null (STREAM-read-fn stream))))
+
+;;; TODO: INTERACTIVE-STREAM-P
+
+;;; TODO: OPEN-STREAM-P
+
+;;; TODO: STREAM-ELEMENT-TYPE
+
+;;; STREAMP defined by defstruct.
+
+;;; TODO: READ-BYTE
+
+;;; TODO: WRITE-BYTE
 
 (defun* PEEK-CHAR (&optional peek-type stream (eof-error-p T)
 			     eof-value recursive-p)
@@ -33,22 +74,11 @@
 	(UNREAD-CHAR char stream)
 	(return-from PEEK-CHAR char))))))
 
-(defun input-stream (designator)
-  (case designator
-    ((nil)	*STANDARD-INPUT*)
-    ((t)	*TERMINAL-IO*)
-    (t		designator)))
-
-(defun output-stream (designator)
-  (case designator
-    ((nil)	*STANDARD-OUTPUT*)
-    ((t)	*TERMINAL-IO*)
-    (t		designator)))
-
 (defun* READ-CHAR (&optional stream-designator (eof-error-p T)
 			     eof-value recursive-p)
   (let* ((stream (input-stream stream-designator))
-	 (ch (funcall (STREAM-read-fn stream) stream)))
+	 (fn (STREAM-read-fn stream))
+	 (ch (funcall (or fn (stream-error stream)) stream)))
     (if (eq ch :eof)
 	(if eof-error-p
 	    (ERROR 'END-OF-FILE (kw STREAM) stream)
@@ -62,7 +92,10 @@
     (WRITE-CHAR (CODE-CHAR 10) stream))
   nil)
 
-;;; TODO: FRESH-LINE
+(defun FRESH-LINE (&optional stream-designator)
+  (let ((stream (output-stream stream-designator)))
+    (unless (STREAM-fresh-line-p stream)
+      (TERPRI stream))))
 
 (defun UNREAD-CHAR (char &optional stream-designator)
   (let ((stream (input-stream stream-designator)))
@@ -70,8 +103,12 @@
       (decf (STREAM-index stream)))))
 
 (defun WRITE-CHAR (char &optional stream-designator)
-  (let ((stream (output-stream stream-designator)))
-    (funcall (STREAM-write-fn stream) (CHAR-CODE char) stream)
+  (let* ((stream (output-stream stream-designator))
+	 (fn (STREAM-write-fn stream)))
+    (unless fn
+      (stream-error stream))
+    (funcall fn (CHAR-CODE char) stream)
+    (setf (STREAM-fresh-line-p stream) (eq (CHAR-CODE char) 10))
     char))
 
 (defun* READ-LINE (&optional stream-designator (eof-error-p T)
@@ -100,14 +137,20 @@
     (TERPRI stream)
     string))
 
-;;; TODO: read-sequence
+;;; TODO: READ-SEQUENCE
 
-;;; TODO: write-sequence
+;;; TODO: WRITE-SEQUENCE
 
-;;; TODO: file-length
+;;; TODO: FILE-LENGTH
 
 (defun FILE-POSITION (stream)
   (STREAM-index stream))
+
+(defun FILE-STRING-LENGTH (stream object)
+  (LENGTH (let ((s (MAKE-STRING-OUTPUT-STREAM)))
+	    (unwind-protect
+		 (PRINT object s)
+	      (CLOSE s)))))
 
 (cl:defun OPEN (filespec &key (direction (kw INPUT)) (element-type 'CHARACTER)
 		              if-exists if-does-not-exist
@@ -136,10 +179,6 @@
 
 ;;; TODO: stream-external-format
 
-; (defmacro* WITH-OPEN-FILE ((stream filespec &rest options) &body body)
-;   `(WITH-OPEN-STREAM (,stream (OPEN ,filespec ,@options))
-;      ,@body))
-
 (cl:defmacro WITH-OPEN-FILE ((stream filespec &rest options) &body body)
   `(WITH-OPEN-STREAM (,stream (OPEN ,filespec ,@options))
      ,@body))
@@ -152,12 +191,6 @@
   (when (bufferp (STREAM-content stream))
     (kill-buffer (STREAM-content stream)))
   T)
-
-; (defmacro* WITH-OPEN-STREAM ((var stream) &body body)
-;   `(let ((,var ,stream))
-;     (unwind-protect
-; 	 (progn ,@body)
-;       (CLOSE ,var))))
 
 (cl:defmacro WITH-OPEN-STREAM ((var stream) &body body)
   `(LET ((,var ,stream))
@@ -225,24 +258,17 @@
 		     (t
 		      (aref (STREAM-content stream)
 			    (1- (incf (STREAM-index stream)))))))
-	       (kw write-fn)
-	         (lambda (c s) (error "write to input stream"))))
+	       (kw write-fn) nil))
 
 (cl:defun MAKE-STRING-OUTPUT-STREAM (&key (element-type 'CHARACTER))
   (MAKE-STREAM (kw content) ""
 	       (kw index) 0
-	       (kw read-fn)
-	         (lambda (s) (error "read from output stream"))
+	       (kw read-fn) nil
 	       (kw write-fn)
 	         (lambda (char stream)
 		   (setf (STREAM-content stream)
 			 (concat (STREAM-content stream)
 				 (list char))))))
-
-; (defmacro* WITH-INPUT-FROM-STRING ((var string &key index (start 0) end)
-; 				   &body body)
-;   `(WITH-OPEN-STREAM (,var (MAKE-STRING-INPUT-STREAM ,string ,start ,end))
-;      ,@body))
 
 (cl:defmacro WITH-INPUT-FROM-STRING ((var string &key index start end)
 				     &body body)
@@ -263,6 +289,14 @@
 	 ,@body
 	 (GET-OUTPUT-STREAM-STRING ,var))))
 
+(defvar *DEBUG-IO* nil)
+(defvar *ERROR-OUTPUT* nil)
+(defvar *QUERY-IO* nil)
+;;; *STANDARD-INPUT* defined above.
+;;; *STANDARD-OUTPUT* defined above.
+(defvar *TRACE-OUTPUT* nil)
+;;; *TERMINAL-IO* defined above.
+
 ;;; STREAM-ERROR, STREAM-ERROR-STREAM, and END-OF-FILE defined by
 ;;; cl-conditions.el.
 
@@ -270,7 +304,7 @@
 (defun make-buffer-output-stream (buffer)
   (MAKE-STREAM (kw content) buffer
 	       (kw index) 0
-	       (kw read-fn) (lambda (s) (error "read from output stream"))
+	       (kw read-fn) nil
 	       (kw write-fn) (lambda (char stream)
 			       (insert char)
 			       (when (eq char 10)
@@ -280,12 +314,12 @@
   (MAKE-STREAM (kw content) nil
 	       (kw index) 0
 	       (kw read-fn) (lambda (s) (read-char-exclusive))
-	       (kw write-fn) (lambda (c s) (error "write to input stream"))))
+	       (kw write-fn) nil))
 
 (defun make-fill-pointer-output-stream (string)
   (MAKE-STREAM (kw content) string
 	       (kw index) 0
-	       (kw read-fn) (lambda (s) (error "read from output stream"))
+	       (kw read-fn) nil
 	       (kw write-fn) (lambda (char stream)
 			       (VECTOR-PUSH-EXTEND
 				(CODE-CHAR char)
