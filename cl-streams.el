@@ -261,10 +261,7 @@
 	 ,@body
 	 (GET-OUTPUT-STREAM-STRING ,var))))
 
-;;; TODO: with-output-to-string (needs strings with fill pointers)
-;;; (which we now have)
-
-;;; TODO: stream-error-stream
+;;; STREAM-ERROR-STREAM defined by defstruct.
 
 
 (defun make-buffer-output-stream (buffer)
