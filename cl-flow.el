@@ -195,23 +195,6 @@
 (defmacro* UNLESS (condition &body body)
   `(if ,condition nil (progn ,@body)))
 
-;; (defvar *multiple-values-variable* nil)
-
-;; (defmacro* cl:multiple-value-bind (vars form &body body)
-;;   (let ((vals (gensym))
-;; 	(empty (gensym))
-;; 	(old (gensym)))
-;;     `(let ((,vals ',empty)
-;; 	   (,old *multiple-values-variable*))
-;;       (setq *multiple-values-variable* ',vals)
-;;       (let ((,(car vars) ,form)
-;; 	    ,@(cdr vars))
-;; 	(unless (eq ,vals ',empty)
-;; 	  (dolist (var ',vars)
-;; 	    (set var (car-safe ,vals))
-;; 	    (setq ,vals (cdr-safe ,vals))))
-;; 	(setq *multiple-values-variable* ,old)
-;; 	,@body))))
 (defmacro* MULTIPLE-VALUE-BIND (vars form &body body)
   (if (null vars)
       `(progn ,form ,@body)
@@ -224,22 +207,8 @@
 (cl:defmacro MULTIPLE-VALUE-BIND (vars form &body body)
   `(MULTIPLE-VALUE-CALL (LAMBDA ,vars ,@body) ,form))
 
-;; (defmacro cl:multiple-value-call (function &rest forms)
-;;   `(apply ,function
-;;     (append ,@(mapcan (lambda (form)
-;; 			`((cl:multiple-value-list ,form)))
-;; 		      forms))))
+;;; MULTIPLE-VALUE-CALL is a special operator.
 
-;; (defmacro cl:multiple-value-list (form)
-;;   (let ((vals (gensym))
-;; 	(empty (gensym))
-;; 	(list (gensym)))
-;;     `(let* ((,vals ',empty)
-;; 	    (*multiple-values-variable* ',vals)
-;; 	    (,list (list ,form)))
-;;       (unless (eq ,vals ',empty)
-;; 	(setq ,list ,vals))
-;;       ,list)))
 (defmacro* MULTIPLE-VALUE-LIST (form)
   (let ((val (gensym)))
     `(let ((,val ,form))
@@ -250,19 +219,8 @@
 (cl:defmacro MULTIPLE-VALUE-LIST (form)
   `(MULTIPLE-VALUE-CALL #'LIST ,form))
 
-;; ;;; multiple-value-prog1 first-form form* => first-form-results
+;;; MULTIPLE-VALUE-PROG1 is a special operator.
 
-;; (defmacro* cl:multiple-value-setq (vars form &body body)
-;;   (let ((vals (gensym))
-;; 	(empty (gensym)))
-;;     `(let ((,vals ',empty)
-;; 	   (*multiple-values-variable* ',vals))
-;;       (setq ,(car vars) ,form)
-;;       (unless (eq ,vals ',empty)
-;; 	(dolist (var ',vars)
-;; 	  (set var (car-safe ,vals))
-;; 	  (setq ,vals (cdr-safe ,vals))))
-;;       ,@body)))
 (defmacro* MULTIPLE-VALUE-SETQ (vars form)
   (if (null vars)
       form
@@ -277,15 +235,9 @@
     `(let ((,vals (MULTIPLE-VALUE-LIST ,form)))
        (SETQ ,@(mapcar (lambda (var) `(,var (nth ,(incf n) ,vals))) vars)))))
 
-;; (defun cl:values (&rest vals)
-;;   (cl:values-list vals))
 (defun VALUES (&rest vals)
   (VALUES-LIST vals))
 
-;; (defun cl:values-list (list)
-;;   (when *multiple-values-variable*
-;;     (set *multiple-values-variable* list))
-;;   (car list))
 (defun VALUES-LIST (list)
   (setq nvals (length list))
   (setq mvals (cdr-safe list))

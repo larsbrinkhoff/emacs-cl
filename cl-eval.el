@@ -86,9 +86,18 @@
 
 ;;; TODO: MACROLET
 
-;;; TODO: MULTIPLE-VALUE-CALL
+(define-special-operator MULTIPLE-VALUE-CALL (fn &rest forms) env
+  (let ((values nil))
+    (dolist (form forms)
+      (setq values (append values
+			   (MULTIPLE-VALUE-LIST (eval-with-env form env)))))
+    (APPLY (eval-with-env fn env) values)))
 
-;;; TODO: MULTIPLE-VALUE-PROG1
+(define-special-operator MULTIPLE-VALUE-PROG1 (form &rest forms) env
+  (let ((values (MULTIPLE-VALUE-LIST (eval-with-env form env))))
+    (dolist (form forms)
+      (eval-with-env form env))
+    (VALUES-LIST values)))
 
 (define-special-operator PROGN (&rest forms) env
   (let (lastval)
