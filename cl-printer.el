@@ -5,11 +5,29 @@
 
 (IN-PACKAGE "EMACS-CL")
 
-;;; TODO: Function COPY-PPRINT-DISPATCH
+(cl:defun COPY-PPRINT-DISPATCH (&optional (table *PRINT-PPRINT-DISPATCH*))
+  (unless table
+    (setq table *initial-pprint-dispatch*))
+  (let ((copy (make-hash-table :test #'equal)))
+    (maphash (lambda (k v) (setf (gethash k copy) (cons (car v) (cdr v)))
+		     table)
+    copy)))
 
 ;;; FORMATTER is defined in cl-format.el.
 
-;;; TODO: Function PPRINT-DISPATCH
+(cl:defun PPRINT-DISPATCH (object &optional (table *PRINT-PPRINT-DISPATCH*))
+  (unless table
+    (setq table *initial-pprint-dispatch*))
+  (let ((fn nil)
+	(priority nil))
+    (maphash (lambda (k v)
+	       (when (and (TYPEP object k)
+			  (or (null priority)
+			      (cl:> (cdr v) priority)))
+		 (setq fn (car v)
+		       priority (cdr v))))
+	     table)
+    (VALUES fn priority)))
 
 ;;; TODO: Local Macro PPRINT-EXIT-IF-LIST-EXHAUSTED
 
@@ -28,6 +46,130 @@
 ;;; TODO: Function PPRINT-TAB
 
 ;;; TODO: Standard Generic Function PRINT-OBJECT
+(defun PRINT-OBJECT (object stream)
+  (cond
+    ((INTEGERP object)
+     (print-integer object stream *PRINT-BASE* *PRINT-RADIX*))
+    ((floatp object)
+     (print-float object stream))
+    ((symbolp object)
+     (let ((name (symbol-name object)))
+       (if (printer-escaping-p)
+	   (progn
+	     (print-symbol-prefix object stream)
+	     (print-symbol-name name stream))
+	   (cond
+	     ((eq *PRINT-CASE* (kw UPCASE))
+	      (WRITE-STRING name stream))
+	     ((eq *PRINT-CASE* (kw DOWNCASE))
+	      (WRITE-STRING (STRING-DOWNCASE name) stream))
+	     ((eq *PRINT-CASE* (kw CAPITALIZE))
+	      (WRITE-STRING (symbol-name-capitalize name) stream))
+	     (t
+	      (type-error *PRINT-CASE* `(MEMBER ,(kw UPCASE) ,(kw DOWNCASE)
+					        ,(kw CAPITALIZE))))))))
+    ((CHARACTERP object)
+     (if (printer-escaping-p)
+	 (progn
+	   (WRITE-STRING "#\\" stream)
+	   (WRITE-STRING (or (CHAR-NAME object)
+			     (string (CHAR-CODE object)))
+			 stream))
+	 (WRITE-CHAR object stream)))
+    ((consp object)
+     (WRITE-STRING "(" stream)
+     (PRIN1 (car object) stream)
+     (while (consp (cdr object))
+       (WRITE-STRING " " stream)
+       (setq object (cdr object))
+       (PRIN1 (car object) stream))
+     (unless (null (cdr object))
+       (WRITE-STRING " . " stream)
+       (PRIN1 (cdr object) stream))
+     (WRITE-STRING ")" stream))
+    ((FUNCTIONP object)
+     (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
+       (PRINC (function-name object) stream)))
+    ((ratiop object)
+     (WRITE (NUMERATOR object) (kw STREAM) stream)
+     (WRITE-STRING "/" stream)
+     (WRITE (DENOMINATOR object) (kw STREAM) stream (kw RADIX) nil))
+    ((COMPLEXP object)
+     (WRITE-STRING "#C(" stream)
+     (WRITE (REALPART object) (kw STREAM) stream)
+     (WRITE-STRING " " stream)
+     (WRITE (IMAGPART object) (kw STREAM) stream)
+     (WRITE-STRING ")" stream))
+    ((BIT-VECTOR-P object)
+     (cond
+       (*PRINT-ARRAY*
+	(WRITE-STRING "#*" stream)
+	(dotimes (i (LENGTH object))
+	  (PRIN1 (AREF object i) stream)))
+       (t
+	(PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t
+					        (kw IDENTITY) t)))))
+    ((STRINGP object)
+     (when *PRINT-ESCAPE*
+       (WRITE-STRING "\"" stream))
+     (dotimes (i (LENGTH object))
+       (let ((char (CHAR-CODE (CHAR object i))))
+	 (if *PRINT-ESCAPE*
+	     (case char
+	       (34	(WRITE-STRING "\\\"" stream))
+	       (92	(WRITE-STRING "\\\\" stream))
+	       (t	(WRITE-STRING (string char) stream)))
+	     (WRITE-STRING (string char) stream))))
+     (when *PRINT-ESCAPE*
+       (WRITE-STRING "\"" stream)))
+    ((VECTORP object)
+     (cond
+       (*PRINT-ARRAY*
+	(WRITE-STRING "#(" stream)
+	(dotimes (i (LENGTH object))
+	  (when (> i 0)
+	    (WRITE-STRING " " stream))
+	  (PRIN1 (AREF object i) stream))
+	(WRITE-STRING ")" stream))
+       (t
+	(PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t
+						(kw IDENTITY) t)))))
+    ((ARRAYP object)
+     (cond
+       (*PRINT-ARRAY*
+	(print-array object stream))
+       (t
+	(PRINT-UNREADABLE-OBJECT (object stream
+				  (kw TYPE) t (kw IDENTITY) t)))))
+    ((PACKAGEP object)
+     (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t)
+       (PRIN1 (PACKAGE-NAME object) stream)))
+    ((READTABLEP object)
+     (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
+    ((STREAMP object)
+     (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
+    ((or (TYPEP object 'SIMPLE-CONDITION)
+	 ;; TODO: these two won't be necessary later
+	 (TYPEP object 'SIMPLE-ERROR)
+	 (TYPEP object 'SIMPLE-WARNING))
+     (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
+       (PRINC (apply #'FORMAT nil
+		     (SIMPLE-CONDITION-FORMAT-CONTROL object)
+		     (SIMPLE-CONDITION-FORMAT-ARGUMENTS object)))))
+    ((TYPEP object 'CONDITION)
+     (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
+    ((restartp object)
+     (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
+       (PRIN1 (RESTART-NAME object) stream)
+       (when (RESTART-condition object)
+	 (WRITE-STRING " " stream)
+	 (PRIN1 (RESTART-condition object) stream))))
+    ((PATHNAMEP object)
+     (WRITE-STRING "#P" stream)
+     (PRIN1 (NAMESTRING object) stream))
+    (t
+     (error)))
+  (VALUES object))
 
 (defvar *object-identities* (make-hash-table :test #'eq :weakness t))
 
@@ -59,7 +201,13 @@
   (WRITE-STRING ">" stream)
   nil)
 
-;;; TODO: Function SET-PPRINT-DISPATCH
+(cl:defun SET-PPRINT-DISPATCH (type fn
+			       &optional (priority 0)
+					 (table *PRINT-PPRINT-DISPATCH*))
+  (if (null fn)
+      (remhash type table)
+      (setf (gethash type table) (cons fn priority)))
+  nil)
 
 (defun external-symbol-p (symbol)
   (eq (NTH-VALUE 1 (FIND-SYMBOL (SYMBOL-NAME symbol) (SYMBOL-PACKAGE symbol)))
@@ -122,128 +270,12 @@
 	(*PRINT-RADIX* RADIX)
 	(*PRINT-READABLY* READABLY)
 	(*PRINT-RIGHT-MARGIN* RIGHT-MARGIN))
-    (cond
-      ((INTEGERP object)
-       (print-integer object stream *PRINT-BASE* *PRINT-RADIX*))
-      ((floatp object)
-       (print-float object stream))
-      ((symbolp object)
-       (let ((name (symbol-name object)))
-	 (if (printer-escaping-p)
-	     (progn
-	       (print-symbol-prefix object stream)
-	       (print-symbol-name name stream))
-	     (cond
-	       ((eq *PRINT-CASE* (kw UPCASE))
-		(WRITE-STRING name stream))
-	       ((eq *PRINT-CASE* (kw DOWNCASE))
-		(WRITE-STRING (STRING-DOWNCASE name) stream))
-	       ((eq *PRINT-CASE* (kw CAPITALIZE))
-		(WRITE-STRING (symbol-name-capitalize name) stream))
-	       (t
-		(type-error *PRINT-CASE* `(MEMBER ,(kw UPCASE) ,(kw DOWNCASE)
-						  ,(kw CAPITALIZE))))))))
-      ((CHARACTERP object)
-       (if (printer-escaping-p)
-	   (progn
-	     (WRITE-STRING "#\\" stream)
-	     (WRITE-STRING (or (CHAR-NAME object)
-			       (string (CHAR-CODE object)))
-			   stream))
-	   (WRITE-CHAR object stream)))
-      ((consp object)
-       (WRITE-STRING "(" stream)
-       (PRIN1 (car object) stream)
-       (while (consp (cdr object))
-	 (WRITE-STRING " " stream)
-	 (setq object (cdr object))
-	 (PRIN1 (car object) stream))
-       (unless (null (cdr object))
-	 (WRITE-STRING " . " stream)
-	 (PRIN1 (cdr object) stream))
-       (WRITE-STRING ")" stream))
-      ((FUNCTIONP object)
-       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
-	 (PRINC (function-name object) stream)))
-      ((ratiop object)
-       (WRITE (NUMERATOR object) (kw STREAM) stream)
-       (WRITE-STRING "/" stream)
-       (WRITE (DENOMINATOR object) (kw STREAM) stream (kw RADIX) nil))
-      ((COMPLEXP object)
-       (WRITE-STRING "#C(" stream)
-       (WRITE (REALPART object) (kw STREAM) stream)
-       (WRITE-STRING " " stream)
-       (WRITE (IMAGPART object) (kw STREAM) stream)
-       (WRITE-STRING ")" stream))
-      ((BIT-VECTOR-P object)
-       (cond
-	 (*PRINT-ARRAY*
-	  (WRITE-STRING "#*" stream)
-	  (dotimes (i (LENGTH object))
-	    (PRIN1 (AREF object i) stream)))
-	 (t
-	  (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t
-					          (kw IDENTITY) t)))))
-      ((STRINGP object)
-       (when *PRINT-ESCAPE*
-	 (WRITE-STRING "\"" stream))
-       (dotimes (i (LENGTH object))
-	 (let ((char (CHAR-CODE (CHAR object i))))
-	   (if *PRINT-ESCAPE*
-	       (case char
-		 (34	(WRITE-STRING "\\\"" stream))
-		 (92	(WRITE-STRING "\\\\" stream))
-		 (t	(WRITE-STRING (string char) stream)))
-	       (WRITE-STRING (string char) stream))))
-       (when *PRINT-ESCAPE*
-	 (WRITE-STRING "\"" stream)))
-      ((VECTORP object)
-       (cond
-	 (*PRINT-ARRAY*
-	  (WRITE-STRING "#(" stream)
-	  (dotimes (i (LENGTH object))
-	    (when (> i 0)
-	      (WRITE-STRING " " stream))
-	    (PRIN1 (AREF object i) stream))
-	  (WRITE-STRING ")" stream))
-	 (t
-	  (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t
-						  (kw IDENTITY) t)))))
-      ((ARRAYP object)
-       (cond
-	 (*PRINT-ARRAY*
-	  (print-array object stream))
-	 (t
-	  (PRINT-UNREADABLE-OBJECT (object stream
-				    (kw TYPE) t (kw IDENTITY) t)))))
-      ((PACKAGEP object)
-       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t)
-         (PRIN1 (PACKAGE-NAME object) stream)))
-      ((READTABLEP object)
-       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
-      ((STREAMP object)
-       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
-      ((or (TYPEP object 'SIMPLE-CONDITION)
-	   ;; TODO: these two won't be necessary later
-	   (TYPEP object 'SIMPLE-ERROR)
-	   (TYPEP object 'SIMPLE-WARNING))
-       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
-         (PRINC (apply #'FORMAT nil
-		       (SIMPLE-CONDITION-FORMAT-CONTROL object)
-		       (SIMPLE-CONDITION-FORMAT-ARGUMENTS object)))))
-      ((TYPEP object 'CONDITION)
-       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
-      ((restartp object)
-       (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
-         (PRIN1 (RESTART-NAME object) stream)
-	 (when (RESTART-condition object)
-	   (WRITE-STRING " " stream)
-	   (PRIN1 (RESTART-condition object) stream))))
-      ((PATHNAMEP object)
-       (WRITE-STRING "#P" stream)
-       (PRIN1 (NAMESTRING object) stream))
-      (t
-       (error)))
+    (or (and *PRINT-PRETTY*
+	     (MULTIPLE-VALUE-BIND (fn found) (PPRINT-DISPATCH object)
+	       (when found
+		 (FUNCALL fn stream object)
+		 t)))
+	(PRINT-OBJECT object stream))
     (VALUES object)))
 
 (defun symbol-name-capitalize (string)
@@ -346,7 +378,7 @@
   (WITH-OUTPUT-TO-STRING (stream)
     (PRINC object stream)))
 
-(defvar *PRINT-ARRAY* t)
+(defvar *PRINT-ARRAY* T)
 
 (defvar *PRINT-BASE* 10)
 
@@ -358,7 +390,7 @@
 
 (defvar *PRINT-ESCAPE* nil)
 
-(defvar *PRINT-GENSYM* t)
+(defvar *PRINT-GENSYM* T)
 
 (defvar *PRINT-LEVEL* nil)
 
@@ -368,7 +400,21 @@
 
 (defvar *PRINT-MISER-WIDTH* nil)
 
-(defvar *PRINT-PPRINT-DISPATCH* nil)
+(defvar *initial-pprint-dispatch*
+  (let ((table (make-hash-table :test #'equal)))
+    (SET-PPRINT-DISPATCH '(CONS (EQL QUOTE) (CONS * NULL))
+			 (lambda (stream object)
+			   (WRITE-CHAR (ch 39) stream)
+			   (PRINT-OBJECT (second object) stream))
+			 100 table)
+    (SET-PPRINT-DISPATCH '(CONS (EQL FUNCTION) (COND * NULL))
+			 (lambda (stream object)
+			   (WRITE-STRING "#'" stream)
+			   (PRINT-OBJECT (second object) stream))
+			 100 table)
+    table))
+
+(defvar *PRINT-PPRINT-DISPATCH* *initial-pprint-dispatch*)
 
 (defvar *PRINT-PRETTY* nil)
 
