@@ -49,7 +49,12 @@
        (return-from GENTEMP (VALUES symbol)))
      (incf *gentemp-counter*))))
 
-(fset 'SYMBOL-FUNCTION (symbol-function 'symbol-function))
+(defun SYMBOL-FUNCTION (symbol)
+  (unless (symbolp symbol)
+    (ERROR 'TYPE-ERROR (kw DATUM) symbol (kw EXPECTED-TYPE) 'SYMBOL))
+  (unless (fboundp symbol)
+    (ERROR 'UNDEFINED-FUNCTION (kw NAME) symbol))
+  (symbol-function symbol))
 
 (defsetf SYMBOL-FUNCTION (symbol) (fn)
   `(fset ,symbol ,fn))
