@@ -62,12 +62,18 @@
 	    (--sym (NTH-VALUE 0 (INTERN "-" "CL"))))
 	(setq +++ ++ ++ (SYMBOL-VALUE +-sym))
 	(set +-sym (SYMBOL-VALUE --sym))
-	(set --sym (READ-FROM-STRING
-		    (buffer-substring emacs-cl-prompt-marker (point))))
-	(if debug-on-error
-	    (emacs-cl-eval-print (SYMBOL-VALUE --sym))
-	    (condition-case condition
-		(emacs-cl-eval-print (SYMBOL-VALUE --sym))
-	      (error (insert (format "\nError: %s" condition)))))))
+	(catch 'error
+	  (set --sym
+	       (HANDLER-BIND ((ERROR (lambda (c)
+				       (insert "\nError: ")
+				       (PRIN1 c)
+				       (throw 'error nil))))
+		 (READ-FROM-STRING
+		  (buffer-substring emacs-cl-prompt-marker (point)))))
+	  (if debug-on-error
+	      (emacs-cl-eval-print (SYMBOL-VALUE --sym))
+	      (condition-case condition
+		  (emacs-cl-eval-print (SYMBOL-VALUE --sym))
+		(error (insert (format "\nError: %s" condition))))))))
     (insert "\n" (PACKAGE-NAME *PACKAGE*) "> ")
     (setq emacs-cl-prompt-marker (point-marker))))
