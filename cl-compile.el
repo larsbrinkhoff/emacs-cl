@@ -72,6 +72,7 @@
 (defmacro* with-fresh-context (&body body)
   `(let ((*next-register* *registers*)
 	 (*free* nil)
+	 (*bound* nil)
 	 (*blocks-mentioned* nil))
      ,@body))
 
@@ -212,7 +213,7 @@
 	 (compiled-body (compile-body body new-env)))
     (if (memq block *blocks-mentioned*)
 	`(catch ',block ,@compiled-body)
-	`(progn ,@compiled-body))))
+	(body-form compiled-body))))
 
 (define-compiler CATCH (tag &rest body) env
   `(catch ,(compile-form tag env) ,@(compile-body body env)))
@@ -230,7 +231,7 @@
 
 ;;; TODO: eval-when
 (define-compiler EVAL-WHEN (situations &rest body) env
-  `(progn ,@(compile-body body env)))
+  (body-form (compile-body body env)))
 
 (define-compiler FLET (fns &rest forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
@@ -463,9 +464,9 @@
 (defun compile-lambda (lambda-list forms env &optional keep-bindings)
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
     (let* ((vars lambda-list)
+	   (*bound* (when keep-bindings *bound*))
 	   (new-env (env-with-vars env vars decls))
-	   (compiled-body (let ((*bound* (when keep-bindings *bound*)))
-			    (compile-body body new-env))))
+	   (compiled-body (compile-body body new-env)))
       (cond
 	((null *free*)
 	 (expand-lambda lambda-list compiled-body new-env))
@@ -492,6 +493,11 @@
 
 (defun first-or-identity (x)
   (if (atom x) x (car x)))
+
+(defun body-form (body)
+  (if (and (consp body) (null (cdr body)))
+      (car body)
+      `(progn ,@body)))
 
 (define-compiler LET (bindings &rest forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
@@ -522,7 +528,7 @@
 			 new-env)))))
 	  (if let-bindings
 	      `(let ,let-bindings ,@body)
-	      `(progn ,@body)))))))
+	      (body-form body)))))))
 
 (define-compiler LET* (bindings &rest forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
@@ -538,7 +544,7 @@
 (define-compiler LOCALLY (&rest forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
     ;; TODO: process decls
-    `(progn ,@(compile-body forms env))))
+    (body-form (compile-body forms env))))
 
 (define-compiler MACROLET (macros &body forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
@@ -606,7 +612,7 @@
   `(null ,(compile-form form env)))
 
 (define-compiler PROGN (&rest body) env
-  `(progn ,@(compile-body body env)))
+  (body-form (compile-body body env)))
 
 (define-compiler PROGV (symbols values &body body) env
   `(do-progv ,(compile-form symbols env)
