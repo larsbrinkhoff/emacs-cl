@@ -1,7 +1,7 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
 ;;; Copyright (C) 2003 Lars Brinkhoff.
-;;; Batch-mode REPL.
+;;; Batch-mode REPL.  This code is used by the "emacs-cl" script.
 
 (defun batch-repl ()
   (setq *STANDARD-OUTPUT* (make-princ-stream)
