@@ -1,7 +1,7 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
 ;;; Copyright (C) 2003 Lars Brinkhoff.
-;;; This file implements EVAL.
+;;; This file implements EVAL and environment objects.
 
 (defvar *special-operator-evaluators* (make-hash-table))
 
@@ -9,14 +9,22 @@
   `(setf (gethash ',name *special-operator-evaluators*)
          (function* (lambda (,env ,@args) ,@body))))
 
+(defvar *global-environment* nil)
+
 
 ;;; Definitions for all special operators follows.
+
+;;; TODO: BLOCK
 
 (define-special-operator CATCH (tag &rest forms) env
   (catch (eval-with-env tag env)
     (let (lastval)
       (dolist (form forms lastval)
 	(setq lastval (eval-with-env form env))))))
+
+;;; TODO: EVAL-WHEN
+
+;;; TODO: FLET
 
 (define-special-operator FUNCTION (form) env
   (cond
@@ -32,10 +40,14 @@
        (t
 	(error "syntax error"))))))
 
+;;; TODO: GO
+
 (define-special-operator IF (condition then &optional else) env
   (if (eval-with-env condition env)
       (eval-with-env then env)
       (eval-with-env else env)))
+
+;;; TODO: LABELS
 
 (define-special-operator LET (bindings &rest forms) env
   (let ((new-env
@@ -53,13 +65,39 @@
     (dolist (form forms lastval)
       (setq lastval (eval-with-env form new-env)))))
 
+(define-special-operator LET* (bindings &rest forms) env
+  (dolist (binding bindings)
+    (if (symbolp binding)
+	(setf (lexical-value binding env) nil
+	      env (augment-environment env :variable (list binding)))
+	(setf (lexical-value (first binding) env)
+	      (eval-with-env (second binding) env)
+	      env (augment-environment env :variable (list (first binding))))))
+  (let ((lastval nil))
+    (dolist (form forms lastval)
+      (setq lastval (eval-with-env form env)))))
+
+;;; TODO: LOAD-TIME-VALUE
+
+;;; TODO: LOCALLY
+
+;;; TODO: MACROLET
+
+;;; TODO: MULTIPLE-VALUE-CALL
+
+;;; TODO: MULTIPLE-VALUE-PROG1
+
 (define-special-operator PROGN (&rest forms) env
   (let (lastval)
     (dolist (form forms lastval)
       (setq lastval (eval-with-env form env)))))
 
+;;; TODO: PROGV
+
 (define-special-operator QUOTE (form) env
   form)
+
+;;; TODO: RETURN-FROM
 
 (define-special-operator SETQ (&rest forms) env
   (when (oddp (length forms))
@@ -78,6 +116,10 @@
 	    (:symbol-macro	(error "shouldn't happen"))
 	    (:constant		(error "setting constant"))))))
 
+;;; TODO: SYMBOL-MACROLET
+
+;;; TODO: TAGBODY
+
 (define-special-operator THE (type form) env
   (eval-with-env form env))
 
@@ -93,10 +135,15 @@
 
 (defun variable-information (var &optional env)
   (unless env
-    (setq env [environment nil nil nil nil nil]))
-  (values (cdr-safe (assoc var (aref env 1)))
-	  (member var (aref env 2))
-	  nil))
+    (setq env *global-environment*))
+  (let ((info (assoc var (aref env 1))))
+    (when (and (null info) (boundp var))
+      (setq info (if (CONSTANTP var env)
+		     (cons var :constant)
+		     (cons var :special))))
+    (values (cdr-safe info)
+	    (member var (aref env 2))
+	    nil)))
 
 (defun lexical-value (var env)
   (cdr (assoc var (aref env 3))))
@@ -110,7 +157,7 @@
 
 (defun function-information (fn &optional env)
   (unless env
-    (setq env [environment nil nil nil nil nil]))
+    (setq env *global-environment*))
   (values (assoc fn (aref env 4))
 	  (member fn (aref env 5))
 	  nil))
@@ -118,7 +165,7 @@
 (defun* augment-environment (env &key variable symbol-macro function
 				      macro declare)
   (unless env
-    (setq env [environment nil nil nil nil nil]))
+    (setq env *global-environment*))
   (let ((var-info (aref env 1))
 	(var-local (aref env 2))
 	(fn-info (aref env 4))
@@ -141,7 +188,7 @@
 
 (defun enclose (lambda-exp &optional env)
   (unless env
-    (setq env [environment nil nil nil nil nil]))
+    (setq env *global-environment*))
   (vector 'interpreted-function lambda-exp env))
 
 (defun INTERPRETED-FUNCTION-P (object)
@@ -149,10 +196,27 @@
 
 
 
+(defun eval-lambda-form (form env)
+  (let ((new-env
+	 (augment-environment env
+	  :variable (mappend (lambda (var)
+			       (unless (member var LAMBDA-LIST-KEYWORDS)
+				 (list var)))
+			     (cadar form))))
+	(lastval nil)
+	(args (rest form))
+	(body (cddar form)))
+    (dolist (var (cadar form))
+      (unless (member var LAMBDA-LIST-KEYWORDS)
+	(setf (lexical-value var new-env)
+	      (eval-with-env (pop args) env))))
+    (dolist (form body lastval)
+      (setq lastval (eval-with-env form new-env)))))
+
 (defun eval-with-env (form env)
   (unless env
-    (setq env [environment nil nil nil nil nil]))
-  ;(setq form (nth-value 0 (MACROEXPAND form)))
+    (setq env *global-environment*))
+  (setq form (nth-value 0 (MACROEXPAND form)))
   (cond
     ((SYMBOLP form)
      (ecase (nth-value 0 (variable-information form env))
@@ -164,12 +228,16 @@
     ((ATOM form)
      form)
     (t
-     (let ((fn (gethash (first form) *special-operator-evaluators*)))
-       (if fn
-	   (apply fn env (rest form))
-	   (apply (symbol-function (first form))
-		  (mapcar (lambda (arg) (eval-with-env arg env))
-			  (rest form))))))))
+     (if (consp (car form))
+	 (if (eq (caar form) 'LAMBDA)
+	     (eval-lambda-form form env)
+	     (error "syntax error"))
+	 (let ((fn (gethash (first form) *special-operator-evaluators*)))
+	   (if fn
+	       (apply fn env (rest form))
+	       (apply (symbol-function (first form))
+		      (mapcar (lambda (arg) (eval-with-env arg env))
+			      (rest form)))))))))
 
 (defun EVAL (form)
   (eval-with-env form nil))
