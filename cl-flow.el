@@ -511,26 +511,6 @@
     `(let ((,vals (MULTIPLE-VALUE-LIST ,form)))
        (SETQ ,@(mapcar (lambda (var) `(,var (nth ,(incf n) ,vals))) vars)))))
 
-(DEFINE-SETF-EXPANDER VALUES (&rest forms)
-  (let ((temporaries nil)
-	(values nil)
-	(vars nil)
-	(setters nil)
-	(getters nil))
-    (dolist (form forms)
-      (MULTIPLE-VALUE-BIND (temps vals variables setter getter)
-	  (GET-SETF-EXPANSION form nil) ;TODO: env
-	(setq temporaries (append temps temporaries))
-	(setq values (append vals values))
-	(push (first variables) vars)
-	(push setter setters)
-	(push getter getters))
-    (cl:values temporaries
-	       values
-	       (nreverse vars)
-	       `(PROGN ,@(nreverse setters))
-	       `(VALUES ,@(nreverse getters))))))
-
 (defun VALUES (&rest vals)
   (VALUES-LIST vals))
 
@@ -637,6 +617,26 @@
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
      (puthash ',access-fn (LAMBDA ,lambda-list ,@body) *setf-expanders*)
      (QUOTE ,access-fn)))
+
+(DEFINE-SETF-EXPANDER VALUES (&rest forms)
+  (let ((temporaries nil)
+	(values nil)
+	(vars nil)
+	(setters nil)
+	(getters nil))
+    (dolist (form forms)
+      (MULTIPLE-VALUE-BIND (temps vals variables setter getter)
+	  (GET-SETF-EXPANSION form nil) ;TODO: env
+	(setq temporaries (append temps temporaries))
+	(setq values (append vals values))
+	(push (first variables) vars)
+	(push setter setters)
+	(push getter getters))
+    (cl:values temporaries
+	       values
+	       (nreverse vars)
+	       `(PROGN ,@(nreverse setters))
+	       `(VALUES ,@(nreverse getters))))))
 
 (DEFSETF FDEFINITION (name) (fn)
   `(COND
