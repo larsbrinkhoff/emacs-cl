@@ -153,7 +153,7 @@
 	(add-struct-subtype (first include) name))
       (when (and type (not named) predicate)
 	(error))
-      (unless predicate
+      (UNLESS predicate
 	(setq predicate (symcat name "-P")))
 
       ;; Generate or process the lambda lists of the constructors.
