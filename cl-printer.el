@@ -7,7 +7,7 @@
 
 ;;; TODO: Function COPY-PPRINT-DISPATCH
 
-;;; TODO: Macro FORMATTER
+;;; FORMATTER is defined in cl-format.el.
 
 ;;; TODO: Function PPRINT-DISPATCH
 

@@ -5,6 +5,17 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+(cl:defmacro FORMATTER (format)
+  (unless (STRINGP format)
+    (type-error format 'STRING))
+  ;; TODO: better implementation
+  (let ((env (augment-environment nil :variable '(format))))
+    (setf (lexical-value 'format env) format)
+    (enclose '(LAMBDA (*STANDARD-OUTPUT* &REST args)
+	        (APPLY (FUNCTION FORMAT) T format args)
+	        nil)
+	     env)))
+
 (defun FORMAT (stream-designator format &rest args)
   (let ((stream (or (and (eq stream-designator 'T) *STANDARD-OUTPUT*)
 		    stream-designator
