@@ -294,6 +294,17 @@
 
 
 
+(defun dispatch-reader (stream char1)
+  (do* ((param nil)
+	(char #1=(READ-CHAR stream T nil T) #1#)
+	(digit #2=(DIGIT-CHAR-P char 10) #2#))
+      ((not digit)
+       (let ((fn (GET-DISPATCH-MACRO-CHARACTER char1 char)))
+	 (if (null fn)
+	     (ERROR 'READER-ERROR)
+	     (funcall fn stream char param))))
+    (setq param (binary+ (binary* (or param 0) 10) digit))))
+
 (defun double-quote-reader (stream double-quote-char)
   (do ((string "")
        (char #1=(READ-CHAR stream T nil T) #1#))
@@ -303,13 +314,6 @@
       (setq char (READ-CHAR stream T nil T)))
     (unless *READ-SUPPRESS*
       (setq string (concat string (list (CHAR-CODE char)))))))
-
-(defun dispatch-reader (stream char1)
-  (let* ((char2 (READ-CHAR stream T nil T))
-	 (fn (GET-DISPATCH-MACRO-CHARACTER char1 char2)))
-    (if (null fn)
-	(ERROR 'READER-ERROR)
-	(funcall fn stream char2 nil))))
 
 (defun quote-reader (stream ch)
   (let ((object (READ stream T nil T)))
@@ -363,7 +367,12 @@
     (unless *READ-SUPPRESS*
       (VALUES (list 'BACKQUOTE form)))))
 
+(defun no-param (char n)
+  (when n
+    (WARN "Parameter %D ignored in #%C." n char)))
+
 (defun sharp-backslash-reader (stream char n)
+  (no-param (ch 92) n)
   (do ((string "")
        (char #1=(READ-CHAR stream nil (ch 32) T) #1#))
       ((not (constituentp char))
@@ -376,17 +385,21 @@
       (setq string (concat string (list (CHAR-CODE char)))))))
 
 (defun sharp-quote-reader (stream char n)
+  (no-param (ch 39) n)
   (unless-read-suppress-let (object (READ stream T nil T))
     (VALUES (list 'FUNCTION object))))
 
 (defun sharp-left-paren-reader (stream char n)
   (unless-read-suppress-let (list (READ-DELIMITED-LIST (ch 41) stream))
-    (VALUES (CONCATENATE 'VECTOR list))))
+    (VALUES (if (and n (plusp n))
+		(MAP-INTO (MAKE-ARRAY n (kw INITIAL-ELEMENT) (car (last list)))
+			  #'IDENTITY list)
+		(CONCATENATE 'VECTOR list)))))
 
-(defun bit-vector (contents)
-  (let* ((len (length contents))
-	 (vec (make-bool-vector len nil)))
-    (dotimes (i len vec)
+(defun bit-vector (contents n)
+  (let* ((len (or n (length contents)))
+	 (vec (make-bool-vector len (car (last contents)))))
+    (dotimes (i (min len (length contents)) vec)
       (aset vec i (nth i contents)))))
 
 (defun sharp-asterisk-reader (stream char n)
@@ -394,11 +407,12 @@
        (char #1=(READ-CHAR stream nil (ch 32) T) #1#))
       ((not (constituentp char))
        (UNREAD-CHAR char stream)
-       (VALUES (unless *READ-SUPPRESS* (bit-vector (nreverse contents)))))
+       (VALUES (unless *READ-SUPPRESS* (bit-vector (nreverse contents) n))))
     (unless *READ-SUPPRESS*
       (push (ecase (CHAR-CODE char) (48 nil) (49 1)) contents))))
 
 (defun sharp-colon-reader (stream char n)
+  (no-param (ch 58) n)
   (do ((string "")
        (char #1=(READ-CHAR stream nil (ch 32) T) #1#))
       ((not (constituentp char))
@@ -407,6 +421,7 @@
     (setq string (concat string (list (CHAR-CODE char))))))
 
 (defun sharp-dot-reader (stream char n)
+  (no-param (ch 46) n)
   (unless-read-suppress-let (object (READ stream T nil T))
     (if *READ-EVAL*
 	(VALUES (eval object))
@@ -418,6 +433,7 @@
 (defun sharp-r-reader (stream char n) nil)
 
 (defun sharp-c-reader (stream char n)
+  (no-param (ch 67) n)
   (let ((list (READ stream T nil T)))
     (unless *READ-SUPPRESS*
       (if (and (consp list) (= (length list) 2))
@@ -428,6 +444,7 @@
 (defun sharp-s-reader (stream char n) nil)
 
 (defun sharp-p-reader (stream char n)
+  (no-param (ch 80) n)
   (unless-read-suppress-let (string (READ stream T nil T))
     (unless (STRINGP string)
       (ERROR 'READER-ERROR))
@@ -452,6 +469,7 @@
      (error "syntax error"))))
 
 (defun sharp-plus-reader (stream char n)
+  (no-param (ch 43) n)
   (if (eval-feature-test (let ((*PACKAGE* *keyword-package*))
 			   (READ stream T nil T)))
       (VALUES (READ stream T nil T))
@@ -460,6 +478,7 @@
 	(VALUES))))
 
 (defun sharp-minus-reader (stream char n)
+  (no-param (ch 45) n)
   (if (eval-feature-test (let ((*PACKAGE* *keyword-package*))
 			   (READ stream T nil T)))
       (let ((*READ-SUPPRESS* T))
@@ -468,6 +487,7 @@
       (VALUES (READ stream T nil T))))
 
 (defun sharp-bar-reader (stream char n)
+  (no-param (ch 124) n)
   (do ((last nil)
        (level 1)
        (char #1=(READ-CHAR stream T nil T) #1#))
@@ -481,11 +501,11 @@
     (setq last char)))
 
 (defun sharp-less-reader (stream char n)
-  (error "syntax error"))
+  (ERROR "syntax error"))
 (defun sharp-space-reader (stream char n)
-  (error "syntax error"))
+  (ERROR "syntax error"))
 (defun sharp-right-paren-reader (stream char n)
-  (error "syntax error"))
+  (ERROR "syntax error"))
 
 
 
