@@ -1,4 +1,8 @@
 ;;;; -*- emacs-lisp -*-
+;;;;
+;;;; Copyright (C) 2003 Lars Brinkhoff.
+;;;;
+;;;; This file implements the compiler.
 
 (require 'cl)
 
@@ -139,12 +143,19 @@
 ;;;       (symbol-macrolet ((x ,loc))
 ;;; 	,@b))))
 
+(defmacro define-compiler (operator &rest operands)
+  nil)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun compile-block (forms)
   (let ((tag (second forms))
 	(body (cddr forms)))
     (compile-forms body)))
+
+(define-compiler (catch tag &rest body)
+  `(catch ,(compile-form tag)
+     ,(compile-forms body)))
 
 (defun compile-catch (forms)
   (let ((tag (second forms))
@@ -161,6 +172,19 @@
   (let ((functions (second forms))
 	(body (cddr forms)))
     (compile-forms body)))
+
+(define-compiler (function fn)
+  (cond
+    ((symbolp fn)
+     `(function fn))
+    ((atom fn)
+     (error))
+    ((eq (first fn) 'lambda)
+     (compile-lambda fn))
+    ((eq (first fn) 'setf)
+     nil)
+    (t
+     (error)))
 
 (defun compile-function (form)
   (let ((fn (second form)))
@@ -179,6 +203,12 @@
 (defun compile-go (form)
   (let ((tag (second form)))
     nil))
+
+(define-compiler (if condition then &optional else)
+  `(if ,(compile-form condition)
+       ,(compile-form then)
+       ,@(when else
+	   (list (compile-form else)))))
 
 (defun compile-if (form)
   `(if ,(compile-form (second form))
@@ -223,17 +253,6 @@
 		    ,closure))
 		compiled-expr)))
       (compile-declare form))))
-
-(defun cl:mapcar (fn &rest seqs)
-  (if (null (cdr seqs))
-      (mapcar fn (car seqs))
-      (cl-mapcar-many fn seqs)))
-
-(defun cl:mapcan (fn &rest seqs)
-  (apply #'nconc
-   (if (null (cdr seqs))
-       (mapcar fn (car seqs))
-       (cl-mapcar-many fn seqs))))
 
 (defun mappend (fn &rest lists)
   (apply #'append

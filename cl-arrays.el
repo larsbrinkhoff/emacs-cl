@@ -132,7 +132,11 @@
 	     ((bit-array char-array array) t)))))
 
 (defun fill-pointer (vector)
-  (aref array 1))
+  (aref vector 1))
+
+(defun setf-fill-pointer (vector fill-pointer)
+  (aset vector 1 fill-pointer))
+(defsetf fill-pointer setf-fill-pointer)
 
 (defun row-major-aref (array index)
   (cond
@@ -153,10 +157,6 @@
      (error))))
 (defsetf row-major-aref setf-row-major-aref)
 
-(defun setf-fill-pointer (vector fill-pointer)
-  (aset array 1 fill-pointer))
-(defsetf fill-pointer setf-fill-pointer)
-
 (defun upgraded-array-element-type (typespec &optional env)
   (cond
     ((cl:subtypep typespec 'bit)	'bit)
@@ -165,7 +165,7 @@
 
 (defun simple-vector-p (object)
   (or (simple-bit-vector-p object)
-      (simple-string object)
+      (simple-string-p object)
       (vector-and-typep object 'simple-vector)))
 
 (defun svref (vector index)
@@ -180,7 +180,7 @@
 
 (defun cl:vectorp (object)
   (or (simple-vector-p object)
-      (and (vectorp (object))
+      (and (vectorp object)
 	   (case (aref object 0)
 	     ((string bit-vector vector) t)))))
 
