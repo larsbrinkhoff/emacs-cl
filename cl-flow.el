@@ -461,16 +461,20 @@
 	 (T (type-error ,val (QUOTE (OR ,@(mapcar #'first clauses)))))))))
 
 (defmacro* MULTIPLE-VALUE-BIND (vars form &body body)
-  (if (null vars)
-      `(progn ,form ,@body)
-      (let ((n -1))
-	`(let ((,(first vars) ,form)
-	       ,@(mapcar (lambda (var) `(,var (nth ,(incf n) mvals)))
-			 (rest vars)))
-	   ,@body))))
+  (case (length vars)
+    (0	`(progn ,form ,@body))
+    (1	`(let ((,(first vars) ,form)) ,@body))
+    (t	(let ((n -1))
+	  `(let* ((,(first vars) ,form)
+		  ,@(mapcar (lambda (var) `(,var (nth ,(incf n) mvals)))
+			    (rest vars)))
+	     ,@body)))))
 
 (cl:defmacro MULTIPLE-VALUE-BIND (vars form &body body)
-  `(MULTIPLE-VALUE-CALL (LAMBDA ,vars ,@body) ,form))
+  (case (length vars)
+    (0	`(PROGN ,form ,@body))
+    (1	`(LET ((,(first vars) ,form)) ,@body))
+    (t	`(MULTIPLE-VALUE-CALL (LAMBDA ,vars ,@body) ,form))))
 
 ;;; MULTIPLE-VALUE-CALL is a special operator.
 
