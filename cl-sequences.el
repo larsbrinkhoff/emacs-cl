@@ -228,7 +228,42 @@
 ;;; TODO: POSITION
 ;;; TODO: POSITION-IF
 ;;; TODO: POSITION-IF-NOT
-;;; TODO: SEARCH
+
+(defun subseq-p (seq1 start1 end1 seq2 start2 end2 test key)
+  (catch 'subseq-p
+    (do ((i start1 (1+ i))
+	 (j start2 (1+ j)))
+	((or (eq i end1) (eq j end2))
+	 (eq i end1))
+      (unless (FUNCALL test (FUNCALL key (ELT seq1 i))
+		            (FUNCALL key (ELT seq2 j)))
+	(throw 'subseq-p nil)))))
+
+(cl:defun SEARCH (seq1 seq2 &key from-end test test-not (key #'IDENTITY)
+		                 (start1 0) (start2 0) end1 end2)
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test #'EQL))
+  (unless end1
+    (setq end1 (LENGTH seq1)))
+  (unless end2
+    (setq end2 (LENGTH seq2)))
+  (catch 'SEARCH
+    (if from-end
+	(do ((i (1- end2) (1- i)))
+	    ((minusp i)
+	     nil)
+	  (when (subseq-p seq1 start1 end1 seq2 i end2 test key)
+	    (throw 'SEARCH i)))
+	(do ((i start2 (1+ i)))
+	    ((eq i end2)
+	     nil)
+	  (when (subseq-p seq1 start1 end1 seq2 i end2 test key)
+	    (throw 'SEARCH i))))))
+
 ;;; TODO: MISMATCH
 ;;; TODO: REPLACE
 ;;; TODO: SUBSTITUTE
