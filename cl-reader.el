@@ -300,7 +300,7 @@
     ((VECTORP form)
      `(APPLY (FUNCTION VECTOR) ,(expand-bq (MAP 'LIST #'IDENTITY form))))
     (t
-     form)))
+     `(QUOTE ,form))))
 
 (defun* expand-bq-list (list)
   (let ((car (car list))
