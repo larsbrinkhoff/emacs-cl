@@ -79,7 +79,7 @@
 
 (fset 'SYMBOL-PLIST (symbol-function 'symbol-plist))
 
-(defsetf SYMBOL-PLIST (symbol) (plist)
+(DEFSETF SYMBOL-PLIST (symbol) (plist)
   `(setplist ,symbol ,plist))
 
 (fset 'SYMBOL-VALUE (symbol-function 'symbol-value))
@@ -87,17 +87,20 @@
 (defsetf SYMBOL-VALUE (symbol) (val)
   `(set ,symbol ,val))
 
+(DEFSETF SYMBOL-VALUE (symbol) (val)
+  `(SET ,symbol ,val))
+
 (defun GET (symbol property &optional default)
   (let ((val (member property (symbol-plist symbol))))
     (if val
 	(car val)
 	default)))
 
-(defsetf GET (symbol property &optional default) (val)
+(DEFSETF GET (symbol property &optional default) (val)
   `(put ,symbol ,property ,val))
 
-(defun REMPROP (symbol property)
-  (setplist symbol (delete property (symbol-plist symbol))))
+(defun REMPROP (symbol indicator)
+  (setplist symbol (delete-property (symbol-plist symbol) indicator)))
 
 (fset 'BOUNDP (symbol-function 'boundp))
 
