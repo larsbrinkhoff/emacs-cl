@@ -125,7 +125,7 @@
     (loop
       (when (eq i len)
 	(return-from MAP
-	  (progn
+	  (when type
 	    (setq result (nreverse result))
 	    (ecase type
 	      (LIST	result)
@@ -133,7 +133,9 @@
 			    ""
 			    (apply #'string (mapcar #'CHAR-CODE result))))
 	      (VECTOR	(apply #'vector 'SIMPLE-VECTOR result))))))
-      (push (APPLY fn (mapcar (lambda (seq) (ELT seq i)) sequences)) result)
+      (let ((item (APPLY fn (mapcar (lambda (seq) (ELT seq i)) sequences))))
+	(when type
+	  (push item result)))
       (incf i))))
 
 (defun* MAP-INTO (result fn &rest sequences)
