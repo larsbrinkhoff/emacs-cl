@@ -83,7 +83,11 @@
   (let ((name (slot-name slot))
 	(initval (slot-initval slot))
 	(lambda-list (second constructor)))
-    (if (member name lambda-list)
+    (if ;(member name lambda-list)
+        (some (lambda (parm)
+		(or (eq name parm)
+		    (and (consp parm) (eq name (car parm)))))
+	      lambda-list)
 	name
 	initval)))
 
