@@ -271,6 +271,34 @@
     (setf (lexical-value 'fn env) fn)
     (enclose '(LAMBDA (x) (NOT (FUNCALL fn x))) env)))
 
+(defun CONSTANTLY (value)
+  (let ((env (augment-environment nil :variable '(value))))
+    (setf (lexical-value 'value env) value)
+    (enclose '(LAMBDA (&rest x) value) env)))
+
+(defun* EVERY (predicate &rest sequences)
+  (apply #'mapcar
+	 (lambda (&rest elts)
+	   (unless (APPLY predicate elts)
+	     (return-from EVERY nil)))
+	 sequences)
+  T)
+
+(defun* SOME (predicate &rest sequences)
+  (apply #'mapcar
+	 (lambda (&rest elts)
+	   (let ((val (APPLY predicate elts)))
+	     (when val
+	       (return-from SOME val))))
+	 sequences)
+  nil)
+
+(defun NOTEVERY (predicate &rest sequences)
+  (not (apply #'EVERY predicate sequences)))
+
+(defun NOTANY (predicate &rest sequences)
+  (not (apply #'SOME predicate sequences)))
+
 (cl:defmacro AND (&rest forms)
   (if (null forms)
       T
