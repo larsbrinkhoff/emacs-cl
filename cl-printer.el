@@ -351,7 +351,7 @@
       (setq in-word-p alnump))))
 
 (defun write-char-to-*standard-output* (char)
-  (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*))
+  (WRITE-CHAR (CODE-CHAR (char-octet char)) *STANDARD-OUTPUT*))
 
 (cl:defun print-integer (number stream &optional (base 10) radix)
   (when radix
@@ -470,6 +470,17 @@
 			 (lambda (stream object)
 			   (WRITE-STRING "#'" stream)
 			   (write-object (second object) stream))
+			 100 table)
+    (SET-PPRINT-DISPATCH '(CONS (EQL LAMBDA) CONS)
+			 (lambda (stream object)
+			   (WRITE-STRING "(LAMBDA " stream)
+			   (if (null (second object))
+			       (WRITE-STRING "()" stream)
+			       (write-object (second object) stream))
+			   (dolist (x (cddr object))
+			     (WRITE-CHAR (ch 32) stream)
+			     (write-object x stream))
+			   (WRITE-CHAR (ch 41) stream))
 			 100 table)
     table))
 
