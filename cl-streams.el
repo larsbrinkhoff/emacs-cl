@@ -8,6 +8,7 @@
 (DEFSTRUCT (STREAM (:predicate STREAMP) (:copier nil))
   (openp T)
   (ELEMENT-TYPE 'CHARACTER)
+  direction
   content
   (position 0)
   end
@@ -54,10 +55,14 @@
     (t		designator)))
 
 (defun INPUT-STREAM-P (stream)
-  (not (null (STREAM-read-fn stream))))
+  (let ((direction (STREAM-direction stream)))
+    (or (eq direction (kw INPUT))
+	(eq direction (kw IO)))))
 
 (defun OUTPUT-STREAM-P (stream)
-  (not (null (STREAM-read-fn stream))))
+  (let ((direction (STREAM-direction stream)))
+    (or (eq direction (kw OUTPUT))
+	(eq direction (kw IO)))))
 
 (defun INTERACTIVE-STREAM-P (stream)
   (ecase (TYPE-OF stream)
@@ -233,7 +238,8 @@
 		              IF-EXISTS IF-DOES-NOT-EXIST
 			      (EXTERNAL-FORMAT (kw DEFAULT)))
   (mk-FILE-STREAM
-   (kw filename) (when (eq DIRECTION (kw OUTPUT)) filespec)
+   (kw direction) DIRECTION
+   (kw filename) (if (STRINGP filespec) filespec (NAMESTRING filespec))
    (kw content) (let ((buffer (create-file-buffer (NAMESTRING filespec))))
 		  (when (eq DIRECTION (kw INPUT))
 		    (save-current-buffer
@@ -269,7 +275,7 @@
 
 (cl:defun CLOSE (stream &KEY ABORT)
   (when (and (TYPEP stream 'FILE-STREAM)
-	     (FILE-STREAM-filename stream))
+	     (OUTPUT-STREAM-P stream))
     (save-current-buffer
       (set-buffer (STREAM-content stream))
       (write-region 1 (1+ (buffer-size)) (FILE-STREAM-filename stream))))
@@ -364,6 +370,7 @@
 
 (defun MAKE-BROADCAST-STREAM (&rest streams)
   (mk-BROADCAST-STREAM
+   (kw direction) (kw OUTPUT)
    (kw STREAMS) streams
    (kw write-fn) (lambda (char stream)
 		   (dolist (s (BROADCAST-STREAM-STREAMS stream))
@@ -371,6 +378,7 @@
 
 (defun MAKE-TWO-WAY-STREAM (input output)
   (mk-TWO-WAY-STREAM
+   (kw direction) (kw IO)
    (kw INPUT-STREAM) input
    (kw OUTPUT-STREAM) output
    (kw read-fn)
@@ -388,6 +396,7 @@
 
 (defun MAKE-ECHO-STREAM (input output)
   (mk-ECHO-STREAM
+   (kw direction) (kw INPUT)
    (kw INPUT-STREAM) input
    (kw OUTPUT-STREAM) output
    (kw read-fn)
@@ -400,6 +409,7 @@
 
 (defun MAKE-CONCATENATED-STREAM (&rest streams)
   (mk-CONCATENATED-STREAM
+   (kw direction) (kw INPUT)
    (kw STREAMS) streams
    (kw read-fn)
      (lambda (stream)
@@ -418,6 +428,7 @@
 
 (cl:defun MAKE-STRING-INPUT-STREAM (string &OPTIONAL (start 0) end)
   (mk-STRING-STREAM
+   (kw direction) (kw INPUT)
    (kw string) (let ((substr (substring string start end)))
 		 (if (> (length substr) 0)
 		     substr
@@ -440,6 +451,7 @@
 
 (cl:defun MAKE-STRING-OUTPUT-STREAM (&KEY (ELEMENT-TYPE 'CHARACTER))
   (mk-STRING-STREAM
+   (kw direction) (kw OUTPUT)
    (kw string) ""
    (kw write-fn)
      (lambda (char stream)
@@ -492,7 +504,8 @@
 
 
 (defun make-buffer-output-stream (buffer)
-  (MAKE-STREAM (kw content) buffer
+  (MAKE-STREAM (kw direction) (kw OUTPUT)
+	       (kw content) buffer
 	       (kw write-fn) (lambda (char stream)
 			       (insert char)
 			       (when (eq char 10)
@@ -502,11 +515,13 @@
   (MAKE-STREAM (kw read-fn) (cl:function read-char-exclusive-ignoring-arg)))
 
 (defun make-fill-pointer-output-stream (string)
-  (mk-STRING-STREAM (kw string) string
+  (mk-STRING-STREAM (kw direction) (kw OUTPUT)
+		    (kw string) string
 		    (kw write-fn) (lambda (char stream)
 				    (VECTOR-PUSH-EXTEND
 				     (CODE-CHAR char)
 				     (STRING-STREAM-string stream)))))
 
 (defun make-princ-stream ()
-  (MAKE-STREAM (kw write-fn) (lambda (char stream) (princ (string char)))))
+  (MAKE-STREAM (kw direction) (kw OUTPUT)
+	       (kw write-fn) (lambda (char stream) (princ (string char)))))
