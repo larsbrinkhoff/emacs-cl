@@ -135,15 +135,16 @@
 	  (return-from READ-LINE (VALUES line nil))))
        (setq line (concat line (list (CHAR-CODE char))))))))
 
-(cl:defun WRITE-STRING (string &optional stream-designator &key (start 0) end)
+(cl:defun WRITE-STRING (string &optional stream-designator
+			&key (start 0) (end (LENGTH string)))
   (do ((stream (output-stream stream-designator))
-       (i 0 (1+ i)))
-      ((= i (LENGTH string)) string)
+       (i start (1+ i)))
+      ((eq i end) string)
     (WRITE-CHAR (CHAR string i) stream)))
 
 (cl:defun WRITE-LINE (string &optional stream-designator &key (start 0) end)
   (let ((stream (output-stream stream-designator)))
-    (WRITE-STRING string stream :start start :end end)
+    (WRITE-STRING string stream (kw START) start (kw END) end)
     (TERPRI stream)
     string))
 
@@ -165,9 +166,9 @@
 (cl:defun OPEN (filespec &key (direction (kw INPUT)) (element-type 'CHARACTER)
 		              if-exists if-does-not-exist
 			      (external-format (kw DEFAULT)))
-  (MAKE-STREAM (kw filename) (when (eq direction :output) filespec)
+  (MAKE-STREAM (kw filename) (when (eq direction (kw OUTPUT)) filespec)
 	       (kw content) (let ((buffer (create-file-buffer filespec)))
-			      (when (eq direction :input)
+			      (when (eq direction (kw INPUT))
 				(save-current-buffer
 				  (set-buffer buffer)
 				  (insert-file-contents-literally filespec)))
