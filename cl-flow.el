@@ -317,6 +317,20 @@
 (defun keyword (string)
   (NTH-VALUE 0 (INTERN string *keyword-package*)))
 
+(cl:defmacro PROG1 (form1 &rest forms)
+  (with-gensyms (val)
+    `(LET ((,val ,form1))
+       ,@forms
+      ,val)))
+
+(cl:defmacro PROG2 (form1 form2 &rest forms)
+  (with-gensyms (val)
+    `(PROGN
+       ,form1
+       (LET ((,val ,form2))
+	 ,@forms
+	 ,val))))
+
 ;;; TODO:
 ; (defmacro DEFINE-MODIFY-MACRO (name lambda-list fn &optional documentation)
 ;   `',name)
