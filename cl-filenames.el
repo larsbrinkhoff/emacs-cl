@@ -178,6 +178,7 @@
 	  (let ((component (SUBSEQ string i j)))
 	    (cond
 	      ((STRING= component "*")		(push (kw WILD) dir))
+	      ((STRING= component "**")		(push (kw WILD-INFERIORS) dir))
 	      ((STRING= component "..")		(push (kw UP) dir))
 	      ((STRING= component "."))		;Nothing.
 	      (t				(push component dir))))
@@ -228,6 +229,8 @@
 	    (ver (parse-ver name-ver (substring name+ver (length name-ver))))
 	    (name (maybe-wild (file-name-sans-extension name-ver)))
 	    (type (maybe-wild (file-name-extension name+ver))))
+;        (FORMAT T "~&dir=~S name+ver=~S name-ver=~S ver=~S name=~S type=~S"
+; 	       dir name+ver name-ver ver name type)
        (cond
 	 ((string= name+ver ".")
 	  (when (null dir)
@@ -242,7 +245,8 @@
 	  (setq name name-ver
 		type nil))
 	 ((null type)
-	  (setq name name-ver)))
+	  (unless (string= name-ver "*.")
+	    (setq name name-ver))))
        (when (string= name "")
 	 (setq name nil))
        (cl:values (mkpathname nil nil dir name type ver)
@@ -276,7 +280,10 @@
 
 (defmacro wild-test (fn pathname wildcard)
   `(or (eq (,fn ,wildcard) (kw WILD))
-       (EQUAL (,fn ,wildcard) (,fn ,pathname))))
+       (equal (,fn ,wildcard) (,fn ,pathname))
+       ,@(when (or (eq fn 'PATHNAME-NAME) (eq fn 'PATHNAME-TYPE))
+	   `((and (or (null (,fn ,pathname)) (string= (,fn ,pathname) ""))
+	          (string= (,fn ,wildcard) ""))))))
 
 (defun directories-match-p (pathname wildcard)
   (cond
