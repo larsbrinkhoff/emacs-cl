@@ -235,9 +235,13 @@
 	 (let ((fn (gethash (first form) *special-operator-evaluators*)))
 	   (if fn
 	       (apply fn env (rest form))
-	       (apply (symbol-function (first form))
-		      (mapcar (lambda (arg) (eval-with-env arg env))
-			      (rest form)))))))))
+	       (let ((fn (symbol-function (first form))))
+		 (if (listp fn)
+		     ;; Special hack for interpreted Emacs Lisp function.
+		     (apply fn (mapcar (lambda (arg) (eval-with-env arg env))
+				       (rest form)))
+		     (APPLY fn (mapcar (lambda (arg) (eval-with-env arg env))
+				       (rest form)))))))))))
 
 (defun EVAL (form)
   (eval-with-env form nil))
