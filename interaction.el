@@ -36,10 +36,12 @@
   (substitute-key-definition 'newline 'emacs-cl-newline
 			     emacs-cl-mode-map global-map))
 
-(defun emacs-cl-eval-print (form)
+(defun* emacs-cl-eval-print (form)
   (let ((*-sym (NTH-VALUE 0 (INTERN "*" "CL")))
 	(/-sym (NTH-VALUE 0 (INTERN "/" "CL")))
-	(values (MULTIPLE-VALUE-LIST (EVAL form))))
+	(values
+	 (restart-bind ((ABORT (lambda () (return-from emacs-cl-eval-print))))
+	   (MULTIPLE-VALUE-LIST (EVAL form)))))
     (setq /// // // (SYMBOL-VALUE /-sym))
     (set /-sym values)
     (setq *** ** ** (SYMBOL-VALUE *-sym))

@@ -34,10 +34,13 @@
 (DEFINE-CONDITION STORAGE-CONDITION (SERIOUS-CONDITION) ())
 
 (cl:defmacro ASSERT (form &optional places datum &rest args)
-  `(UNLESS ,form
-     ;; TODO: restarts, message, etc
-     (ERROR ,@(if datum `(,datum ,@args) '((QUOTE ERROR))))
-     nil))
+  (with-gensyms (continue)
+    `(DO ()
+         (,form)
+       (RESTART-BIND ((CONTINUE (LAMBDA () (GO ,continue))))
+	 (ERROR ,@(if datum `(,datum ,@args) '((QUOTE ERROR)))))
+       ,continue
+       (PRINC "\nFix the error already!"))))
 
 (defun condition (datum args default-type)
   (cond
@@ -56,9 +59,18 @@
     (SIGNAL condition)
     (INVOKE-DEBUGGER condition)))
 
-(defun CERROR (format datum &rest args)
-  ;; TODO: restart, message
-  (apply #'ERROR datum args))
+(defmacro* restart-bind (bindings &body forms)
+  `(let ((*restart-alist*
+	  (append (list ,@(mapcar (lambda (binding)
+				    `(CONS ',(first binding)
+				           ,(second binding)))
+				  bindings))
+		  *restart-alist*)))
+     ,@forms))
+
+(defun* CERROR (format datum &rest args)
+  (restart-bind ((CONTINUE (lambda () (return-from CERROR))))
+    (apply #'ERROR datum args)))
 
 (cl:defmacro CHECK-TYPE (place type &optional string)
   `(UNLESS (TYPEP ,place ',type)
@@ -109,10 +121,18 @@
 	 (*DEBUGGER-HOOK* nil))
     (when hook
       (FUNCALL hook condition hook))
+    (PRINC "\nDebugger invoked on condition of type ")
+    (PRIN1 (TYPE-OF condition))
+    (PRINC "\nAvailable restarts: ")
+    (dolist (restart (COMPUTE-RESTARTS))
+      (PRINT restart))
+    (when (y-or-n-p "Restart? ")
+      (INVOKE-RESTART (first (COMPUTE-RESTARTS))))
     (debug)))
 
-(defun BREAK (&optional format &rest args)
-  (debug))
+(defun* BREAK (&optional format &rest args)
+  (restart-bind ((CONTINUE (lambda () (return-from BREAK))))
+    (debug)))
 
 (defvar *DEBUGGER-HOOK* nil)
 
@@ -151,14 +171,14 @@
 	(error "no such condition type"))))
 
 (DEFSTRUCT (RESTART
-	     (:constructor make-restart)
+	     (:constructor make-restart (NAME handler &optional condition))
 	     (:predicate restartp))
-  name handler condition)
+  NAME handler condition)
 
 (defvar *restart-alist* nil)
 
 (defun COMPUTE-RESTARTS (&optional condition)
-  (mapcar (lambda (cons) (make-restart :name (car cons) :handler (cdr cons)))
+  (mapcar (lambda (cons) (make-restart (car cons) (cdr cons)))
 	  *restart-alist*))
 
 (defun FIND-RESTART (restart &optional condition)
@@ -168,8 +188,7 @@
     ((null restart)		(error "TODO"))
     ((symbolp restart)		(let ((cons (assoc restart *restart-alist*)))
 				  (when cons
-				    (make-restart :name restart
-						  :handler (cdr cons)))))
+				    (make-restart restart (cdr cons)))))
     (t				(ERROR 'TYPE-ERROR))))
 
 (defun INVOKE-RESTART (restart-designator &rest args)
@@ -191,16 +210,15 @@
 
 ;;; TODO: RESTART-CASE
 
-(defun RESTART-NAME (restart)
-  (RESTART-name restart))
+;;; RESTART-NAME defined by defstruct.
 
 ;;; TODO: WITH-CONDITION-RESTARTS
 
-;;; TODO: define RESTART-CASE first
-; (cl:defmacro WITH-SIMPLE-RESTART ((RESTART-name format &rest args)
+;;; TODO:
+; (cl:defmacro WITH-SIMPLE-RESTART ((name format &rest args)
 ; 				  &body body)
 ;   `(RESTART-CASE (PROGN ,@body)
-;      (,RESTART-NAME ()
+;      (,name ()
 ;        :report (LAMBDA (stream) (FORMAT stream ,format ,@args))
 ;        (VALUES nil T))))
 
@@ -229,4 +247,5 @@
 (DEFINE-CONDITION TYPE-ERROR (ERROR) (DATUM EXPECTED-TYPE))
 (DEFINE-CONDITION CONTROL-ERROR (ERROR) ())
 (DEFINE-CONDITION UNBOUND-VARIABLE (CELL-ERROR) ())
+(DEFINE-CONDITION UNDEFINED-FUNCTION (CELL-ERROR) ())
 (DEFINE-CONDITION PACKAGE-ERROR (ERROR) (PACKAGE))
