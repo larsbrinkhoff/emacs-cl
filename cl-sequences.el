@@ -78,3 +78,40 @@
 	 (length (aref sequence 2))))
     (t
      (error))))
+
+(defmacro* dovector ((var vector &optional result) &body body)
+  (let ((i (gensym))
+	(len (gensym))
+	(vec (gensym)))
+    `(let* (,var (,i 0) (,vec ,vector) (,len (cl:length ,vec)))
+      (while (< ,i ,len)
+	(setq ,var (cl:aref ,vec ,i))
+	,@body
+	(incf ,i))
+      ,result)))
+
+(defmacro* dosequence ((var sequence &optional result) &body body)
+  (let ((seq (gensym)))
+    `(let ((,seq ,sequence))
+      (if (listp ,seq)
+	  (dolist (,var ,seq ,result) ,@body)
+	  (dovector (,var ,seq ,result) ,@body)))))
+
+(defun cl:concatenate (type &rest sequences)
+  (unless (eq type 'vector)
+    (error "TODO"))
+  (let ((vector (make-vector (1+ (reduce #'+ (mapcar #'cl:length sequences)))
+			     'simple-vector))
+	(i 0))
+    (dolist (seq sequences)
+      (dosequence (x seq)
+	(aset vector (incf i) x)))
+    vector))
+
+;;; ...
+
+;;; TODO: merge
+
+;;; TODO: remove, remove-if, remove-if-not, delete, delete-if, delete-if-not
+
+;;; TODO: remove-duplicates, delete-duplicates
