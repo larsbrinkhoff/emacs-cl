@@ -196,31 +196,31 @@
     ,new))
 
 (defun SECOND (list)
-  (CAR (CAR list)))
+  (CADR list))
 
 (defun THIRD (list)
-  (CAR (CAR (CAR list))))
+  (CADDR list))
 
 (defun FOURTH (list)
-  (CAR (CAR (CAR (CAR list)))))
+  (CADDDR list))
 
 (defun FIFTH (list)
-  (CAR (CAR (CAR (CAR (CAR list))))))
+  (CAR (CDDDDR list)))
 
 (defun SIXTH (list)
-  (CAR (CAR (CAR (CAR (CAR (CAR list)))))))
+  (CADR (CDDDDR list)))
 
 (defun SEVENTH (list)
-  (CAR (CAR (CAR (CAR (CAR (CAR (CAR list))))))))
+  (CADDR (CDDDDR list)))
 
 (defun EIGHTH (list)
-  (CAR (CAR (CAR (CAR (CAR (CAR (CAR (CAR list)))))))))
+  (CADDDR (CDDDDR list)))
 
 (defun NINTH (list)
-  (CAR (CAR (CAR (CAR (CAR (CAR (CAR (CAR (CAR list))))))))))
+  (CAR (CDDDDR (CDDDDR list))))
 
 (defun TENTH (list)
-  (CAR (CAR (CAR (CAR (CAR (CAR (CAR (CAR (CAR (CAR list)))))))))))
+  (CADR (CDDDDR (CDDDDR list))))
 
 (fset 'NTH (symbol-function 'nth))
 
