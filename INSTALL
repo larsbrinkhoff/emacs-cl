@@ -1,6 +1,8 @@
 TODO: Write proper installation instructions.
 
-To load the files, load load-cl.el into Emacs.
+To load the files, load load-cl.el into Emacs.  Warning: Loading the
+last file, populate.el, will take a long time, especially on slow
+computers.
 
 To start an interactive session, type "M-x emacs-cl".
 
