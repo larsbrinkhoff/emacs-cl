@@ -20,10 +20,10 @@
 
 (defun ENSURE-DIRECTORIES-EXIST (pathspec &optional verbose)
   (let ((dir (file-name-directory pathspec)))
-    (VALUES pathspec
-	    (if (file-exists-p dir)
-		(progn (make-directory dir t) T)
-		nil))))
+    (cl:values pathspec
+	       (if (file-exists-p dir)
+		   (progn (make-directory dir t) T)
+		   nil))))
 
 (defun TRUENAME (filespec)
   (file-truename filespec))
@@ -42,7 +42,7 @@
 (defun RENAME-FILE (filespec new-name)
   (rename-file filespec new-name t)
   ;; TODO...
-  (VALUES new-name filespec new-name))
+  (cl:values new-name filespec new-name))
 
 (defun DELETE-FILE (filespec)
   (if (file-exists-p filespec)

@@ -27,7 +27,7 @@
 		 (setq fn (car v)
 		       priority (cdr v))))
 	     table)
-    (VALUES fn priority)))
+    (cl:values fn priority)))
 
 ;;; TODO: Local Macro PPRINT-EXIT-IF-LIST-EXHAUSTED
 
@@ -233,7 +233,7 @@
      (if *PRINT-READABLY*
 	 (ERROR 'PRINT-NOT-READABLE (kw OBJECT) object)
 	 (WRITE-STRING "#<FIXME:UNPRINTABLE>" stream))))
-  (VALUES object))
+  (cl:values object))
 
 (defvar *object-identities* (make-hash-table :test #'eq :weakness t))
 
@@ -335,7 +335,7 @@
 	(*PRINT-READABLY* READABLY)
 	(*PRINT-RIGHT-MARGIN* RIGHT-MARGIN))
     (write-object object stream))
-  (VALUES object))
+  (cl:values object))
 
 (defun symbol-name-capitalize (string)
   (setq string (copy-sequence string))
@@ -420,7 +420,7 @@
 (defun PPRINT (object &optional stream)
   (TERPRI stream)
   (WRITE object (kw STREAM) stream (kw ESCAPE) t (kw PRETTY) t)
-  (VALUES))
+  (cl:values))
 
 (defun PRINC (object &optional stream)
   (WRITE object (kw STREAM) stream (kw ESCAPE) nil (kw READABLY) nil))

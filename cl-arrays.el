@@ -191,11 +191,11 @@
   (let ((obj (gensym))
 	(atemp (gensym))
 	(stemps (map-to-gensyms subscripts)))
-    (VALUES (cons atemp stemps)
-	    (cons array subscripts)
-	    (list obj)
-	    `(ASET ,obj ,atemp ,@stemps)
-	    `(AREF ,atemp ,@stemps))))
+    (cl:values (cons atemp stemps)
+	       (cons array subscripts)
+	       (list obj)
+	       `(ASET ,obj ,atemp ,@stemps)
+	       `(AREF ,atemp ,@stemps))))
 
 (defun ASET (object array &rest subscripts)
   (cond
@@ -257,8 +257,8 @@
   (if (or (bit-vector-p array)
 	  (stringp array)
 	  (eq (aref array 0) 'SIMPLE-VECTOR))
-      (VALUES nil 0)
-      (VALUES (array-storage array) (array-offset array))))
+      (cl:values nil 0)
+      (cl:values (array-storage array) (array-offset array))))
 
 (defun ARRAY-IN-BOUNDS-P (array &rest subscripts)
   (unless (ARRAYP array)

@@ -20,7 +20,7 @@
 	   (function (byte-compile compiled)))
       (when name
 	(setf (fdefinition name) function))
-      (VALUES (subst-free compiled) nil nil))))
+      (cl:values (subst-free compiled) nil nil))))
 
 
 
@@ -90,7 +90,7 @@
 	   (fn (gethash name *form-compilers*)))
       (when fn
 	(return-from compile-form (apply fn env (rest form))))))
-  (setq form (VALUES (MACROEXPAND form env)))
+  (setq form (cl:values (MACROEXPAND form env)))
   (cond
     ((SYMBOLP form)
      (unless (eq values 0)

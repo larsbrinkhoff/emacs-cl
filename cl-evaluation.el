@@ -70,15 +70,15 @@
      (let ((fn (MACRO-FUNCTION (car form) env)))
        (if fn
 	   (let ((new (FUNCALL *MACROEXPAND-HOOK* fn form env)))
-	     (VALUES new (not (eq form new))))
-	   (VALUES form nil))))
+	     (cl:values new (not (eq form new))))
+	   (cl:values form nil))))
     ((symbolp form)
      (let ((fn (gethash form *symbol-macro-functions*)))
        (if fn
-	   (VALUES (funcall *MACROEXPAND-HOOK* fn form env) T)
-	   (VALUES form nil))))
+	   (cl:values (funcall *MACROEXPAND-HOOK* fn form env) T)
+	   (cl:values form nil))))
     (t
-     (VALUES form nil))))
+     (cl:values form nil))))
 
 (defun* MACROEXPAND (form &optional env)
   (let ((form form) (expanded-p nil) exp)
@@ -86,7 +86,7 @@
      (MULTIPLE-VALUE-SETQ (form exp) (MACROEXPAND-1 form env))
      (if exp
 	 (setq expanded-p T)
-	 (return-from MACROEXPAND (VALUES form expanded-p))))))
+	 (return-from MACROEXPAND (cl:values form expanded-p))))))
 
 (defmacro* DEFINE-SYMBOL-MACRO (symbol expansion)
   `(eval-when (:compile-toplevel :load-toplevel :execute)

@@ -17,7 +17,7 @@
 ; 	 (*COMPILE-FILE-TRUENAME* (TRUENAME *COMPILE-FILE-PATHNAME*))
 ; 	 (output (apply #'COMPILE-FILE-PATHNAME input-file keys)))
 ;     (WITH-COMPILATION-UNIT ()
-;       (VALUES (TRUENAME output) warnings-p failure-p))))
+;       (cl:values (TRUENAME output) warnings-p failure-p))))
 
 (defun elc-file (filename)
   (MERGE-PATHNAMES (MAKE-PATHNAME (kw TYPE) "elc") filename))

@@ -13,7 +13,7 @@
      pathspec)
     ((STRINGP pathspec)
      ;; TODO: parse logical pathnames
-     (VALUES (PARSE-NAMESTRING pathspec)))
+     (cl:values (PARSE-NAMESTRING pathspec)))
     ((STREAMP pathspec)
      (PATHNAME (STREAM-filename pathspec)))
     (t
@@ -205,7 +205,7 @@
 		       (kw END) END (kw JUNK-ALLOWED) JUNK-ALLOWED))
     ((PATHNAMEP thing)
      (if (EQUAL (PATHNAME-HOST thing) host)
-	 (VALUES thing START)
+	 (cl:values thing START)
 	 (ERROR 'ERROR)))
     ((STRINGP thing)
      ;; TODO: parse logical pathnames
@@ -216,8 +216,8 @@
 	    (ver (parse-ver name-ver (substring name+ver (length name-ver))))
 	    (name (maybe-wild (file-name-sans-extension name-ver)))
 	    (type (maybe-wild (file-name-extension name+ver))))
-       (VALUES (mkpathname nil nil dir name type ver)
-	       (or END (LENGTH thing)))))
+       (cl:values (mkpathname nil nil dir name type ver)
+		  (or END (LENGTH thing)))))
     (t
      (type-error thing '(OR PATHNAME STRING STREAM)))))
 

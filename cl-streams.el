@@ -160,9 +160,9 @@
 	 (cond
 	   ((EQL char eof-value)
 	    (throw 'READ-LINE
-	      (VALUES (if (= (length line) 0) eof-value line) t)))
+	      (cl:values (if (= (length line) 0) eof-value line) t)))
 	   ((ch= char 10)
-	    (throw 'READ-LINE (VALUES line nil))))
+	    (throw 'READ-LINE (cl:values line nil))))
 	 (setq line (concat line (list (CHAR-CODE char)))))))))
 
 (cl:defun WRITE-STRING (string &OPTIONAL stream-designator &KEY (START 0) END)

@@ -105,11 +105,11 @@
 
 (defun FUNCTION-LAMBDA-EXPRESSION (fn)
   (cond
-    ((INTERPRETED-FUNCTION-P fn)	(VALUES (interp-fn-lambda-exp fn)
-						T nil))
-    ((subrp fn)				(VALUES nil nil nil))
-    ((byte-code-function-p fn)		(VALUES nil nil nil))
-    ((FUNCTIONP fn)			(VALUES nil T nil))
+    ((INTERPRETED-FUNCTION-P fn)	(cl:values (interp-fn-lambda-exp fn)
+						   T nil))
+    ((subrp fn)				(cl:values nil nil nil))
+    ((byte-code-function-p fn)		(cl:values nil nil nil))
+    ((FUNCTIONP fn)			(cl:values nil T nil))
     (t					(error "type error"))))
 
 (defun FUNCTIONP (object)
@@ -523,11 +523,10 @@
 (DEFCONSTANT MULTIPLE-VALUES-LIMIT 20)
 
 (defmacro* NTH-VALUE (n form)
-  (if (eq n 0)
-      `(VALUES ,form)
-      `(progn
-	,form
-	(VALUES (nth ,(1- n) mvals)))))
+  (cond
+    ((eq n 0)		`(cl:values ,form))
+    ((integerp n)	`(progn ,form (cl:values (nth ,(1- n) mvals))))
+    (t			`(progn ,form (cl:values (nth (1- ,n) mvals))))))
 
 (cl:defmacro NTH-VALUE (n form)
   `(MULTIPLE-VALUE-CALL (LAMBDA (&rest vals) (NTH ,n vals)) ,form))
@@ -584,11 +583,11 @@
   `(DEFINE-SETF-EXPANDER ,access-fn (&rest args)
      (let ((var (gensym))
 	   (temps (map-to-gensyms args)))
-       (VALUES temps
-	       args
-	       (list var)
-	       (append '(,update-fn) temps (list var))
-	       (list* ',access-fn temps)))))
+       (cl:values temps
+		  args
+		  (list var)
+		  (append '(,update-fn) temps (list var))
+		  (list* ',access-fn temps)))))
 
 (defun* long-form-defsetf (access-fn lambda-list variables &body body)
   (let ((args (remove-if (lambda (x) (member x LAMBDA-LIST-KEYWORDS))
@@ -597,11 +596,11 @@
        (let* ((var (gensym))
 	     (temps (map-to-gensyms ',args))
 	     (,(first variables) var))
-	 (VALUES temps
-		 (list ,@args)
-		 (list var)
-		 (apply (lambda ,lambda-list ,@body) temps)
-		 (cons ',access-fn temps))))))
+	 (cl:values temps
+		    (list ,@args)
+		    (list var)
+		    (apply (lambda ,lambda-list ,@body) temps)
+		    (cons ',access-fn temps))))))
 
 (defvar *setf-expanders* (make-hash-table))
 
@@ -640,14 +639,14 @@
 	  (apply fn (rest place))
 	  (let ((temps (map-to-gensyms (rest place)))
 		(var (gensym)))
-	    (VALUES temps
-		    (rest place)
-		    (list var)
-		    `(FUNCALL (FUNCTION (SETF ,name)) ,var ,@temps)
-		    `(,name ,@temps))))))
+	    (cl:values temps
+		       (rest place)
+		       (list var)
+		       `(FUNCALL (FUNCTION (SETF ,name)) ,var ,@temps)
+		       `(,name ,@temps))))))
    ((symbolp place)
     (let ((var (gensym)))
-      (VALUES nil nil (list var) `(SETQ ,place ,var) place)))
+      (cl:values nil nil (list var) `(SETQ ,place ,var) place)))
    (t
     (error))))
 

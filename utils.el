@@ -106,3 +106,13 @@
 		      (list 'aref object ,(incf index))))
 		 slots)
        ',type)))
+
+;;; This macro can be used instead of VALUES.
+(defmacro cl:values (&rest vals)
+  (let ((n (length vals)))
+    (case n
+      (0	`(setq nvals 0 mvals nil))
+      (1	`(prog1 ,(car vals) (setq nvals 1 mvals nil)))
+      (t	`(prog1
+		   ,(car vals)
+		   (setq nvals ,n mvals (list ,@(cdr vals))))))))

@@ -41,13 +41,14 @@
 
 (defvar *gentemp-counter* 1)
 
-(defun* GENTEMP (&optional (prefix "T") (package *PACKAGE*))
-  (loop
-   (MULTIPLE-VALUE-BIND (symbol found)
-       (INTERN (FORMAT nil "~A~D" prefix *gentemp-counter*) package)
-     (unless found
-       (return-from GENTEMP (VALUES symbol)))
-     (incf *gentemp-counter*))))
+(cl:defun GENTEMP (&OPTIONAL (prefix "T") (package *PACKAGE*))
+  (catch 'GENTEMP
+    (loop
+      (MULTIPLE-VALUE-BIND (symbol found)
+	  (INTERN (FORMAT nil "~A~D" prefix *gentemp-counter*) package)
+	(unless found
+	  (throw 'GENTEMP (cl:values symbol)))
+	(incf *gentemp-counter*)))))
 
 (defun SYMBOL-FUNCTION (symbol)
   (unless (symbolp symbol)

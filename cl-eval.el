@@ -54,7 +54,7 @@
       (t		(error "syntax error")))))
 
 (define-special-operator FUNCTION (form) env
-  (VALUES
+  (cl:values
     (cond
       ((SYMBOLP form)		(lexical-or-global-function form env))
       ((ATOM form)		(not-function-name-error form))
@@ -174,7 +174,7 @@
 ;;; TODO: PROGV
 
 (define-special-operator QUOTE (form) env
-  (VALUES form))
+  (cl:values form))
 
 (define-special-operator RETURN-FROM (tag &optional form) env
   (let ((info (block-information tag env)))
@@ -188,7 +188,7 @@
   (do* (lastval
 	(forms forms (cddr forms)))
        ((null forms)
-	(VALUES lastval))
+	(cl:values lastval))
     (let ((var (first forms))
 	  (val (eval-with-env (second forms) env)))
       (setq lastval
@@ -376,7 +376,7 @@
 (defun* parse-body (body &optional doc-allowed)
   (let ((decl nil)
 	(doc nil))
-    (flet ((done () (return-from parse-body (VALUES body decl doc))))
+    (flet ((done () (return-from parse-body (cl:values body decl doc))))
       (while body
 	(let ((form (first body)))
 	  (cond
@@ -416,7 +416,7 @@
 (defun eval-with-env (form env)
   (unless env
     (setq env *global-environment*))
-  (setq form (VALUES (MACROEXPAND form env)))
+  (setq form (cl:values (MACROEXPAND form env)))
   (cond
     ((SYMBOLP form)
      (ecase (nth-value 0 (variable-information form env))

@@ -44,7 +44,7 @@
 
 (defun* EXPORT (symbols &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
-    (do-list-designator (sym symbols (VALUES T))
+    (do-list-designator (sym symbols (cl:values T))
       (MULTIPLE-VALUE-BIND (s status) (FIND-SYMBOL (SYMBOL-NAME sym) package)
 	(cond
 	  ((eq status kw:INHERITED)
@@ -105,17 +105,17 @@
 	     (progn
 	       (unless (SYMBOL-PACKAGE symbol)
 		 (setf (SYMBOL-PACKAGE symbol) *emacs-lisp-package*))
-	       (VALUES symbol kw:EXTERNAL))
-	     (VALUES nil nil))))
+	       (cl:values symbol kw:EXTERNAL))
+	     (cl:values nil nil))))
       (t
        (let* ((table (package-table package))
 	      (symbol (gethash string table not-found)))
 	 (if (not (eq symbol not-found))
-	     (VALUES symbol
-		     (if (member symbol (package-exported package))
-			 kw:EXTERNAL
-			 kw:INTERNAL))
-	     (dolist (p (PACKAGE-USE-LIST package) (VALUES nil nil))
+	     (cl:values symbol
+			(if (member symbol (package-exported package))
+			    kw:EXTERNAL
+			    kw:INTERNAL))
+	     (dolist (p (PACKAGE-USE-LIST package) (cl:values nil nil))
 	       (MULTIPLE-VALUE-BIND (symbol found) (FIND-SYMBOL string p)
 		 (when (and found
 			    ;; Special EMACS-LISP magic: EMACS-LISP doesn't
@@ -123,19 +123,19 @@
 			    (or (eq p *emacs-lisp-package*)
 				(member symbol (package-exported p))))
 		   (return-from FIND-SYMBOL
-		     (VALUES symbol kw:INHERITED)))))))))))
+		     (cl:values symbol kw:INHERITED)))))))))))
 
 (defun FIND-ALL-SYMBOLS (name)
   (let ((string (STRING name))
 	(syms nil))
-    (dolist (p *all-packages* (VALUES syms))
+    (dolist (p *all-packages* (cl:values syms))
       (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL string p)
 	(if (or (eq status :internal) (eq status kw:EXTERNAL))
 	    (push sym syms))))))
 
 (defun* IMPORT (symbols &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
-    (do-list-designator (symbol symbols (VALUES T))
+    (do-list-designator (symbol symbols (cl:values T))
       (MULTIPLE-VALUE-BIND (sym found)
 	  (FIND-SYMBOL (SYMBOL-NAME symbol) package)
 	(when (and found (not (eq sym symbol)))
@@ -156,7 +156,7 @@
 
 (defun* SHADOW (symbol-names &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
-    (do-list-designator (name symbol-names (VALUES T))
+    (do-list-designator (name symbol-names (cl:values T))
       (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL name package)
 	(when (or (null status) (eq status kw:INHERITED))
 	  (setq sym (nth-value 0 (INTERN name package))))
@@ -164,7 +164,7 @@
 
 (defun* SHADOWING-IMPORT (symbols &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
-    (do-list-designator (symbol symbols (VALUES T))
+    (do-list-designator (symbol symbols (cl:values T))
       (MULTIPLE-VALUE-BIND (sym found)
 	  (FIND-SYMBOL (SYMBOL-NAME symbol) package)
 	(when found
@@ -215,7 +215,8 @@
 			      (SETQ ,s (package-symbols (CAR ,p)
 							(QUOTE ,types))))
 			    (LET ((cons (POP ,s)))
-			      (VALUES T (CAR cons) (CDR cons) (CAR ,p))))))))
+			      (cl:values T
+					 (CAR cons) (CDR cons) (CAR ,p))))))))
 	  ,@body))))
 
 (cl:defun UNEXPORT (symbols &OPTIONAL (package-designator *PACKAGE*))
@@ -226,7 +227,7 @@
 	(if (and found (eq sym symbol))
 	    (aset package 7 (delete symbol (aref package 7)))
 	    (ERROR 'PACKAGE-ERROR (kw PACKAGE) package)))))
-  (VALUES T))
+  (cl:values T))
 
 (cl:defun UNINTERN (symbol &OPTIONAL (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
@@ -328,7 +329,7 @@
       (error (format "package \"%s\" not found" package-designator)))
     (MULTIPLE-VALUE-BIND (symbol found) (FIND-SYMBOL name package)
       (if found
-	  (VALUES symbol found)
+	  (cl:values symbol found)
 	  (let ((symbol (if (eq package *emacs-lisp-package*)
 			    (intern name)
 			    (make-symbol name))))
@@ -338,7 +339,7 @@
 	    (when (eq package *keyword-package*)
 	      (set symbol symbol)
 	      (pushnew symbol (aref package 7)))
-	    (VALUES symbol nil))))))
+	    (cl:values symbol nil))))))
 
 (defvar *PACKAGE* *cl-user-package*)
 
@@ -354,4 +355,4 @@
 
 ;;; Redefine the keyword function (initially defined in utils.el).
 (defun keyword (name)
-  (VALUES (INTERN name *keyword-package*)))
+  (cl:values (INTERN name *keyword-package*)))

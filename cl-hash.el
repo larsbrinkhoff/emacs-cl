@@ -46,11 +46,11 @@
   ;; TODO
   0)
 
-(defun* GETHASH (key hash &optional default)
+(defun GETHASH (key hash &optional default)
   (let ((object (gethash key (htab hash) not-found)))
     (if (eq object not-found)
-	(VALUES default nil)
-	(VALUES object T))))
+	(cl:values default nil)
+	(cl:values object T))))
 
 (unless (fboundp 'puthash)
   (defun puthash (key value table)
@@ -58,7 +58,7 @@
 
 (DEFINE-SETF-EXPANDER GETHASH (key hash &optional default)
   (with-gensyms (keytemp hashtemp val)
-    (VALUES (list keytemp hashtemp)
+    (cl:values (list keytemp hashtemp)
 	    (list key hash)
 	    (list val)
 	    `(puthash ,keytemp ,val ,hashtemp)
@@ -80,9 +80,9 @@
   (with-gensyms (list)
     `(LET ((,list (hashlist ,hash)))
        (MACROLET ((,name ()
-		    (QUOTE (IF (NULL ,list) (VALUES nil nil nil)
+		    (QUOTE (IF (NULL ,list) (cl:values nil nil nil)
 			       (LET ((cons (POP ,list)))
-				 (VALUES T (CAR cons) (CDR cons)))))))
+				 (cl:values T (CAR cons) (CDR cons)))))))
 	 ,@body))))
 
 (defun CLRHASH (hash)

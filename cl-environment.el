@@ -51,8 +51,8 @@
 		(MULTIPLE-VALUE-BIND (minute second) (TRUNCATE time 60)
 		  ;; TODO:
 		  (let (day daylight-p zone)
-		    (VALUES second minute hour (1+ date) month year
-			    day daylight-p zone))))))))))
+		    (cl:values second minute hour (1+ date) month year
+			       day daylight-p zone))))))))))
 
 (defun encode-days (date month year)
   (+ date -1 (days-to-month month year) (days-to-year year)))
@@ -87,7 +87,7 @@
 (defun APROPOS (string &optional package)
   (dolist (symbol (APROPOS-LIST string package))
     (PRINT symbol))
-  (VALUES))
+  (cl:values))
 
 (defun APROPOS-LIST (string-designator &optional package)
   (let ((string (STRING string-designator))
@@ -104,7 +104,7 @@
 (defun DESCRIBE (object &optional stream-designator)
   (let ((stream (output-stream stream-designator)))
     (DESCRIBE-OBJECT object stream)
-    (VALUES)))
+    (cl:values)))
 
 ;;; TODO: DESCRIBE-OBJECT should be a generic function.
 (defun DESCRIBE-OBJECT (object stream)

@@ -242,7 +242,7 @@
 ;   `(RESTART-CASE (PROGN ,@body)
 ;      (,name ()
 ;        :report (LAMBDA (stream) (FORMAT stream ,format ,@args))
-;        (VALUES nil T))))
+;        (cl:values nil T))))
 
 (defun ABORT (&optional condition)
   (INVOKE-RESTART 'ABORT))

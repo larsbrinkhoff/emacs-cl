@@ -211,7 +211,7 @@
 
 (cl:defmacro PUSH (object place)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
-      (GET-SETF-EXPANSION place env)
+      (GET-SETF-EXPANSION place nil) ;TODO: environment
     (with-gensyms (obj)
       `(LET* ((,obj ,object)
 	      ,@(MAPCAR #'list temps values)
@@ -220,7 +220,7 @@
 
 (cl:defmacro POP (place)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
-      (GET-SETF-EXPANSION place env)
+      (GET-SETF-EXPANSION place nil) ;TODO: environment
     (with-gensyms (car get)
       `(LET* (,@(MAPCAR #'list temps values)
 	      (,get ,getter)
@@ -516,10 +516,10 @@
 (defun* GET-PROPERTIES (plist indicators)
   (do ((plist plist (cddr plist)))
       ((null plist)
-       (VALUES nil nil nil))
+       (cl:values nil nil nil))
     (when (memq (car plist) indicators)
       (return-from GET-PROPERTIES
-	(VALUES (car plist) (cadr plist) plist)))))
+	(cl:values (car plist) (cadr plist) plist)))))
 
 (defun* GETF (plist indicator &optional default)
   (do ((plist plist (cddr plist)))
@@ -542,17 +542,17 @@
 	    (setq temps (cons itemp temps)
 		  values (cons indicator values)
 		  ilist `(LIST ,itemp)))
-	(VALUES temps
-		values
-		(list obj)
-		`(MULTIPLE-VALUE-BIND (ind val tail)
-		     (GET-PROPERTIES ,getter ,ilist)
-		   (IF (NULL tail)
-		       (MULTIPLE-VALUE-BIND ,variables 
-			   (LIST* ,itemp ,obj ,getter)
-			 ,setter)
-		       (SETF (SECOND tail) ,obj)))
-		`(GETF ,getter ,itemp))))))
+	(cl:values temps
+		   values
+		   (list obj)
+		   `(MULTIPLE-VALUE-BIND (ind val tail)
+			(GET-PROPERTIES ,getter ,ilist)
+		      (IF (NULL tail)
+			  (MULTIPLE-VALUE-BIND ,variables 
+			      (LIST* ,itemp ,obj ,getter)
+			    ,setter)
+			  (SETF (SECOND tail) ,obj)))
+		   `(GETF ,getter ,itemp))))))
 
 (defun delete-property (plist indicator)
   (cond
@@ -585,7 +585,7 @@
 
 (cl:defmacro PUSHNEW (object place &rest keys)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
-      (GET-SETF-EXPANSION place env)
+      (GET-SETF-EXPANSION place nil) ;TODO: environment
     (with-gensyms (obj)
       `(LET* ((,obj ,object)
 	      ,@(MAPCAR #'list temps values)

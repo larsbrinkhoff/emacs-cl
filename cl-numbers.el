@@ -186,8 +186,8 @@
   (cond
     ((and (integerp x) (integerp y))
      (if (and (eql x MOST-NEGATIVE-FIXNUM) (eql y -1))
-	 (VALUES (vector 'BIGNUM MOST-NEGATIVE-FIXNUM 0) nil)
-	 (VALUES (/ x y) (not (zerop (% x y))))))
+	 (cl:values (vector 'BIGNUM MOST-NEGATIVE-FIXNUM 0) nil)
+	 (cl:values (/ x y) (not (zerop (% x y))))))
     ((and (INTEGERP x) (INTEGERP y))
      (let ((sign 1)
 	   (q 0)
@@ -207,7 +207,7 @@
 	   (setq q (LOGIOR q 1))
 	   (setq r (binary- r y)))
 	 (decf i))
-       (VALUES (binary* sign q) (not (ZEROP r)))))
+       (cl:values (binary* sign q) (not (ZEROP r)))))
     (t
      (error "type error"))))
 
@@ -247,11 +247,11 @@
        (error "type error")))
     (when (and remainder (MINUSP quotient))
       (setq quotient (binary- quotient 1)))
-    (VALUES quotient (binary- number (binary* quotient divisor)))))
+    (cl:values quotient (binary- number (binary* quotient divisor)))))
 
 (cl:defun FFLOOR (number &OPTIONAL (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (FLOOR number divisor)
-    (VALUES (FLOAT quotient) remainder)))
+    (cl:values (FLOAT quotient) remainder)))
 
 (defun ceiling-to-bignum (float)
   (cl:- (floor-to-bignum (- float))))
@@ -278,11 +278,11 @@
        (error "type error")))
     (when (and remainder (PLUSP quotient))
       (setq quotient (binary+ quotient 1)))
-    (VALUES quotient (binary- number (binary* quotient divisor)))))
+    (cl:values quotient (binary- number (binary* quotient divisor)))))
 
 (cl:defun FCEILING (number &OPTIONAL (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (CEILING number divisor)
-    (VALUES (FLOAT quotient) remainder)))
+    (cl:values (FLOAT quotient) remainder)))
 
 (defun truncate-to-bignum (float)
   (if (minusp float)
@@ -314,21 +314,21 @@
        (setq quotient (integer-truncate number divisor)))
       (t
        (error "type error")))
-    (VALUES quotient (binary- number (binary* quotient divisor)))))
+    (cl:values quotient (binary- number (binary* quotient divisor)))))
 
 (cl:defun FTRUNCATE (number &OPTIONAL (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (TRUNCATE number divisor)
-    (VALUES (FLOAT quotient) remainder)))
+    (cl:values (FLOAT quotient) remainder)))
 
 (cl:defun ROUND (number &OPTIONAL (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder)
       ;; TODO: proper rounding
       (TRUNCATE (binary+ number .5) divisor)
-    (VALUES quotient remainder)))
+    (cl:values quotient remainder)))
 
 (cl:defun FROUND (number &OPTIONAL (divisor 1))
   (MULTIPLE-VALUE-BIND (quotient remainder) (ROUND number divisor)
-    (VALUES (FLOAT quotient) remainder)))
+    (cl:values (FLOAT quotient) remainder)))
 
 (defun SIN (x)
   (cond
@@ -798,7 +798,7 @@
     (t			(error "type error"))))
 
 (defun ISQRT (number)
-  (VALUES (FLOOR (sqrt (FLOAT number)))))
+  (cl:values (FLOOR (sqrt (FLOAT number)))))
 
 ;;; System Class RANDOM-STATE
 
@@ -884,7 +884,7 @@
       (let* ((gcd (GCD num den))
 	     (num (integer-truncate num gcd))
 	     (den (integer-truncate den gcd)))
-	(VALUES
+	(cl:values
 	 (cond
 	   ((eq den 1)
 	    num)
@@ -910,7 +910,7 @@
   (cond
     ((floatp num)
      (MULTIPLE-VALUE-BIND (significand exp sign) (INTEGER-DECODE-FLOAT num)
-       (VALUES
+       (cl:values
 	(make-ratio
 	 (PARSE-INTEGER (prin1-to-string (+ (SCALE-FLOAT significand 53)) .5)
 			(kw JUNK-ALLOWED) t)
@@ -930,7 +930,7 @@
 			      (kw JUNK-ALLOWED) t))
 	    (k (EXPT 2 (- 52 exp)))
 	    (result nil))
-	   ((eq i 6) (VALUES result))
+	   ((eq i 6) (cl:values result))
 	 (do ((l -5 (1+ l)))
 	     ((eq l 6))
 	   (let ((candidate (make-ratio (binary+ i j) (binary+ k l))))
@@ -1012,7 +1012,7 @@
 	(incf i)
 	(when (= i END)
 	  (if JUNK-ALLOWED
-	      (throw 'PARSE-INTEGER (VALUES nil i))
+	      (throw 'PARSE-INTEGER (cl:values nil i))
 	      (ERROR 'PARSE-ERROR))))
       (setq char (CHAR string i))
       (when (find (CHAR-CODE char) "+-")
@@ -1021,24 +1021,24 @@
 	(incf i)
 	(when (= i END)
 	  (if JUNK-ALLOWED
-	      (throw 'PARSE-INTEGER (VALUES nil i))
+	      (throw 'PARSE-INTEGER (cl:values nil i))
 	      (ERROR 'PARSE-ERROR)))
 	(setq char (CHAR string i)))
       (unless (DIGIT-CHAR-P char RADIX)
 	(if JUNK-ALLOWED
-	    (throw 'PARSE-INTEGER (VALUES nil i))
+	    (throw 'PARSE-INTEGER (cl:values nil i))
 	    (ERROR 'PARSE-ERROR)))
       (while (setq digit (DIGIT-CHAR-P char RADIX))
 	(setq integer (cl:+ (cl:* integer RADIX) digit))
 	(incf i)
 	(when (= i END)
-	  (throw 'PARSE-INTEGER (VALUES (cl:* sign integer) i)))
+	  (throw 'PARSE-INTEGER (cl:values (cl:* sign integer) i)))
 	(setq char (CHAR string i)))
       (if JUNK-ALLOWED
-	  (VALUES (cl:* sign integer) i)
+	  (cl:values (cl:* sign integer) i)
 	  (do ((i i (1+ i)))
 	      ((= i END)
-	       (VALUES (cl:* sign integer) i))
+	       (cl:values (cl:* sign integer) i))
 	    (unless (whitespacep (CHAR string i))
 	      (ERROR 'PARSE-ERROR)))))))
 
@@ -1280,11 +1280,11 @@
   (unless (floatp float)
     (error "type error"))
   (if (zerop float)
-      (VALUES 0.0 0 1.0)
+      (cl:values 0.0 0 1.0)
       (let ((exponent (1+ (logb float))))
-	(VALUES (* (abs float) (expt 2 (- (float exponent))))
-		exponent
-		(if (minusp float) -1.0 1.0)))))
+	(cl:values (* (abs float) (expt 2 (- (float exponent))))
+		   exponent
+		   (if (minusp float) -1.0 1.0)))))
 
 (defun SCALE-FLOAT (float integer)
   (unless (and (floatp float) (INTEGERP integer))
@@ -1318,11 +1318,11 @@
   (unless (floatp float)
     (error "type error"))
   (if (zerop float)
-      (VALUES 0.0 0 1)
+      (cl:values 0.0 0 1)
       (let ((exponent (1+ (logb float))))
-	(VALUES (* (abs float) (expt 2 (- (float exponent))))
-		exponent
-		(if (minusp float) 1 1)))))
+	(cl:values (* (abs float) (expt 2 (- (float exponent))))
+		   exponent
+		   (if (minusp float) 1 1)))))
 
 (defun bignum-float (num)
   (do ((i 1 (1+ i))
