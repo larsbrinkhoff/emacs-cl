@@ -38,6 +38,7 @@
   "populate"))
 
 (defun load-cl ()
+  (interactive)
   (let ((load-path (cons "~/src/emacs-cl" load-path))
 	(debug-on-error t))
     (mapc #'load *cl-files*)
@@ -46,6 +47,7 @@
     (message "Emacs CL is loaded")))
 
 (defun compile-cl ()
+  (interactive)
   (dolist (file *cl-files*)
     (byte-compile-file (concat file ".el"))))
 
