@@ -308,9 +308,9 @@
   (let ((execute (or (memq (kw EXECUTE) situations)
 		     (memq 'EVAL situations)))
 	(compile-toplevel (or (memq (kw COMPILE-TOPLEVEL) situations)
-			      (memq 'COMPILE) situations))
+			      (memq 'COMPILE situations)))
 	(load-toplevel (or (memq (kw LOAD-TOPLEVEL) situations)
-			   (memq 'LOAD) situations)))
+			   (memq 'LOAD situations))))
     (cond
       ((or (and compile-toplevel
 		(not load-toplevel)
