@@ -28,7 +28,11 @@
     (t
      (error "type error: = %s %s" num1 num2))))
 
-;;; TODO: /=
+(defun cl:/= (number &rest numbers)
+  (if (null numbers)
+      t
+      (and (not (some (lambda (num) (two-arg-= number num)) numbers))
+	   (apply #'cl:/= (first numbers) (rest numbers)))))
 
 (defun cl:< (number &rest numbers)
   (if (null numbers)
@@ -43,15 +47,18 @@
      (< num1 num2))
     ((or (cl::ratiop num1) (cl::ratiop num2))
      ;; TODO
-     (< (/ (numerator num1) (denominator num1))
-	(/ (numerator num2) (denominator num2))))
+     (< (/ (float (numerator num1)) (denominator num1))
+	(/ (float (numerator num2)) (denominator num2))))
     ((or (cl::bignump num1) (cl::bignump num2))
-     ;; TODO
-     nil)
+     (cl:minusp (cl:- num1 num2)))
     (t
      (error "type error: = %s %s" num1 num2))))
 
-;;; TODO: >
+(defun cl:> (number &rest numbers)
+  (if (null numbers)
+      t
+      (and (two-arg-< (first numbers) number)
+	   (apply #'cl:> (first numbers) (rest numbers)))))
 
 (defun cl:<= (number &rest numbers)
   (if (null numbers)
@@ -66,15 +73,19 @@
      (<= num1 num2))
     ((or (cl::ratiop num1) (cl::ratiop num2))
      ;; TODO
-     (<= (/ (numerator num1) (denominator num1))
-	 (/ (numerator num2) (denominator num2))))
+     (<= (/ (float (numerator num1)) (denominator num1))
+	 (/ (float (numerator num2)) (denominator num2))))
     ((or (cl::bignump num1) (cl::bignump num2))
-     ;; TODO
-     nil)
+     (let ((diff (cl:- num1 num2)))
+       (or (minusp diff) (zerop diff))))
     (t
      (error "type error: = %s %s" num1 num2))))
 
-;;; TODO: >=
+(defun cl:>= (number &rest numbers)
+  (if (null numbers)
+      t
+      (and (two-arg->= (first numbers) number)
+	   (apply #'cl:>= (first numbers) (rest numbers)))))
 
 ;;; TODO: max
 
@@ -141,6 +152,7 @@
   (cond
     ((and (integerp x) (integerp y))
      (let ((sum (+ x y)))
+       (print (format "x=%s y=%s sum=%s" x y sum))
        (cond
 	 ((and (>= x 0) (>= y 0) (minusp sum))
 	  (vector 'bignum sum 0))
@@ -157,8 +169,8 @@
      (+ (cl:float x) y))
     ((or (cl::ratiop x) (cl::ratiop y))
      (cl::ratio (two-arg-+ (cl:* (numerator x) (denominator y))
-		       (cl:* (denominator y) (numerator x)))
-	    (cl:* (denominator x) (denominator y))))
+			   (cl:* (denominator x) (numerator y)))
+		(cl:* (denominator x) (denominator y))))
     ((or (cl::bignump x) (cl::bignump y))
      (cond
        ((integerp x)	(bignum+fixnum y x))
@@ -172,15 +184,19 @@
 	 (sum (+ x0 y))
 	 (new (copy-sequence x)))
     (aset new 1 sum)
+;     (print x0)
+;     (print y)
+;     (print sum)
     (cond
-      ((and (minusp x0) (>= y 0) (>= sum 0))
+      ((and (>= x0 0) (>= y 0) (minusp sum))
        (bignum+bignum new [bignum 0 1]))
-      ((and (>= x0 0) (minusp y) (minusp sum))
-       (bignum+bignum new [bignum 0 -1])))
-    new))
+      ((and (minusp x0) (minusp y) (>= sum 0))
+       (bignum+bignum new [bignum 0 -1]))
+      (t
+       new))))
 
 (defun bignum+bignum (x y)
-  (list-bignum (bignum+ (bignum-list x) (bignum-list x))))
+  (list-bignum (bignum+ (bignum-list x) (bignum-list y))))
 
 (defun* bignum-list (num &optional (index 1))
   (if (= index (length num))
@@ -195,6 +211,7 @@
     bignum))
 
 (defun* bignum+ (x y &optional (carry 0))
+  (print (format "(bignum+ %s %s %s)" x y carry))
   (cond
     ((null x)
      (if (zerop carry)
@@ -207,42 +224,38 @@
     (t
      (let* ((x0 (car x))
 	    (y0 (car y))
-	    (sum (+ x0 y0))
-	    (new (copy-sequence x))
-	    (carry 0))
-       (aset new 1 sum)
-       (cond
-	 ((and (minusp x0) (>= y0 0) (>= 0 sum))
-	   (setq carry 1))
-	  ((and (>= x0 0) (minusp y0) (>= 0 sum))
-	   (setq carry 1)))
-	(let* ((x1 (aref x 2))
-	       (y1 (aref y 2))
-	       (sum (+ x1 y1 carry)))
-	  (aset new 2 sum))
-	new))
+	    (sum (+ x0 y0 carry)))
+       (print (format "x0=%s y0=%s sum=%s" x0 y0 sum))
+       (cons sum
+	     (bignum+
+	      (rest x)
+	      (rest y)
+	      (if (or (and (minusp x0) (>= y0 0) (>= sum 0))
+		      (and (>= x0 0) (minusp y0) (>= sum 0)))
+		  1 0)))))))
 
 (defun cl:- (number &rest numbers)
   (if (null numbers)
       (cond
 	((integerp number)
 	 (if (eql number most-negative-fixnum)
-	     (vector 'bignum 0)
+	     (vector 'bignum number 0)
 	     (- number)))
 	((floatp number)
 	 (- number))
 	((cl::ratiop number)
-	 (vector 'ratio (- (numerator number)) (denominator number)))
+	 (vector 'ratio (cl:- (numerator number)) (denominator number)))
 	((complexp number)
-	 (vector 'complex (- (realpart number)) (- (imagpart number))))
+	 (vector 'complex (cl:- (realpart number)) (cl:- (imagpart number))))
 	((cl::bignump number)
-	 0)
+	 (bignum+fixnum (cl:lognot number) 1))
 	(t
 	 (error)))
       (dolist (num numbers number)
 	(setq number (two-arg-- number num)))))
 
-;;; TODO: two-arg--
+(defun two-arg-- (x y)
+  (two-arg-+ x (cl:- y)))
 
 (defun cl:/ (number &rest numbers)
   (if (null numbers)
@@ -398,6 +411,7 @@
   (or (rationalp num) (floatp num)))
 
 (defun cl::ratio (num den)
+  (print (format "num %s den %s" num den))
   (let* ((gcd (gcd num den))
 	 (num (cl:/ num gcd))
 	 (den (cl:/ den gcd)))
@@ -410,7 +424,7 @@
        (vector 'ratio num den)))))
 
 (defun cl::ratiop (num)
-  (and (vectorp num) (eq (aref num 0) 'ratio)))
+  (vector-and-typep 'ratio))
 
 (defun numerator (num)
   (if (cl::ratiop num)
@@ -434,7 +448,7 @@
 ;;; TODO: integer-length
 
 (defun cl::bignump (num)
-  (and (vectorp num) (eq (aref num 0) 'bignum)))
+  (vector-and-typep num 'bignum))
 
 (defun cl:integerp (num)
   (or (integerp num) (cl::bignump num)))
@@ -482,8 +496,8 @@
     ((integerp num)
      (lognot num))
     ((cl::bignump num)
-     (let ((new (make-vector (length num) 0)))
-       (aset new 0 'bignum)
+     ;; TODO: may need one more element in result.
+     (let ((new (make-vector (length num) 'bignum)))
        (dotimes (i (1- (length num)))
 	 (aset new (1+ i) (lognot (aref num (1+ i)))))
        new))
@@ -498,13 +512,17 @@
     ((and (integerp x) (integerp y))
      (logand x y))
     ((and (cl::bignump x) (integerp y))
-     (let ((new (copy-sequence x)))
-       (aset new 1 (logand (aref x 1) y))
-       new))
+     (if (minusp y)
+	 (let ((new (copy-sequence x)))
+	   (aset new 1 (logand (aref x 1) y))
+	   new)
+	 (logand (aref x 1) y)))
     ((and (cl::bignump y) (integerp x))
-     (let ((new (copy-sequence y)))
-       (aset new 1 (logand (aref y 1) x))
-       new))
+     (if (minusp x)
+	 (let ((new (copy-sequence y)))
+	   (aset new 1 (logand (aref y 1) x))
+	   new)
+	 (logand (aref y 1) x)))
     ((and (cl::bignump x) (cl::bignump y))
      0)))
 
@@ -516,13 +534,17 @@
     ((and (integerp x) (integerp y))
      (logior x y))
     ((and (cl::bignump x) (integerp y))
-     (let ((new (copy-sequence x)))
-       (aset new 1 (logior (aref x 1) y))
-       new))
+     (if (minusp y)
+	 (logior (aref x 1) y)
+	 (let ((new (copy-sequence x)))
+	   (aset new 1 (logior (aref x 1) y))
+	   new)))
     ((and (cl::bignump y) (integerp x))
-     (let ((new (copy-sequence y)))
-       (aset new 1 (logior (aref y 1) x))
-       new))
+     (if (minusp x)
+	 (logior (aref y 1) x)
+	 (let ((new (copy-sequence y)))
+	   (aset new 1 (logior (aref y 1) x))
+	   new)))
     ((and (cl::bignump x) (cl::bignump y))
      0)))
 
@@ -547,7 +569,30 @@
 (defun cl:logeqv (&rest numbers)
   (cl:lognot (apply #'cl:logxor numbers)))
 
-;;; TODO: logxor
+(defun cl:logxor (&rest numbers)
+  (reduce #'two-arg-logxor numbers :initial-value 0))
+
+(defun two-arg-logxor (x y)
+  (cond
+    ((and (integerp x) (integerp y))
+     (logxor x y))
+    ((and (cl::bignump x) (integerp y))
+     (let ((new (copy-sequence x)))
+       (aset new 1 (logxor (aref x 1) y))
+       (when (minusp y)
+	 (dotimes (i (- (length x) 2))
+	   (aset new (+ i 2) (lognot (aref new (+ i 2))))))
+       new))
+    ((and (cl::bignump y) (integerp x))
+     (let ((new (copy-sequence y)))
+       (aset new 1 (logior (aref y 1) x))
+       (when (minusp x)
+	 (dotimes (i (- (length y) 2))
+	   (aset new (+ i 2) (lognot (aref new (+ i 2))))))
+       new))
+    ((and (cl::bignump x) (cl::bignump y))
+     0)))
+
 
 ;;; TODO: logbitp
 
