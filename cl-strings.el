@@ -77,8 +77,9 @@
 	string)
     (let* ((char (CHAR string i))
 	   (alnump (ALPHANUMERICP char)))
-      (when (and (not in-word-p) alnump)
-	(setf (CHAR string i) (CHAR-UPCASE char)))
+      (when alnump
+	(setf (CHAR string i)
+	      (if in-word-p (CHAR-DOWNCASE char) (CHAR-UPCASE char))))
       (setq in-word-p alnump))))
 
 (defun STRING-TRIM (chars string)
