@@ -4,8 +4,7 @@ To load the files, load load-cl.el into Emacs.  Warning: Loading the
 last file, populate.el, will take a long time, especially on slow
 computers.
 
-The code is verified to work with GNU Emacs 20.7 and 21.2, and XEmacs
-21.4 (though bignums still fail there).
+The code is verified to work with GNU Emacs 20.7 and 21.2, and XEmacs 21.4.
 
 To start an interactive session, type "M-x emacs-cl".
 

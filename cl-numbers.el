@@ -180,6 +180,8 @@
     (t
      (error "type error"))))
 
+(defconst fixnum-bits (1+ (round (log most-positive-fixnum 2))))
+
 (defun integer-truncate (x y)
   (cond
     ((and (integerp x) (integerp y))
@@ -190,7 +192,7 @@
      (let ((sign 1)
 	   (q 0)
 	   (r 0)
-	   (i (1- (if (integerp x) 28 (* 28 (1- (length x)))))))
+	   (i (1- (if (integerp x) fixnum-bits (* fixnum-bits (1- (length x)))))))
        (when (MINUSP x)
 	 (setq sign -1))
        (when (MINUSP y)
@@ -287,6 +289,13 @@
       (ceiling-to-bignum float)
       (floor-to-bignum float)))
 
+(condition-case c
+    (progn
+      (truncate 1 2)
+      (defmacro trunc2 (num div) `(truncate ,num ,div)))
+  (wrong-number-of-arguments
+   (defmacro trunc2 (num div) `(truncate (/ ,num ,div)))))
+
 (cl:defun TRUNCATE (number &optional (divisor 1))
   (let (quotient)
     (cond
@@ -294,8 +303,8 @@
        (setq number (FLOAT number)
 	     divisor (FLOAT divisor)
 	     quotient
-	     (condition-case condition
-		 (truncate number divisor)
+	     (condition-case c
+		 (trunc2 number divisor)
 	       (range-error (truncate-to-bignum (/ number divisor))))))
       ((or (ratiop number) (ratiop divisor))
        (setq quotient (integer-truncate
@@ -980,7 +989,7 @@
     ((integerp num)	(1+ (logb num)))
     ((bignump num)	(let* ((len (length num))
 			       (last (aref num (1- len))))
-			  (+ (* 28 (- len 2))
+			  (+ (* fixnum-bits (- len 2))
 			     (if (zerop last)
 				 0
 				 (1+ (logb last))))))
@@ -1178,14 +1187,14 @@
     (error "type error"))
   (cond
     ((integerp integer)
-     (if (>= index 28)
+     (if (>= index fixnum-bits)
 	 (minusp integer)
 	 (not (zerop (logand integer (ash 1 index))))))
     ((bignump integer)
-     (if (>= index (* 28 (1- (length integer))))
+     (if (>= index (* fixnum-bits (1- (length integer))))
 	 (MINUSP integer)
-	 (let ((i (1+ (/ index 28)))
-	       (j (% index 28)))
+	 (let ((i (1+ (/ index fixnum-bits)))
+	       (j (% index fixnum-bits)))
 	   (not (zerop (logand (aref integer i) (ash 1 j)))))))
     (t
      (error "type error"))))
@@ -1196,12 +1205,12 @@
   (let ((len 0))
     (cond
       ((integerp num)
-       (dotimes (i 28)
+       (dotimes (i fixnum-bits)
 	 (when (LOGBITP i num)
 	   (incf len))))
       (t
        (dotimes (i (1- (length num)))
-	 (dotimes (j 28)
+	 (dotimes (j fixnum-bits)
 	   (when (LOGBITP i num)
 	     (incf len))))))
     len))
