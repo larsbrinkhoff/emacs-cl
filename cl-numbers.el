@@ -35,6 +35,7 @@
 (defun cl:= (number &rest numbers)
   (every (lambda (n) (binary= number n)) numbers))
 
+;;; TODO: This doesn't work for all possible pairs of numbers.
 (defun binary= (num1 num2)
   (cond
     ((and (or (integerp num1) (floatp num1))
