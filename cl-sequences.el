@@ -52,12 +52,11 @@
 
 (cl:defun FILL (seq obj &key (START 0) END)
   ;; TODO: use fillarray when possible
-  (let ((len (LENGTH seq)))
-    (unless END
-      (setq END len))
-    (do ((i START (1+ i)))
-	((eq i len))
-      (setf (ELT seq i) obj)))
+  (unless END
+    (setq END (LENGTH seq)))
+  (do ((i START (1+ i)))
+      ((eq i END))
+    (setf (ELT seq i) obj))
   seq)
 
 (cl:defun MAKE-SEQUENCE (type size &key INITIAL-ELEMENT)
@@ -89,26 +88,6 @@
 	 (let ((new (copy-list (nthcdr start seq))))
 	   (setcdr (nthcdr (- end start 1) new) nil)
 	   new)))
-;     ((BIT-VECTOR-P seq)
-;      (let* ((s (if (SIMPLE-BIT-VECTOR-P seq) seq (aref seq 2)))
-; 	    (len (- end start))
-; 	    (new (make-bool-vector len nil)))
-;        (do ((i 0 (1+ i))
-; 	    (j start (1+ j)))
-; 	   ((eq i len))
-; 	 (aset new i (aref s j)))
-;        new))
-;     ((VECTORP seq)
-;      (let* ((len (- end start -1))
-; 	    (new (make-vector len 'SIMPLE-VECTOR))
-; 	    (s (if (SIMPLE-VECTOR-P seq)
-; 		   (progn (incf start) seq)
-; 		   (aref seq 2))))
-;        (do ((i 1 (1+ i))
-; 	    (j start (1+ j)))
-; 	   ((eq i len))
-; 	 (aset new i (aref seq j)))
-;        new))
     ((VECTORP seq)
      (let ((len (- end start))
 	   (i0 0))
@@ -128,7 +107,15 @@
     (t
      (type-error seq 'SEQUENCE))))
 
-;;; TODO: SETF SUBSEQ
+(defsetf SUBSEQ (seq1 start &optional end) (seq2)
+  `(progn
+     (REPLACE ,seq1 ,seq2 (kw START) ,start (kw END) ,end)
+     ,seq2))
+
+(DEFSETF SUBSEQ (seq1 start &optional end) (seq2)
+  `(PROGN
+     (REPLACE ,seq1 ,seq2 (kw START) ,start (kw END) ,end)
+     ,seq2))
 
 (defun* MAP (type fn &rest sequences)
   (let ((len (apply #'min (mapcar #'LENGTH sequences)))
@@ -193,8 +180,7 @@
 	       (setq result (FUNCALL fn result (FUNCALL KEY (ELT seq i)))))))
        result))))
 
-(cl:defun COUNT (obj seq &key FROM-END TEST TEST-NOT (START 0) END
-			      (KEY (cl:function IDENTITY)))
+(cl:defun COUNT (obj seq &key FROM-END TEST TEST-NOT (START 0) END KEY)
   (when (and TEST TEST-NOT)
     (error))
   (when TEST-NOT
@@ -205,8 +191,9 @@
 	    (kw FROM-END) FROM-END (kw START) START
 	    (kw END) END (kw KEY) KEY))
 
-(cl:defun COUNT-IF (predicate seq &key FROM-END (START 0) END
-		                       (KEY (cl:function IDENTITY)))
+(cl:defun COUNT-IF (predicate seq &key FROM-END (START 0) END KEY)
+  (unless KEY
+    (setq KEY #'IDENTITY))
   (unless END
     (setq END (LENGTH seq)))
   (let ((n 0))
@@ -265,7 +252,9 @@
     (t
      (type-error seq 'SEQUENCE))))
 
-(cl:defun SORT (sequence predicate &key (KEY (cl:function IDENTITY)))
+(cl:defun SORT (sequence predicate &key KEY)
+  (unless KEY
+    (setq KEY #'IDENTITY))
   (cond 
     ((listp sequence)
      (sort sequence (lambda (x y)
@@ -279,8 +268,9 @@
 
 (fset 'STABLE-SORT (symbol-function 'SORT))
 
-(cl:defun FIND (obj seq &key FROM-END TEST TEST-NOT (START 0) END
-		             (KEY (cl:function IDENTITY)))
+(cl:defun FIND (obj seq &key FROM-END TEST TEST-NOT (START 0) END KEY)
+  (unless KEY
+    (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
     (error))
   (when TEST-NOT
@@ -291,8 +281,9 @@
 	   (kw FROM-END) FROM-END (kw START) START
 	   (kw END) END (kw KEY) KEY))
 
-(cl:defun FIND-IF (predicate seq &key FROM-END (START 0) END
-		                      (KEY (cl:function IDENTITY)))
+(cl:defun FIND-IF (predicate seq &key FROM-END (START 0) END KEY)
+  (unless KEY
+    (setq KEY #'IDENTITY))
   (let ((len (LENGTH seq)))
     (unless END
       (setq END len))
@@ -326,8 +317,9 @@
 	       (kw FROM-END) FROM-END (kw START) START
 	       (kw END) END (kw KEY) KEY))
 
-(cl:defun POSITION-IF (predicate seq &key FROM-END (START 0) END
-		                          (KEY (cl:function IDENTITY)))
+(cl:defun POSITION-IF (predicate seq &key FROM-END (START 0) END KEY)
+  (unless KEY
+    (setq KEY #'IDENTITY))
   (let ((len (LENGTH seq)))
     (unless END
       (setq END len))
@@ -356,8 +348,10 @@
 		            (FUNCALL KEY (ELT seq2 j)))
 	(throw 'subseq-p nil)))))
 
-(cl:defun SEARCH (seq1 seq2 &key FROM-END TEST TEST-NOT (KEY #'IDENTITY)
+(cl:defun SEARCH (seq1 seq2 &key FROM-END TEST TEST-NOT KEY
 		                 (START1 0) (START2 0) END1 END2)
+  (unless KEY
+    (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
     (error))
   (when TEST-NOT
@@ -423,7 +417,9 @@
   seq1)
 
 (cl:defun NSUBSTITUTE (new old seq &key FROM-END TEST TEST-NOT (START 0) END
-					COUNT (KEY (cl:function IDENTITY)))
+					COUNT KEY)
+  (unless KEY
+    (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
     (error))
   (when TEST-NOT
@@ -435,7 +431,9 @@
 		  (kw END) END (kw COUNT) COUNT (kw KEY) KEY))
 
 (cl:defun NSUBSTITUTE-IF (obj predicate seq &key FROM-END (START 0) END COUNT
-						 (KEY (cl:function IDENTITY)))
+						 KEY)
+  (unless KEY
+    (setq KEY #'IDENTITY))
   (unless END
     (setq END (LENGTH seq)))
   (if FROM-END
