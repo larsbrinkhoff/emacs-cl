@@ -11,6 +11,7 @@
   `(setf (gethash ',name *special-operator-evaluators*)
          (function* (lambda (,env ,@args) ,@body))))
 
+;;; Redefined later in populate-packages.
 (defvar *global-environment* nil)
 
 
@@ -53,7 +54,11 @@
 	 (t
 	  (error "syntax error")))))))
 
-;;; TODO: GO
+(define-special-operator GO (tag) env
+  (let ((info (tagbody-information tag env)))
+    (if info
+	(throw info tag)
+	(error "syntax error"))))
 
 (define-special-operator IF (condition then &optional else) env
   (if (eval-with-env condition env)
@@ -144,7 +149,27 @@
 
 ;;; TODO: SYMBOL-MACROLET
 
-;;; TODO: TAGBODY
+(defun go-tag-p (object)
+  (or (INTEGERP object) (symbolp object)))
+
+(define-special-operator TAGBODY (&rest forms) env
+  (let* ((catch-tag (gensym))
+	 (new-env (augment-environment
+		   env :tagbody
+		   (cons catch-tag (remove-if-not #'go-tag-p forms))))
+	 (exe forms)
+	 (no-tag 0.0))
+    (while exe
+      (let ((form (first exe)))
+	(if (go-tag-p form)
+	    (setq exe (rest exe))
+	    (let ((tag (catch catch-tag
+			 (eval-with-env form new-env)
+			 no-tag)))
+	      (if (eq tag no-tag)
+		  (setq exe (rest exe))
+		  (setq exe (member tag forms)))))))
+    nil))
 
 (define-special-operator THE (type form) env
   (eval-with-env form env))
@@ -192,15 +217,21 @@
   (when env
     (assoc tag (aref env 6))))
 
+(defun tagbody-information (tag env)
+  (when env
+    (let ((tagbody (find-if (lambda (x) (member tag (rest x))) (aref env 7))))
+      (first tagbody))))
+
 (defun* augment-environment (env &key variable symbol-macro function
-				      macro declare block)
+				      macro declare block tagbody)
   (unless env
     (setq env *global-environment*))
   (let ((var-info (aref env 1))
 	(var-local (aref env 2))
 	(fn-info (aref env 4))
 	(fn-local (aref env 5))
-	(block-info (aref env 6)))
+	(block-info (aref env 6))
+	(tagbody-info (aref env 7)))
     (setq var-info (reduce (lambda (env var) (acons var :lexical env))
 			   variable
 			   :initial-value var-info))
@@ -216,8 +247,9 @@
 			  :initial-value fn-info))
     (setq fn-local (append function fn-local))
     (setq block-info (cons block block-info))
+    (setq tagbody-info (cons tagbody tagbody-info))
   (vector 'environment var-info var-local (aref env 3) fn-info fn-local
-	               block-info)))
+	               block-info tagbody-info)))
 
 (defun enclose (lambda-exp &optional env)
   (unless env
