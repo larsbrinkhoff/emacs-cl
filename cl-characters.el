@@ -44,12 +44,12 @@
       nil))
 
 (defun char-code (char)
-  ;;(check-type char 'character)
+  ;;(CHECK-TYPE char 'character)
   (aref char 1))
 
 (defun char= (ch1 ch2)
-  ;;(check-type ch1 'character)
-  ;;(check-type ch2 'character)
+  ;;(CHECK-TYPE ch1 'character)
+  ;;(CHECK-TYPE ch2 'character)
   (eql (char-code ch1) (char-code ch2)))
 
 (defun char-upcase (char)
@@ -63,11 +63,11 @@
       char))
 
 (defun lower-case-p (char)
-  ;;(check-type char 'character)
+  ;;(CHECK-TYPE char 'character)
   (cl:<= 97 (char-code char) 122))
 
 (defun upper-case-p (char)
-  ;;(check-type char 'character)
+  ;;(CHECK-TYPE char 'character)
   (cl:<= 65 (char-code char) 90))
 
 (defun name-char (name)

@@ -40,30 +40,30 @@
   (cond
     ((and (or (integerp num1) (floatp num1))
 	  (or (integerp num2) (floatp num2)))
-     (= num1 num2))
-    ((or (complexp num1) (complexp num2))
-     (and (binary= (realpart num1) (realpart num2))
-	  (binary= (imagpart num1) (imagpart num2))))
+     (cl-truth (= num1 num2)))
+    ((OR (COMPLEXP num1) (COMPLEXP num2))
+     (AND (binary= (REALPART num1) (REALPART num2))
+	  (binary= (IMAGPART num1) (IMAGPART num2))))
     ((or (cl::ratiop num1) (cl::ratiop num2))
-     (and (binary= (numerator num1) (numerator num2))
-	  (binary= (denominator num1) (denominator num2))))
+     (AND (binary= (NUMERATOR num1) (NUMERATOR num2))
+	  (binary= (DENOMINATOR num1) (DENOMINATOR num2))))
     ((and (cl::bignump num1) (cl::bignump num2))
-     (and (= (length num1) (length num2))
+     (AND (= (length num1) (length num2))
 	  (every #'eql num1 num2)))
-    ((and (NUMBERP num1) (NUMBERP num2))
-     nil)
+    ((AND (NUMBERP num1) (NUMBERP num2))
+     NIL)
     (t
      (error "type error: = %s %s" num1 num2))))
 
 (defun cl:/= (number &rest numbers)
   (if (null numbers)
-      t
+      T
       (and (not (some (lambda (num) (binary= number num)) numbers))
 	   (apply #'cl:/= (first numbers) (rest numbers)))))
 
 (defun cl:< (number &rest numbers)
   (if (null numbers)
-      t
+      T
       (and (binary< number (first numbers))
 	   (apply #'cl:< (first numbers) (rest numbers)))))
 
@@ -71,11 +71,11 @@
   (cond
     ((and (or (integerp num1) (floatp num1))
 	  (or (integerp num2) (floatp num2)))
-     (< num1 num2))
+     (cl-truth (< num1 num2)))
     ((or (cl::ratiop num1) (cl::ratiop num2))
      ;; TODO
-     (< (/ (float (numerator num1)) (denominator num1))
-	(/ (float (numerator num2)) (denominator num2))))
+     (cl-truth (< (/ (float (NUMERATOR num1)) (DENOMINATOR num1))
+	       (/ (float (NUMERATOR num2)) (DENOMINATOR num2)))))
     ((or (cl::bignump num1) (cl::bignump num2))
      (MINUSP (binary- num1 num2)))
     (t
@@ -83,28 +83,28 @@
 
 (defun cl:> (number &rest numbers)
   (if (null numbers)
-      t
-      (and (binary< (first numbers) number)
+      T
+      (AND (binary< (first numbers) number)
 	   (apply #'cl:> (first numbers) (rest numbers)))))
 
 (defun cl:<= (number &rest numbers)
   (if (null numbers)
-      t
-      (and (binary<= number (first numbers))
+      T
+      (AND (binary<= number (first numbers))
 	   (apply #'cl:<= (first numbers) (rest numbers)))))
 
 (defun binary<= (num1 num2)
   (cond
     ((and (or (integerp num1) (floatp num1))
 	  (or (integerp num2) (floatp num2)))
-     (<= num1 num2))
+     (cl-truth (<= num1 num2)))
     ((or (cl::ratiop num1) (cl::ratiop num2))
      ;; TODO
-     (<= (/ (float (numerator num1)) (denominator num1))
-	 (/ (float (numerator num2)) (denominator num2))))
+     (cl-truth (<= (/ (float (NUMERATOR num1)) (DENOMINATOR num1))
+		(/ (float (NUMERATOR num2)) (DENOMINATOR num2)))))
     ((or (cl::bignump num1) (cl::bignump num2))
      (let ((diff (binary- num1 num2)))
-       (or (MINUSP diff) (ZEROP diff))))
+       (OR (MINUSP diff) (ZEROP diff))))
     (t
      (error "type error: = %s %s" num1 num2))))
 
@@ -127,35 +127,35 @@
 (defun MINUSP (num)
   (cond
     ((or (integerp num) (floatp num))
-     (minusp num))
+     (cl-truth (minusp num)))
     ((cl::bignump num)
-     (minusp (aref num (1- (length num)))))
+     (cl-truth (minusp (aref num (1- (length num))))))
     ((cl::ratiop num)
-     (minusp (numerator num)))
+     (cl-truth (minusp (NUMERATOR num))))
     (t
      (error "type error"))))
 
 (defun PLUSP (num)
   (cond
     ((or (integerp num) (floatp num))
-     (plusp num))
+     (cl-truth (plusp num)))
     ((cl::bignump num)
-     (plusp (aref num (1- (length num)))))
+     (cl-truth (plusp (aref num (1- (length num))))))
     ((cl::ratiop num)
-     (plusp (numerator num)))
+     (cl-truth (plusp (NUMERATOR num))))
     (t
      (error "type error"))))
 
 (defun ZEROP (num)
   (cond
     ((or (integerp num) (floatp num))
-     (zerop num))
+     (cl-truth (zerop num)))
     ((cl::ratiop num)
-     (zerop (numerator num)))
-    ((complexp num)
-     (and (ZEROP (realpart num)) (ZEROP (imagpart num))))
+     (cl-truth (zerop (NUMERATOR num))))
+    ((COMPLEXP num)
+     (AND (ZEROP (REALPART num)) (ZEROP (IMAGPART num))))
     ((cl::bignump num)
-     nil)
+     NIL)
     (t
      (error "type error"))))
 
@@ -164,8 +164,8 @@
 (defun divide (x y)
   (cond
     ((and (integerp x) (integerp y))
-     (if (and (eql x most-negative-fixnum) (eql y -1))
-	 (vector 'bignum most-negative-fixnum 0)
+     (if (and (eql x MOST-NEGATIVE-FIXNUM) (eql y -1))
+	 (vector 'bignum MOST-NEGATIVE-FIXNUM 0)
 	 (/ x y)))
     ((and (INTEGERP x) (INTEGERP y))
      (let ((sign 1) (q 0) (r 0) i)
@@ -175,7 +175,7 @@
 	 (setq sign (- sign)))
        (dotimes (i (if (integerp x) 28 (* 28 (1- (length x)))))
 	 (setq r (ASH r 1))
-	 (when (logbitp i x)
+	 (WHEN (LOGBITP i x)
 	   (setq r (cl:1+ r)))
 	 (setq q (ASH q 1))
 	 (when (cl:>= r y)
@@ -191,7 +191,7 @@
        (setq quotient (truncate quotient)))
       ((cl::ratiop quotient)
        ;; TODO: bignum
-       (setq quotient (/ (numerator quotient) (denominator quotient))))
+       (setq quotient (/ (NUMERATOR quotient) (DENOMINATOR quotient))))
       (t
        (error "type error")))
     (values quotient (cl:- number (cl:* quotient divisor)))))
@@ -209,7 +209,7 @@
 (defun cl:* (&rest numbers)
   (reduce #'binary* numbers :initial-value 1))
 
-(defconst multiplication-limit (ceiling (sqrt most-positive-fixnum)))
+(defconst multiplication-limit (ceiling (sqrt MOST-POSITIVE-FIXNUM)))
 
 (defun binary* (x y)
   (cond
@@ -221,11 +221,11 @@
 	 (* x y)
 	 (bignum* (vector 'bignum x (if (minusp x) -1 0))
 		  (vector 'bignum y (if (minusp y) -1 0)))))
-    ((or (complexp x) (complexp y))
-     (complex (binary- (binary* (realpart x) (realpart y))
-		       (binary* (imagpart x) (imagpart y)))
-	      (binary+ (binary* (realpart x) (imagpart y))
-		       (binary* (imagpart x) (realpart y)))))
+    ((or (COMPLEXP x) (COMPLEXP y))
+     (COMPLEX (binary- (binary* (REALPART x) (REALPART y))
+		       (binary* (IMAGPART x) (IMAGPART y)))
+	      (binary+ (binary* (REALPART x) (IMAGPART y))
+		       (binary* (IMAGPART x) (REALPART y)))))
     ((floatp x)
      (* x (FLOAT y)))
     ((floatp y)
@@ -233,8 +233,8 @@
     ((or (cl::ratiop x) (cl::ratiop y))
      (if (ZEROP y)
 	 (error)
-	 (cl::ratio (binary* (numerator x) (denominator y))
-		    (binary* (denominator x) (numerator y)))))
+	 (cl::ratio (binary* (NUMERATOR x) (DENOMINATOR y))
+		    (binary* (DENOMINATOR x) (NUMERATOR y)))))
     ((or (INTEGERP x) (INTEGERP y))
      (when (integerp x)
        (setq x (vector 'bignum x (if (minusp x) -1 0))))
@@ -280,17 +280,17 @@
 	  (vector 'bignum sum -1))
 	 (t
 	  sum))))
-    ((or (complexp x) (complexp y))
-     (complex (binary+ (realpart x) (realpart y))
-	      (binary+ (imagpart x) (imagpart y))))
+    ((or (COMPLEXP x) (COMPLEXP y))
+     (COMPLEX (binary+ (REALPART x) (REALPART y))
+	      (binary+ (IMAGPART x) (IMAGPART y))))
     ((floatp x)
      (+ x (FLOAT y)))
     ((floatp y)
      (+ (FLOAT x) y))
     ((or (cl::ratiop x) (cl::ratiop y))
-     (cl::ratio (binary+ (binary* (numerator x) (denominator y))
-			 (binary* (denominator x) (numerator y)))
-		(binary* (denominator x) (denominator y))))
+     (cl::ratio (binary+ (binary* (NUMERATOR x) (DENOMINATOR y))
+			 (binary* (DENOMINATOR x) (NUMERATOR y)))
+		(binary* (DENOMINATOR x) (DENOMINATOR y))))
     ((or (cl::bignump x) (cl::bignump y))
 ;    (print (format "%s %s" x y))
      (cond
@@ -394,13 +394,13 @@
   (if (null numbers)
       (cond
 	((or (integerp number) (floatp number))
-	 (if (eql number most-negative-fixnum)
+	 (if (eql number MOST-NEGATIVE-FIXNUM)
 	     (vector 'bignum number 0)
 	     (- number)))
 	((cl::ratiop number)
-	 (vector 'ratio (cl:- (numerator number)) (denominator number)))
-	((complexp number)
-	 (vector 'complex (cl:- (realpart number)) (cl:- (imagpart number))))
+	 (vector 'ratio (cl:- (NUMERATOR number)) (DENOMINATOR number)))
+	((COMPLEXP number)
+	 (vector 'complex (cl:- (REALPART number)) (cl:- (IMAGPART number))))
 	((cl::bignump number)
 	 (bignum+fixnum (LOGNOT number) 1))
 	(t
@@ -421,12 +421,12 @@
 	((cl::bignump number)
 	 (vector 'ratio 1 number))
 	((cl::ratiop number)
-	 (cl::ratio (denominator number) (numerator number)))
-	((complexp number)
-	 (let* ((r (realpart number))
-		(i (imagpart number))
+	 (cl::ratio (DENOMINATOR number) (NUMERATOR number)))
+	((COMPLEXP number)
+	 (let* ((r (REALPART number))
+		(i (IMAGPART number))
 		(x (binary- (binary* r r) (binary* i i))))
-	   (complex (binary/ r x) (binary+ (binary/ i x)))))
+	   (COMPLEX (binary/ r x) (binary+ (binary/ i x)))))
 	(t
 	 (error)))
       (dolist (num numbers number)
@@ -436,21 +436,21 @@
   (cond
     ((and (INTEGERP x) (INTEGERP y))
      (cl::ratio x y))
-    ((or (complexp x) (complexp y))
-     (let* ((rx (realpart x))
-	    (ry (realpart y))
-	    (ix (imagpart x))
-	    (iy (imagpart y))
+    ((or (COMPLEXP x) (COMPLEXP y))
+     (let* ((rx (REALPART x))
+	    (ry (REALPART y))
+	    (ix (IMAGPART x))
+	    (iy (IMAGPART y))
 	    (div (binary+ (binary* ry ry) (binary* iy iy))))
-       (complex (binary/ (binary+ (binary* rx ry) (binary* ix iy)) div)
+       (COMPLEX (binary/ (binary+ (binary* rx ry) (binary* ix iy)) div)
 		(binary/ (binary- (binary* ix ry) (binary* rx iy)) div))))
     ((floatp x)
      (/ x (FLOAT y)))
     ((floatp y)
      (/ (FLOAT x) y))
     ((or (cl::ratiop x) (cl::ratiop y))
-     (cl::ratio (binary* (numerator x) (denominator y))
-		(binary* (denominator x) (numerator y))))
+     (cl::ratio (binary* (NUMERATOR x) (DENOMINATOR y))
+		(binary* (DENOMINATOR x) (NUMERATOR y))))
     (t
      (error "type error"))))
   
@@ -463,15 +463,15 @@
 (defun ABS (number)
   (cond
     ((integerp number)
-     (if (eql number most-negative-fixnum)
+     (if (eql number MOST-NEGATIVE-FIXNUM)
 	 (vector 'bignum number 0)
 	 (abs number)))
     ((floatp number)
      (abs number))
     ((cl::ratiop number)
-     (vector 'ratio (ABS (numerator number)) (denominator number)))
-    ((complexp number)
-     (sqrt (+ (expt (realpart number) 2) (expt (imagpart number) 2))))
+     (vector 'ratio (ABS (NUMERATOR number)) (DENOMINATOR number)))
+    ((COMPLEXP number)
+     (sqrt (+ (expt (REALPART number) 2) (expt (IMAGPART number) 2))))
     ((cl::bignump number)
      0)
     (t
@@ -481,7 +481,7 @@
 
 ;;; TODO: EXP, EXPT
 
-(defun gcd (&rest numbers)
+(defun GCD (&rest numbers)
   (reduce #'binary-gcd numbers :initial-value 0))
 
 (defun binary-gcd (x y)
@@ -513,7 +513,7 @@
     ((integerp limit)
      (random limit))
     ((floatp limit)
-     (/ (* limit (random most-positive-fixnum)) most-positive-fixnum))
+     (/ (* limit (random MOST-POSITIVE-FIXNUM)) MOST-POSITIVE-FIXNUM))
     ((cl:bignump limit)
      ;; TODO
      0)))
@@ -532,53 +532,53 @@
 
 ;;; TODO: CIS
 
-(defun complex (realpart &optional imagpart)
-  (check-type realpart 'real)
+(defun COMPLEX (realpart &optional imagpart)
+  (CHECK-TYPE realpart 'real)
   (if (or (null imagpart) (zerop imagpart))
       realpart
       (progn
-	(check-type realpart 'real)
+	(CHECK-TYPE realpart 'REAL)
 	(when (floatp realpart)
 	  (setq imagpart (float realpart)))
 	(when (floatp imagpart)
 	  (setq realpart (float realpart)))
 	(vector 'complex realpart imagpart))))
 
-(defun complexp (object)
-  (and (vectorp object) (eq (aref object 0) 'complex)))
+(defun COMPLEXP (object)
+  (vector-and-typep object 'complex))
 
-(defun conjugage (num)
-  (complex (realpart num) (- (imagpart num))))
+(defun CONJUGAGE (num)
+  (COMPLEX (REALPART num) (- (IMAGPART num))))
 
-(defun phase (num)
-  (atan (imagpart num) (realpart num)))
+(defun PHASE (num)
+  (ATAN (IMAGPART num) (REALPART num)))
 
-(defun realpart (num)
-  (if (complexp num)
+(defun REALPART (num)
+  (if (COMPLEXP num)
       (aref num 1)
       num))
 
-(defun imagpart (num)
-  (if (complexp num)
+(defun IMAGPART (num)
+  (if (COMPLEXP num)
       (aref num 2)
       0))
 
-(defun upgraded-complex-part-type (typespec &optional env)
-  'real)
+(defun UPGRADED-COMPLEX-PART-TYPE (typespec &optional env)
+  'REAL)
 
-(defun realp (num)
-  (or (rationalp num) (floatp num)))
+(defun REALP (num)
+  (or (RATIONALP num) (FLOATP num)))
 
 (defun cl::ratio (num den)
   (unless (and (INTEGERP num) (INTEGERP den))
     (error))
-  (if (and (eql x most-negative-fixnum) (eql y -1))
-      (vector 'bignum most-negative-fixnum 0)
-      (let* ((gcd (gcd num den))
+  (if (and (eq x MOST-NEGATIVE-FIXNUM) (eq y -1))
+      (vector 'bignum MOST-NEGATIVE-FIXNUM 0)
+      (let* ((GCD (gcd num den))
 	     (num (/ num gcd))
 	     (den (/ den gcd)))
 	(cond
-	  ((eql den 1)
+	  ((eq den 1)
 	   num)
 	  ((minusp den)
 	   (vector 'ratio (cl:- num) den))
@@ -588,12 +588,12 @@
 (defun cl::ratiop (num)
   (vector-and-typep num 'ratio))
 
-(defun numerator (num)
+(defun NUMERATOR (num)
   (if (cl::ratiop num)
       (aref num 1)
       num))
 
-(defun denominator (num)
+(defun DENOMINATOR (num)
   (if (cl::ratiop num)
       (aref num 2)
       1))
@@ -602,20 +602,20 @@
 
 ;;; TODO: rationalize
 
-(defun rationalp (num)
-  (or (INTEGERP num) (cl::ratiop num)))
+(defun RATIONALP (num)
+  (OR (INTEGERP num) (cl-truth (cl::ratiop num))))
 
 (defun ASH (num shift)
   (cond
-    ((ZEROP shift)
+    ((el-truth (ZEROP shift))
      num)
-    ((MINUSP shift)
+    ((el-truth (MINUSP shift))
      (cond
        ((integerp num)
 	(ash num shift))
        ((cl::bignump num)
 	(let ((new (copy-sequence num)))
-	  (while (MINUSP shift)
+	  (while (el-truth (MINUSP shift))
 	    (shift-right new)
 	    (incf shift))
 	  (canonical-bignum new)))
@@ -640,8 +640,8 @@
 	      first nil))
       (decf i))))
 
-(defun integer-length (num)
-  (when (MINUSP num)
+(defun INTEGER-LENGTH (num)
+  (WHEN (MINUSP num)
     (setq num (cl:- num)))
   0)
 
@@ -649,9 +649,9 @@
   (vector-and-typep num 'bignum))
 
 (defun INTEGERP (num)
-  (or (integerp num) (cl::bignump num)))
+  (cl-truth (or (integerp num) (cl::bignump num))))
 
-(defun* parse-integer (string &key (start 0) (end (length string))
+(defun* PARSE-INTEGER (string &key (start 0) (end (length string))
 			      (radix 10) junk-allowed)
   (let ((sign 1)
 	(integer 0)
@@ -661,7 +661,7 @@
       (incf i)
       (when (= i end)
 	(if junk-allowed
-	    (return-from parse-integer (values nil i))
+	    (return-from PARSE-INTEGER (values nil i))
 	    (error))))
     (setq char (char string i))
     (when (find char "+-")
@@ -670,7 +670,7 @@
       (incf i)
       (when (= i end)
 	(if junk-allowed
-	    (return-from parse-integer (values nil i))
+	    (return-from PARSE-INTEGER (values nil i))
 	    (error)))
       (setq char (char string i)))
     (while (setq digit (digit-char-p char radix))
@@ -681,7 +681,7 @@
       (incf i)
       (when (= i end)
 ;	(print (format "int: %s" integer))
-	(return-from parse-integer (values (cl:* sign integer) i)))
+	(return-from PARSE-INTEGER (values (cl:* sign integer) i)))
       (setq char (char string i)))
     (cond
       (junk-allowed
@@ -795,7 +795,7 @@
     ((and (cl::bignump x) (cl::bignump y))
      0)))
 
-(defun logbitp (index integer)
+(defun LOGBITP (index integer)
   (unless (integerp index)
     (error "TODO"))
   (when (minusp index)
@@ -814,48 +814,71 @@
     (t
      (error "type error"))))
 
-(defun logcount (num)
-  (when (MINUSP num)
+(defun LOGCOUNT (num)
+  (WHEN (MINUSP num)
     (setq num (cl:- num)))
   (let ((len 0))
     (cond
       ((integerp num)
        (dotimes (i 28)
-	 (when (logbitp i num)
+	 (WHEN (LOGBITP i num)
 	   (incf len))))
       (t
        (dotimes (i (1- (length num)))
 	 (dotimes (j 28)
-	   (when (logbitp i num)
+	   (WHEN (LOGBITP i num)
 	     (incf len))))))
     len))
 
-(defun logtest (num1 num2)
-  (not (zerop (LOGAND num1 num2))))
+(defun LOGTEST (num1 num2)
+  (NOT (ZEROP (LOGAND num1 num2))))
 
-(defun byte (size pos)
+(defun BYTE (size pos)
   (list size pos))
 
-(defun byte-size (bytespec)
+(defun BYTE-SIZE (bytespec)
   (first bytespec))
 
-(defun byte-position (bytespec)
+(defun BYTE-POSITION (bytespec)
   (second bytespec))
 
-(defun deposit-field (newbyte bytespec integer)
-  (LOGIOR (LOGAND integer (LOGNOT (dpb -1 bytespec 0)))
-	  (mask-field bytespec newbyte)))
+(defun DEPOSIT-FIELD (newbyte bytespec integer)
+  (LOGIOR (LOGAND integer (LOGNOT (DPB -1 bytespec 0)))
+	  (MASK-FIELD bytespec newbyte)))
 
-(defun dpb (newbyte bytespec integer)
-  (let ((mask (cl:1- (ASH 1 (byte-size bytespec)))))
-    (LOGIOR (LOGANDC2 integer (ASH mask (byte-position bytespec)))
-	    (ASH (LOGAND newbyte mask) (byte-position bytespec)))))
+(defun DPB (newbyte bytespec integer)
+  (let ((mask (cl:1- (ASH 1 (BYTE-SIZE bytespec)))))
+    (LOGIOR (LOGANDC2 integer (ASH mask (BYTE-POSITION bytespec)))
+	    (ASH (LOGAND newbyte mask) (BYTE-POSITION bytespec)))))
 
-(defun ldb (bytespec integer)
-  (LOGAND (ASH integer (cl:- (byte-position bytespec)))
-	  (cl:1- (ASH 1 (byte-size bytespec)))))
+(defun LDB (bytespec integer)
+  (LOGAND (ASH integer (cl:- (BYTE-POSITION bytespec)))
+	  (cl:1- (ASH 1 (BYTE-SIZE bytespec)))))
 
-(DEFINE-SETF-EXPANDER ldb (bytespec integer &environment env)
+(DEFINE-SETF-EXPANDER LDB (bytespec integer &environment env)
+  (multiple-value-bind (temps values variables setter getter)
+      (get-setf-method integer env)
+    (let ((byte (gensym))
+	  (value (gensym)))
+      (values (cons byte temps)
+	      (cons bytespec values)
+	      (list value)
+	      `(let ((,(first variables) (DPB ,value ,byte ,getter)))
+		,setter
+		,value)
+	      `(LDB ,byte ,getter)))))
+
+(defun LDB-TEST (bytespec integer)
+  (NOT (ZEROP (LDB bytespec integer))))
+
+(defun MASK-FIELD (bytespec integer)
+  (LOGAND integer (DPB -1 bytespec 0)))
+
+(DEFCONSTANT MOST-POSITIVE-FIXNUM 134217727)
+
+(DEFCONSTANT MOST-NEGATIVE-FIXNUM -134217728)
+
+(define-setf-method MASK-FIELD (bytespec integer &environment env)
   (multiple-value-bind (temps values variables setter getter)
       (get-setf-method integer env)
     (let ((byte (gensym))
@@ -863,29 +886,10 @@
     (values (cons byte temps)
 	    (cons bytespec values)
 	    (list value)
-	    `(let ((,(first variables) (dpb ,value ,byte ,getter)))
+	    `(let ((,(first variables) (DEPOSIT-FIELD ,value ,byte ,getter)))
 	      ,setter
 	      ,value)
-	    `(ldb ,byte ,getter)))))
-
-(defun ldb-test (bytespec integer)
-  (not (zerop (ldb bytespec integer))))
-
-(defun mask-field (bytespec integer)
-  (LOGAND integer (dpb -1 bytespec 0)))
-
-(define-setf-method mask-field (bytespec integer &environment env)
-  (multiple-value-bind (temps values variables setter getter)
-      (get-setf-method integer env)
-    (let ((byte (gensym))
-	  (value (gensym)))
-    (values (cons byte temps)
-	    (cons bytespec values)
-	    (list value)
-	    `(let ((,(first variables) (deposit-field ,value ,byte ,getter)))
-	      ,setter
-	      ,value)
-	    `(mask-field ,byte ,getter)))))
+	    `(MASK-FIELD ,byte ,getter)))))
 
 ;;; TODO: decode-float, scale-float, float-radix, float-sign, float-digits,
 ;;; float-precision, integer-decode-float
@@ -897,12 +901,12 @@
     ((floatp num)
      num)
     ((cl::ratiop num)
-     (/ (FLOAT (numerator num)) (FLOAT (denominator num))))
+     (/ (FLOAT (NUMERATOR num)) (FLOAT (DENOMINATOR num))))
     ((cl::bignump num)
      1.0)
     (t
      (error "type error"))))
 
-;;; floatp ok as is
+(fset 'FLOATP (symbol-function 'floatp))
 
 ;;; TODO: ARITHMETIC-ERROR-OPERANDS, ARITHMETIC-ERROR-OPERATION

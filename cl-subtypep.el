@@ -9,10 +9,10 @@
 (in-package "CL")
 
 (defvar *types*
-  '(nil complex number null boolean keyword symbol cons list character))
+  '(NIL COMPLEX NUMBER NULL BOOLEAN KEYWORD SYMBOL CONS LIST CHARACTER))
 
 (defvar *objects*
-  (list (complex 0 1) 0 nil t (make-symbol "") (cons nil nil)
+  (list (complex 0 1) 0 NIL T (make-symbol "") (cons nil nil)
 	;; Should really be an uninterned keyword.
 	(INTERN "reallyunlikelysymbolname" "KEYWORD")
 	;; This guarantees an unique character object.
@@ -175,59 +175,59 @@
   (cond
     ((member type *types*)
      `(,(gethash type *type-val*) (() () ())))
-    ((eq type t)
+    ((eq type T)
      '(-1 ((* *) (* *) (* *))))
     ((atom type)
      (let ((num 0)
 	   (ranges
 	    (ecase type
-	      (bit
+	      (BIT
 	       `((0 1) () () ()))
-	      (fixnum
+	      (FIXNUM
 	       `((,most-negative-fixnum ,most-positive-fixnum) () ()))
-	      (bignum
+	      (BIGNUM
 	       `((* (,most-negative-fixnum) (,most-positive-fixnum) *) () ()))
-	      (unsigned-byte
+	      (UNSIGNED-BYTE
 	       `((0 *) () ()))
-	      ((integer signed-byte)
+	      ((INTEGER SIGNED-BYTE)
 	       `((* *) () ()))
-	      (ratio
+	      (RATIO
 	       `(() (* *) ()))
-	      (rational
+	      (RATIONAL
 	       `((* *) (* *) ()))
-	      ((float short-float single-float double-float long-float)
+	      ((FLOAT SHORT-FLOAT SINGLE-FLOAT DOUBLE-FLOAT LONG-FLOAT)
 	       `(() () (* *)))
-	      (real
+	      (REAL
 	       `((* *) (* *) (* *))))))
        (dolist (object *objects* `(,num ,ranges))
  	 (when (TYPEP object type)
  	   (setq num (logior num (object-val object)))))))
     (t
      (ecase (first type)
-       (mod	`(0 ((0 ,(1- mod)) () ())))
-       (unsigned-byte
+       (MOD	`(0 ((0 ,(1- mod)) () ())))
+       (UNSIGNED-BYTE
 		`(0 ((0 ,(1- (expt 2 (second type)))) () ())))
-       (signed-byte
+       (SIGNED-BYTE
 		`(0 ((,(expt 2 (1- (second type)))
 		      ,(1- (expt 2 (1- (second type))))) () ())))
-       (integer	`(0 (,(rest type) () ())))
-       (rational
+       (INTEGER	`(0 (,(rest type) () ())))
+       (RATIONAL
 		`(0 (,(rest type) ,(rest type) ())))
-       ((float short-float single-float double-float long-float)
+       ((FLOAT SHORT-FLOAT SINGLE-FLOAT DOUBLE-FLOAT LONG-FLOAT)
 		`(0 (() () ,(rest type))))
-       (real	`(0 (,(rest type) ,(rest type) ,(rest type))))
-       (eql	(if (realp (second type))
+       (REAL	`(0 (,(rest type) ,(rest type) ,(rest type))))
+       (EQL	(if (realp (second type))
 		    `(,(object-val (second type))
 		      (,(second type) ,(second type))
 		      (,(second type) ,(second type))
 		      (,(second type) ,(second type)))
 		    `(,(object-val (second type)) (() () ()))))
-       (member	(type-val `(or ,@(mapcar (lambda (obj)) `(eql ,obj))
+       (MEMBER	(type-val `(OR ,@(mapcar (lambda (obj)) `(EQL ,obj))
 			       (rest type))))
-       (and	(type-val `(not (or ,@(mapcar (lambda (type) `(not ,type))
+       (AND	(type-val `(NOT (OR ,@(mapcar (lambda (type) `(NOT ,type))
 				              (rest type))))))
-       (or	(reduce #'union-types (rest type) :key #'type-val))
-       (not	(let* ((val (type-val (second type)))
+       (OR	(reduce #'union-types (rest type) :key #'type-val))
+       (NOT	(let* ((val (type-val (second type)))
 		       (ranges (second val)))
 		  `(,(lognot (first val))
 		    (,(negate-integer-range (first ranges))
@@ -237,9 +237,9 @@
 (defun find-new-objects (type)
   (when (consp type)
     (case (first type)
-      ((and or not)
+      ((AND OR NOT)
        (mapc #'find-new-objects (rest type)))
-      ((member eql)
+      ((MEMBER EQL)
        (push type *types*)
        (dolist (object (rest type))
 	 (pushnew object *objects*)))

@@ -43,51 +43,51 @@
 
 ;;; Definitions for all type specifiers recognized by TYPEP follows.
 
-(define-typep (object (and &rest types) env :compound-only)
+(define-typep (object (AND &rest types) env :compound-only)
   (every (lambda (type) (TYPEP object type env)) types))
 
-(define-typep (object arithmetic-error env)
+(define-typep (object ARITHMETIC-ERROR env)
   nil)
 
-(define-typep (object (array &optional type dim) env)
+(define-typep (object (ARRAY &optional type dim) env)
   nil)
 
-(define-typep (object atom env)
+(define-typep (object ATOM env)
   (not (consp object)))
 
-(define-typep (object base-char env)
-  (TYPEP object 'character env))
+(define-typep (object BASE-CHAR env)
+  (TYPEP object 'CHARACTER env))
 
-(define-typep (object (base-string) env)
-  (TYPEP object 'string env))
+(define-typep (object (BASE-STRING) env)
+  (TYPEP object 'STRING env))
 
-(define-typep (object bignum env)
+(define-typep (object BIGNUM env)
   (cl::bignump object))
 
-(define-typep (object bit env)
-  (or (eql object 0) (eql object 1)))
+(define-typep (object BIT env)
+  (or (eq object 0) (eq object 1)))
 
-(define-typep (object (bit-vector &optional (size '*)) env)
-  (and (bool-vector-p object)
+(define-typep (object (BIT-VECTOR &optional (size '*)) env)
+  (and (BOOL-VECTOR-P object)
        (star-or size (eql size (length object)))))
 
-(define-typep (object boolean env)
-  (or (null object) (eq object t)))
+(define-typep (object BOOLEAN env)
+  (or (NULL object) (eq object T)))
 
 ;;; broadcast-stream (atomic only)
 ;;; built-in-class (atomic only)
 ;;; cell-error (atomic only)
 
 (define-typep (object character env)
-  (characterp object))
+  (CHARACTERP object))
 
 ;;; class (atomic only)
 
-(define-typep (object compiled-function env)
-  (compiled-function-p object))
+(define-typep (object COMPILED-FUNCTION env)
+  (COMPILED-FUNCTION-P object))
 
-(define-typep (object (complex &optional (type '*)) env)
-  (and (complexp object)
+(define-typep (object (COMPLEX &optional (type '*)) env)
+  (and (COMPLEXP object)
        (star-or type
 		(unless (SUBTYPEP type 'real)
 		  (error "invalid complex part type: %s" type)))))
@@ -95,7 +95,7 @@
 ;;; concatenated-stream (atomic only)
 ;;; condition (atomic only)
 
-(define-typep (object (cons &optional (car-type '*) (cdr-type '*)) env)
+(define-typep (object (CONS &optional (car-type '*) (cdr-type '*)) env)
   (and (consp object)
        (star-or car-type (TYPEP (car object) car-type env))
        (star-or cdr-type (TYPEP (car object) cdr-type env))))
@@ -103,82 +103,82 @@
 ;;; control-error (atomic only)
 ;;; division-by-zero (atomic only)
 
-(define-typep (object (double-float &optional (low '*) (high '*)) env)
-  (TYPEP object `(single-float ,low ,high)))
+(define-typep (object (DOUBLE-FLOAT &optional (low '*) (high '*)) env)
+  (TYPEP object `(SINGLE-FLOAT ,low ,high)))
 
 ;;; echo-stream (atomic only)
 ;;; end-of-file (atomic only)
 
-(define-typep (obj1 (eql obj2) env :compound-only)
-  (eql obj1 obj2))
+(define-typep (obj1 (EQL obj2) env :compound-only)
+  (EQL obj1 obj2))
 
 ;;; error (atomic only)
 
-(define-typep (object extended-char env)
-  (TYPEP object '(and character (not base-char))))
+(define-typep (object EXTENDED-CHAR env)
+  (TYPEP object '(AND CHARACTER (NOT BASE-CHAR))))
 
 ;;; file-error (atomic only)
 ;;; file-stream (atomic only)
 
-(define-typep (object fixnum env)
+(define-typep (object FIXNUM env)
   (integerp object))
 
-(define-typep (object (float &optional (low '*) (high '*)) env)
-  (TYPEP object `(single-float ,low ,high)))
+(define-typep (object (FLOAT &optional (low '*) (high '*)) env)
+  (TYPEP object `(SINGLE-FLOAT ,low ,high)))
 
 ;;; floating-point-inexact (atomic only)
 ;;; floating-point-invalid-operation (atomic only)
 ;;; floating-point-overflow (atomic only)
 ;;; floating-point-underflow (atomic only)
 
-(define-typep (object function env)
-  (functionp object))
+(define-typep (object FUNCTION env)
+  (FUNCTIONP object))
 
-(define-typep (object (function &rest args) env :compound-only)
+(define-typep (object (FUNCTION &rest args) env :compound-only)
   (error "(function ...) not allowed"))
 
 ;;; generic-function (atomic only)
 ;;; hash-table (atomic only)
 
-(define-typep (object (integer &optional (low '*) (high '*)) env)
+(define-typep (object (INTEGER &optional (low '*) (high '*)) env)
   (and (INTEGERP object) (in-range object low high)))
 
-(define-typep (object keyword env)
+(define-typep (object KEYWORD env)
   (KEYWORDP object))
 
-(define-typep (object list env)
+(define-typep (object LIST env)
   (listp object))
 
 ;;; logical-pathname (atomic only)
 
-(define-typep (object (long-float &optional (low '*) (high '*)) env)
-  (TYPEP object `(single-float ,low ,high)))
+(define-typep (object (LONG-FLOAT &optional (low '*) (high '*)) env)
+  (TYPEP object `(SINGLE-FLOAT ,low ,high)))
 
-(define-typep (object (member &rest objects) env :compound-only)
+(define-typep (object (MEMBER &rest objects) env :compound-only)
   (member object objects))
 
 ;;; method (atomic only)
 ;;; method-combination (atomic only)
 
-(define-typep (object (mod n) env :compound-only)
-  (TYPEP object `(integer 0 ,(1- (second type))) env))
+(define-typep (object (MOD n) env :compound-only)
+  (TYPEP object `(INTEGER 0 ,(1- (second type))) env))
 
-(define-typep (object nil env)
-  nil)
+(define-typep (object NIL env)
+  NIL)
 
-(define-typep (object (not type) env)
+(define-typep (object (NOT type) env)
   (not (TYPEP object type env)))
 
-(define-typep (object null env)
-  (null object))
+(define-typep (object NULL env)
+  (NULL object))
 
-(define-typep (object number env)
+(define-typep (object NUMBER env)
   (NUMBERP object))
 
-(define-typep (object (or &rest types) env :compound-only)
+(define-typep (object (OR &rest types) env :compound-only)
   (some (lambda (type) (TYPEP object type env)) types))
 
-(define-typep (object package env)
+(define-typep (object PACKAGE env)
   (PACKAGEP object))
 
 ;;; package-error (atomic only)
@@ -188,39 +188,39 @@
 ;;; program-error (atomic only)
 ;;; random-state (atomic only)
 
-(define-typep (object ratio env)
+(define-typep (object RATIO env)
   (cl::ratiop object))
 
-(define-typep (object (rational &optional (low '*) (high '*)) env)
-  (and (rationalp object) (in-range object low high)))
+(define-typep (object (RATIONAL &optional (low '*) (high '*)) env)
+  (and (RATIONALP object) (in-range object low high)))
 
 ;;; reader-error (atomic only)
 
-(define-typep (object readtable env)
-  (readtablep object))
+(define-typep (object READTABLE env)
+  (READTABLEP object))
 
-(define-typep (object (real &optional (low '*) (high '*)) env)
-  (and (realp object) (in-range object low high)))
+(define-typep (object (REAL &optional (low '*) (high '*)) env)
+  (and (REALP object) (in-range object low high)))
 
 ;;; restart (atomic only)
 
-(define-typep (object (satisfies fn) env :compound-only)
+(define-typep (object (SATISFIES fn) env :compound-only)
   (funcall fn object))
 
-(define-typep (object sequence env)
-  (or (listp object) (TYPEP object 'vector)))
+(define-typep (object SEQUENCE env)
+  (or (listp object) (VECTORP object)))
 
 ;;; serious-condition (atomic only)
 
-(define-typep (object (short-float &optional (low '*) (high '*)) env)
-  (TYPEP object `(single-float ,low ,high)))
+(define-typep (object (SHORT-FLOAT &optional (low '*) (high '*)) env)
+  (TYPEP object `(SINGLE-FLOAT ,low ,high)))
 
-(define-typep (object (signed-byte &optional n) env)
+(define-typep (object (SIGNED-BYTE &optional n) env)
   (if n
       (TYPEP object
-		`(integer ,(- (expt 2 (1- n))) ,(1- (expt 2 (1- n))))
+		`(INTEGER ,(- (expt 2 (1- n))) ,(1- (expt 2 (1- n))))
 		env)
-      (integerp object)))
+      (INTEGERP object)))
 
 ;;; simple-array
 ;;; simple-base-string
@@ -232,10 +232,10 @@
 ;;; simple-vector
 ;;; simple-warning (atomic only)
 
-(define-typep (object (single-float &optional (low '*) (high '*)) env)
+(define-typep (object (SINGLE-FLOAT &optional (low '*) (high '*)) env)
   (and (floatp object) (in-range object low high)))
 
-(define-typep (object standard-char env)
+(define-typep (object STANDARD-CHAR env)
   (find object "\n abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$\"'(),_-./:;?+<=>#%&*@[\]{|}`^~"))
 
 ;;; standard-class (atomic only)
@@ -246,22 +246,21 @@
 ;;; stream (atomic only)
 ;;; stream-error (atomic only)
 
-(define-typep (object (string &optional (size '*)) env)
-  (and (vectorp object)
-       (eq (aref object 0) 'string)))
+(define-typep (object (STRING &optional (size '*)) env)
+  (vector-and-typep object 'string))
 
 ;;; string-stream (atomic only)
 ;;; structure-class (atomic only)
 ;;; structure-object (atomic only)
 ;;; style-warning (atomic only)
 
-(define-typep (object symbol env)
-  (symbolp object))
+(define-typep (object SYMBOL env)
+  (SYMBOLP object))
 
 ;;; synonym-stream (atomic only)
 
-(define-typep (object t env)
-  t)
+(define-typep (object T env)
+  T)
 
 ;;; two-way-stream (atomic only)
 ;;; type-error (atomic only)
@@ -269,10 +268,10 @@
 ;;; unbound-variable (atomic only)
 ;;; undefined-function (atomic only)
 
-(define-typep (object (unsigned-byte &optional n) env)
-  (TYPEP object `(integer 0 ,(if n (1- (expt 2 n)) '*) env)))
+(define-typep (object (UNSIGNED-BYTE &optional n) env)
+  (TYPEP object `(INTEGER 0 ,(if n (1- (expt 2 n)) '*) env)))
 
-(define-typep (object (values &rest args) env :compound-only)
+(define-typep (object (VALUES &rest args) env :compound-only)
   (error "values not allowed"))
 
 ;;; vector

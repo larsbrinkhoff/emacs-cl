@@ -16,7 +16,7 @@
     (when (eq fill-pointer t)
       (setq fill-pointer (just-one dimensions)))
     (ecase (UPGRADED-ARRAY-ELEMENT-TYPE element-type)
-      (bit
+      (BIT
        (let ((bit-vector (or displaced-to
 			     (make-bool-vector size (ecase initial-element
 						      ((0 nil) nil) (1 t))))))
@@ -26,7 +26,7 @@
 				displaced-index-offset))
 	   (t		(vector 'bit-array dimensions bit-vector
 				displaced-index-offset)))))
-      (character
+      (CHARACTER
        (let ((string (or displaced-to
 			 (make-string size
 				      (if initial-element
@@ -38,7 +38,7 @@
 				displaced-index-offset))
 	   (t		(vector 'char-array dimensions string
 				displaced-index-offset)))))
-      ((t)
+      ((T)
        (when simplep
 	 (incf size))
        (let ((array (or displaced-to (make-vector size initial-element))))
@@ -63,7 +63,7 @@
 		  :displaced-index-offset displaced-index-offset)))
 
 (defun ADJUSTABLE-ARRAY-P (array)
-  (check-type array 'array)
+  (CHECK-TYPE array 'array)
   (and (vectorp array)
        (case (aref array 0)
 	 ((bit-vector bit-array string char-array vector array) t))))
@@ -156,9 +156,9 @@
 
 (defun UPGRADED-ARRAY-ELEMENT-TYPE (typespec &optional env)
   (cond
-    ((SUBTYPEP typespec 'bit)		'bit)
-    ((SUBTYPEP typespec 'character)	'character)
-    (t					t)))
+    ((SUBTYPEP typespec 'BIT)		'BIT)
+    ((SUBTYPEP typespec 'CHARACTER)	'CHARACTER)
+    (t					T)))
 
 (defun SIMPLE-VECTOR-P (object)
   (or (SIMPLE-BIT-VECTOR-P object)
@@ -168,7 +168,7 @@
 (defun svref (vector index)
   (aref vector (1+ index)))
 
-(defun cl:vector (&rest objects)
+(defun VECTOR (&rest objects)
   (let ((vector (make-vector (1+ (length objects)) nil))
 	(i 0))
     (aset vector 0 'simple-vector)

@@ -144,6 +144,37 @@
 	(t
 	 NIL))))
 
+(defmacro AND (&rest forms)
+  (if (null forms)
+      T
+      (let ((val (gensym)))
+	`(let ((,val ,(first forms)))
+	  (if (eq ,val NIL)
+	      NIL
+	      (AND ,@(rest forms)))))))
+
+;;; TODO: cond
+
+(defmacro IF (condition then &optional else)
+  (let ((val (gensym)))
+    `(let ((,val ,condition))
+      (if (eq ,val NIL) ,else ,then))))
+
+(defmacro OR (&rest forms)
+  (if (null forms)
+      NIL
+      (let ((val (gensym)))
+	`(let ((,val ,(first forms)))
+	  (if (eq ,val NIL)
+	      (OR ,@(rest forms))
+	      ,val)))))
+
+(defmacro* WHEN (condition &body body)
+  `(IF ,condition (progn ,@body)))
+
+(defmacro* UNLESS (condition &body body)
+  `(IF ,condition NIL (progn ,@body)))
+
 ;; (defvar *multiple-values-variable* nil)
 
 ;; (defmacro* cl:multiple-value-bind (vars form &body body)
