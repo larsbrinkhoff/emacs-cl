@@ -283,6 +283,14 @@
 (defun el-maphash (fn hash)
   (maphash (lambda (k v) (FUNCALL fn k v)) hash))
 
+(defmacro* DO-SYMBOLS ((var &optional package result) &body body)
+  (with-gensyms (p1 p2 ignore)
+    `(let* ((,p1 ,package)
+	    (,p2 (if ,p1 (FIND-PACKAGE ,p1) *PACKAGE*)))
+       (el-maphash (lambda (,ignore ,var) ,@body)
+	           (package-table ,p2))
+       ,result)))
+
 (cl:defmacro DO-SYMBOLS ((var &optional package result) &body body)
   (with-gensyms (p1 p2 ignore)
     `(LET* ((,p1 ,package)
