@@ -9,7 +9,7 @@
     (PRIN1 (TYPE-OF ,object) stream)
     (WRITE-STRING " " stream)
     ,@body
-    ,@(when body
+    ,@(when (and body identity)
 	`((WRITE-STRING " " stream)))
     ,@(when identity
         `((WRITE-STRING "identity" stream)))
