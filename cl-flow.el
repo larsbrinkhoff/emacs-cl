@@ -124,9 +124,9 @@
 ;;     (set *multiple-values-variable* list))
 ;;   (car list))
 
-(defmacro* cl:defsetf (access-fn &rest args)
+(defmacro* DEFSETF (access-fn &rest args)
   (if (<= (length args) 2)
-      `(define-setf-expander ,access-fn (&rest args2)
+      `(DEFINE-SETF-EXPANDER ,access-fn (&rest args2)
 	(let ((fn ',(first args))
 	      (var (gensym))
 	      (temps (mapcar (lambda (x) (gensym)) args2)))
@@ -138,7 +138,7 @@
       `(long-form-defsetf ,access-fn ,@args)))
 
 (defmacro* long-form-defsetf (access-fn lambda-list variables &body body)
-  `(define-setf-expander ,access-fn ,lambda-list
+  `(DEFINE-SETF-EXPANDER ,access-fn ,lambda-list
     (values ()
             ()
             ',variables
@@ -146,14 +146,14 @@
 
 (defvar *setf-expanders* (make-hash-table))
 
-(defmacro* define-setf-expander (access-fn lambda-list &body body)
+(defmacro* DEFINE-SETF-EXPANDER (access-fn lambda-list &body body)
   (setq lambda-list (copy-list lambda-list))
   (remf lambda-list '&environment)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     (setf (gethash ',access-fn *setf-expanders*)
           (lambda ,lambda-list ,@body)))))
 
-(defun get-setf-expansion (place &optional env)
+(defun GET-SETF-EXPANSION (place &optional env)
   (let ((fn (gethash (first place) *setf-expanders*)))
     (if fn
 	(apply fn (rest place))
@@ -165,9 +165,9 @@
 		  `(cl:funcall '(setf ,(first place)) ,var ,@temps)
 		  ())))))
 
-(defmacro* cl:setf (place value &environment env)
+(defmacro* SETF (place value &environment env)
   (multiple-value-bind (temps values variables setter getter)
-      (get-setf-expansion place env)
+      (GET-SETF-EXPANSION place env)
     `(let* ,(cl:mapcar #'list temps values)
       (let ((,(first variables) ,value))
 	,setter)))))
