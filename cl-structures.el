@@ -174,7 +174,7 @@
 	;; Constructors.
 	,@(mapcar
 	   (lambda (constructor)
-	     (let ((slotps (mapcar (lambda (x) (gensym)) slots)))
+	     (let ((slotps (map-to-gensyms slots)))
 	       `(defun* ,@constructor
 		 ,(ecase type
 		    ((nil)
