@@ -2,19 +2,69 @@
 
 (in-package "CL")
 
-;;; =
+(defun cl:= (number &rest numbers)
+  (every (lambda (n) (two-arg-= number n)) numbers))
+
+(defun two-arg-= (num1 num2)
+  (cond
+    ((and (or (integerp num1) (floatp num1))
+	  (or (integerp num2) (floatp num2)))
+     (= num1 num2))
+    ((or (complexp num1) (complexp num2))
+     (and (two-arg-= (realpart num1) (realpart num2))
+	  (two-arg-= (imagpart num1) (imagpart num2))))
+    ((or (cl::ratiop num1) (cl::ratiop num2))
+     (and (two-arg-= (numerator num1) (numerator num2))
+	  (two-arg-= (denominator num1) (denominator num2))))
+    ((or (cl::bignump num1) (cl::bignump num2))
+     ;; TODO
+     t)
+    (t
+     (error "type error: = %s %s" num1 num2))))
 
 ;;; /=
 
-;;; <
+(defun cl:< (number &rest numbers)
+  (if (null numbers)
+      t
+      (two-arg-< number (first numbers))))
+
+(defun two-arg-< (num1 num2)
+  (cond
+    ((and (or (integerp num1) (floatp num1))
+	  (or (integerp num2) (floatp num2)))
+     (< num1 num2))
+    ((or (cl::ratiop num1) (cl::ratiop num2))
+     ;; TODO
+     (< (/ (numerator num1) (denominator num1))
+	(/ (numerator num2) (denominator num2))))
+    ((or (cl::bignump num1) (cl::bignump num2))
+     ;; TODO
+     nil)
+    (t
+     (error "type error: = %s %s" num1 num2))))
 
 ;;; >
 
 (defun cl:<= (number &rest numbers)
   (if (null numbers)
       t
-      (and (<= number (first numbers))
-	   (apply #'cl:<= numbers))))
+      (two-arg-<= number (first numbers))))
+
+(defun two-arg-<= (num1 num2)
+  (cond
+    ((and (or (integerp num1) (floatp num1))
+	  (or (integerp num2) (floatp num2)))
+     (<= num1 num2))
+    ((or (cl::ratiop num1) (cl::ratiop num2))
+     ;; TODO
+     (<= (/ (numerator num1) (denominator num1))
+	 (/ (numerator num2) (denominator num2))))
+    ((or (cl::bignump num1) (cl::bignump num2))
+     ;; TODO
+     nil)
+    (t
+     (error "type error: = %s %s" num1 num2))))
 
 ;;; >=
 

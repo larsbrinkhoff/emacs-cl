@@ -14,4 +14,5 @@
 
   (load "cl-typep")
   (load "cl-types")
+  (load "cl-subtypep")
   nil)

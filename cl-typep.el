@@ -28,12 +28,12 @@
 	 (high (if high-exclusive (car high) high)))
     (and (cond
 	   ((eq low '*) t)
-	   (low-exclusive (< low num))
-	   (t (<= low num)))
+	   (low-exclusive (cl:< low num))
+	   (t (cl:<= low num)))
 	 (cond
 	   ((eq high '*) t)
-	   (high-exclusive (> high num))
-	   (t (>= high num))))))
+	   (high-exclusive (cl:< num high))
+	   (t (cl:<= num high))))))
 
 (defmacro star-or (type expr)
   `(or (eq ,type '*) ,expr))
@@ -60,7 +60,7 @@
   (cl:typep object 'string env))
 
 (define-typep (object bignum env)
-  nil)
+  (cl::bignump object))
 
 (define-typep (object bit env)
   (or (zerop object) (eql object 1)))
@@ -90,7 +90,7 @@
 ;;; concatenated-stream (atomic only)
 ;;; condition (atomic only)
 
-(define-typep (object (cons &optional (car-type *) (cdr-type *)) env)
+(define-typep (object (cons &optional (car-type '*) (cdr-type '*)) env)
   (and (consp object)
        (star-or car-type (cl:typep (car object) car-type env))
        (star-or cdr-type (cl:typep (car object) cdr-type env))))
@@ -116,7 +116,7 @@
 ;;; file-stream (atomic only)
 
 (define-typep (object fixnum env)
-  (cl:typep object `(integer ,most-negative-fixnum ,most-positive-fixnum) env))
+  (integerp object))
 
 (define-typep (object (float &optional (low '*) (high '*)) env)
   (cl:typep object `(single-float ,low ,high)))
@@ -136,7 +136,7 @@
 ;;; hash-table (atomic only)
 
 (define-typep (object (integer &optional (low '*) (high '*)) env)
-  (and (integerp object) (in-range object low high)))
+  (and (cl:integerp object) (in-range object low high)))
 
 (define-typep (object keyword env)
   (keywordp object))
@@ -187,7 +187,7 @@
   (cl::ratiop object))
 
 (define-typep (object (rational &optional (low '*) (high '*)) env)
-  (cl:typep object `(or ratio (integer ,low ,high)) env))
+  (and (rationalp object) (in-range object low high)))
 
 ;;; reader-error (atomic only)
 
@@ -195,9 +195,7 @@
   (readtablep object))
 
 (define-typep (object (real &optional (low '*) (high '*)) env)
-  (cl:typep object
-	    `(or ratio (integer ,low ,high) (single-float ,low ,high))
-	    env))
+  (and (realp object) (in-range object low high)))
 
 ;;; restart (atomic only)
 
