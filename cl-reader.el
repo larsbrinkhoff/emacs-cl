@@ -401,15 +401,14 @@
     (error "token terminated by colon"))
   (multiple-value-bind (sym status) (FIND-SYMBOL token package)
     (cond
-      ((or (eq status *:external*)
-	   (eq status *:inherited*))
-       (return-from READ sym))
+      ((or (eq status *:external*) (eq status *:inherited*))
+       sym)
       ((eq status *:internal*)
-       (if (< colons 2)
+       (if (and (< colons 2) (not (eq package *PACKAGE*)))
 	   (error "internal symbol")
 	   sym))
       ((null status)
-       (return-from READ (nth-value 0 (INTERN token package)))))))
+       (nth-value 0 (INTERN token package))))))
 
 (defvar *READ-BASE* 10)
 

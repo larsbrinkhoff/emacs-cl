@@ -77,7 +77,8 @@
        (let ((symbol (intern-soft string)))
 	 (if symbol
 	     (progn
-	       (setf (SYMBOL-PACKAGE symbol) *emacs-lisp-package*)
+	       (unless (SYMBOL-PACKAGE symbol)
+		 (setf (SYMBOL-PACKAGE symbol) *emacs-lisp-package*))
 	       (values symbol *:external*))
 	     (values nil nil))))
       (t
@@ -90,7 +91,7 @@
 			 *:internal*))
 	     (dolist (p (PACKAGE-USE-LIST package) (values nil nil))
 	       (multiple-value-bind (symbol found) (FIND-SYMBOL string p)
-		 (when found
+		 (when (and found (member symbol (package-exported p)))
 		   (return-from FIND-SYMBOL
 		     (values symbol *:inherited*)))))))))))
 

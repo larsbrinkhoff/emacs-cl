@@ -42,7 +42,11 @@
 	  (princ (SYMBOL-NAME object)))
 	 (t
 	  (princ (PACKAGE-NAME (SYMBOL-PACKAGE object)))
-	  (princ ":")
+	  (princ (if (eq (nth-value 1 (FIND-SYMBOL (SYMBOL-NAME object)
+						   (SYMBOL-PACKAGE object)))
+			 *:external*)
+		     ":"
+		     "::"))
 	  (princ (SYMBOL-NAME object)))))
       ((CHARACTERP object)
        (princ "#\\")
