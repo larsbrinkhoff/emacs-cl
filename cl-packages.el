@@ -39,9 +39,12 @@
 (defun* EXPORT (symbols &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
     (do-list-designator (sym symbols 'T)
-      (multiple-value-bind (sym status) (FIND-SYMBOL (SYMBOL-NAME sym) package)
-	(when (eq status *:inherited*)
-	  (IMPORT sym package)))
+      (multiple-value-bind (s status) (FIND-SYMBOL (SYMBOL-NAME sym) package)
+	(cond
+	  ((eq status *:inherited*)
+	   (IMPORT sym package))
+	  ((null status)
+	   (error "package error"))))
       (pushnew sym (aref package 7)))))
 
 (defun FIND-PACKAGE (name)

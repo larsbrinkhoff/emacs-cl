@@ -36,3 +36,4 @@
 
 (IN-PACKAGE "CL-USER")
 (populate-packages)
+(garbage-collect)
