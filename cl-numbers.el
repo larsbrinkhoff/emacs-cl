@@ -6,6 +6,22 @@
 
 (in-package "CL")
 
+;;; Various test cases for bignum addition.
+(defun bignum-test ()
+  (loop for (x y z) in
+	'((67108864		67108864		[bignum -134217728 0])
+	  (134217727		1			[bignum -134217728 0])
+	  (-134217728		-1			[bignum 134217727 -1])
+	  (-134217728		-134217728		[bignum 0 -1])
+	  ([bignum 0 2]		[bignum 0 -1]		[bignum 0 1])
+	  ([bignum 0 -1]	[bignum 0 2]		[bignum 0 1])
+	  ([bignum 0 1]		[bignum 0 -2]		[bignum 0 -1])
+	  ([bignum 0 -2]	[bignum 0 1]		[bignum 0 -1])
+	  ([bignum 2 2]		[bignum -1 -3]		1)
+	  ([bignum 2 2]		[bignum -3 -3]		-1))
+	do (unless (equal (cl:+ x y) z)
+	     (princ (format "%s + %s /= %s" x y z)))))
+
 (defun cl:= (number &rest numbers)
   (every (lambda (n) (binary= number n)) numbers))
 
@@ -137,13 +153,42 @@
 (defun cl:* (&rest numbers)
   (reduce #'binary* numbers :initial-value 1))
 
+(defconst multiplication-limit (ceiling (sqrt most-positive-fixnum)))
+
 (defun binary* (x y)
   (cond
-    ((and (or (integerp x) (floatp x))
-	  (or (integerp y) (floatp y)))
+    ((and (integerp x)
+	  (< x multiplication-limit)
+	  (> x (- multiplication-limit))
+	  (integerp y)
+	  (< y multiplication-limit)
+	  (> y (- multiplication-limit)))
      (* x y))
+    ((or (complexp x) (complexp y))
+     (complex (binary- (binary* (realpart x) (realpart y))
+		       (binary* (imagpart x) (imagpart y)))
+	      (binary+ (binary* (realpart x) (imagpart y))
+		       (binary* (imagpart x) (realpart y)))))
+    ((floatp x)
+     (* x (cl:float y)))
+    ((floatp y)
+     (* (cl:float x) y))
+    ((or (cl::ratiop x) (cl::ratiop y))
+     (if (cl:zerop y)
+	 (error)
+	 (cl::ratio (binary* (numerator x) (denominator y))
+		    (binary* (denominator x) (numerator y)))))
+    ((or (cl::bignump x) (cl::bignump y))
+     (when (integerp x)
+       (setq x (vector 'bignum x (if (minusp x) -1 0))))
+     (when (integerp y)
+       (setq y (vector 'bignum y (if (minusp y) -1 0))))
+     (bignum* x y))
     (t
      (error "TODO"))))
+
+(defun bignum* (x y)
+  0)
 
 (defun cl:+ (&rest numbers)
   (reduce #'binary+ numbers :initial-value 0))
@@ -167,9 +212,9 @@
     ((floatp y)
      (+ (cl:float x) y))
     ((or (cl::ratiop x) (cl::ratiop y))
-     (cl::ratio (binary+ (cl:* (numerator x) (denominator y))
-			   (cl:* (denominator x) (numerator y)))
-		(cl:* (denominator x) (denominator y))))
+     (cl::ratio (binary+ (binary* (numerator x) (denominator y))
+			 (binary* (denominator x) (numerator y)))
+		(binary* (denominator x) (denominator y))))
     ((or (cl::bignump x) (cl::bignump y))
      (cond
        ((integerp x)	(bignum+fixnum y x))
@@ -210,11 +255,13 @@
      (canonical-bignum (bignum-list object)))
     ((listp object)
      (setq object (truncate-sign-extension object))
-     (let ((bignum (make-vector (1+ (length object)) 'bignum))
-	   (i 0))
-       (dolist (n object)
-	 (aset bignum (incf i) n))
-       bignum))
+     (if (eql (length object) 1)
+	 (first object)
+	 (let ((bignum (make-vector (1+ (length object)) 'bignum))
+	       (i 0))
+	   (dolist (n object)
+	     (aset bignum (incf i) n))
+	   bignum)))
     (t
      (error))))
 
@@ -235,7 +282,7 @@
 	    list))))
 
 (defun* bignum+ (x y &optional (carry 0))
-  (print (format "(bignum+ %s %s %s)" x y carry))
+; (print (format "(bignum+ %s %s %s)" x y carry))
   (cond
     ((null x)
      (if (zerop carry)
@@ -249,13 +296,14 @@
      (let* ((x0 (car x))
 	    (y0 (car y))
 	    (sum (+ x0 y0 carry)))
-       (print (format "x0=%s y0=%s sum=%s" x0 y0 sum))
+;      (print (format "x0=%s y0=%s sum=%s" x0 y0 sum))
        (cons sum
 	     (bignum+
 	      (rest x)
 	      (rest y)
-	      (if (or (and (minusp x0) (>= y0 0) (>= sum 0))
-		      (and (>= x0 0) (minusp y0) (>= sum 0)))
+	      (if (or (and (minusp x0) (>= y0 0) (>= sum 0) (rest x))
+		      (and (>= x0 0) (minusp y0) (>= sum 0) (rest y))
+		      (and (minusp x0) (minusp y0) (>= sum 0)))
 		  1 0)))))))
 
 (defun cl:- (number &rest numbers)
@@ -466,7 +514,40 @@
 (defun rationalp (num)
   (or (cl:integerp num) (cl::ratiop num)))
 
-;;; TODO: ash
+(defun cl:ash (num shift)
+  (cond
+    ((cl:zerop shift)
+     num)
+    ((cl:minusp shift)
+     (cond
+       ((integerp num)
+	(ash num shift))
+       ((cl::bignump num)
+	(let ((new (copy-sequence num)))
+	  (while (cl:minusp shift)
+	    (shift-right new)
+	    (incf shift))
+	  (canonical-bignum new)))
+       (t
+	(error))))
+    (t
+     (while (> shift 0)
+       (setq num (binary+ num num)
+	     shift (1- shift)))
+     num)))
+
+(defun shift-right (num)
+  (let ((i (1- (length num)))
+	(first t)
+	(carry 0))
+    (while (plusp i)
+      (let ((n (aref num i)))
+	(aset num i (if first
+			(ash n -1)
+			(logior (lsh n -1) (ash carry 27))))
+	(setq carry (logand n 1)
+	      first nil))
+      (decf i))))
 
 ;;; TODO: integer-length
 
