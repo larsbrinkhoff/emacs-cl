@@ -104,19 +104,25 @@
 	 (/ (float (numerator num2)) (denominator num2))))
     ((or (cl::bignump num1) (cl::bignump num2))
      (let ((diff (binary- num1 num2)))
-       (or (minusp diff) (zerop diff))))
+       (or (cl:minusp diff) (cl:zerop diff))))
     (t
      (error "type error: = %s %s" num1 num2))))
 
 (defun cl:>= (number &rest numbers)
   (if (null numbers)
       t
-      (and (binary>= (first numbers) number)
+      (and (binary<= number (first numbers))
 	   (apply #'cl:>= (first numbers) (rest numbers)))))
 
-;;; TODO: max
+(defun cl:max (&rest numbers)
+  (if (null numbers)
+      (error "")
+      (reduce (lambda (num1 num2) (if (cl:>= num1 num2) num1 num2)) numbers)))
 
-;;; TODO: min
+(defun cl:min (&rest numbers)
+  (if (null numbers)
+      (error "")
+      (reduce (lambda (num1 num2) (if (cl:<= num1 num2) num1 num2)) numbers)))
 
 (defun cl:minusp (num)
   (cond
@@ -148,10 +154,34 @@
      (zerop (numerator num)))
     ((complexp num)
      (and (cl:zerop (realpart num)) (cl:zerop (imagpart num))))
+    ((cl::bignump num)
+     nil)
     (t
      (error "type error"))))
 
 ;;; TODO: floor, ffloor, ceiling, fceiling
+
+(defun divide (x y)
+  (cond
+    ((and (integerp x) (integerp y))
+     (if (and (eql x most-negative-fixnum) (eql y -1))
+	 (vector 'bignum most-negative-fixnum 0)
+	 (/ x y)))
+    ((and (cl:integerp x) (cl:integerp y))
+     (let ((sign 1) (q 0) (r 0) i)
+       (when (cl:minusp x)
+	 (setq sign -1))
+       (when (cl:minusp y)
+	 (setq sign (- sign)))
+       (dotimes (i (if (integerp x) 28 (* 28 (1- (length x)))))
+	 (setq r (cl:ash r 1))
+	 (when (logbitp i x)
+	   (setq r (cl:1+ r)))
+	 (setq q (cl:ash q 1))
+	 (when (cl:>= r y)
+	   (setq q (cl:1+ q))
+	   (setq r (cl:- r y))))
+       (cl:* sign q)))))
 
 (defun* cl:truncate (number &optional (divisor 1))
   (let ((quotient (cl:/ number divisor)))
@@ -613,18 +643,7 @@
 (defun integer-length (num)
   (when (cl:minusp num)
     (setq num (cl:- num)))
-  (let ((len 0))
-    (cond
-      ((integerp num)
-       (dotimes (i 28)
-	 (when (logbitp i num)
-	   (incf i))))
-      (t
-       (dotimes (i (1- (length num)))
-	 (dotimes (j 28)
-	   (when (logbitp i num)
-	     (incf i))))))
-    len))
+  0)
 
 (defun cl::bignump (num)
   (vector-and-typep num 'bignum))
@@ -710,7 +729,7 @@
      0)))
 
 (defun cl:logior (&rest numbers)
-  (reduce #'binary-logior numbers :initial-value -1))
+  (reduce #'binary-logior numbers :initial-value 0))
 
 (defun binary-logior (x y)
   (cond
@@ -795,21 +814,79 @@
     (t
      (error "type error"))))
 
-;;; TODO: logcount
+(defun logcount (num)
+  (when (cl:minusp num)
+    (setq num (cl:- num)))
+  (let ((len 0))
+    (cond
+      ((integerp num)
+       (dotimes (i 28)
+	 (when (logbitp i num)
+	   (incf len))))
+      (t
+       (dotimes (i (1- (length num)))
+	 (dotimes (j 28)
+	   (when (logbitp i num)
+	     (incf len))))))
+    len))
 
-;;; TODO: logtest
+(defun logtest (num1 num2)
+  (not (zerop (cl:logand num1 num2))))
 
-;;; TODO: byte, byte-size, byte-position
+(defun byte (size pos)
+  (list size pos))
 
-;;; TODO: deposit-field
+(defun byte-size (bytespec)
+  (first bytespec))
 
-;;; TODO: dpb
+(defun byte-position (bytespec)
+  (second bytespec))
 
-;;; TODO: ldb
+(defun deposit-field (newbyte bytespec integer)
+  (cl:logior (cl:logand integer (cl:lognot (dpb -1 bytespec 0)))
+	     (mask-field bytespec newbyte)))
 
-;;; TODO: ldb-test
+(defun dpb (newbyte bytespec integer)
+  (let ((mask (cl:1- (cl:ash 1 (byte-size bytespec)))))
+    (cl:logior (cl:logand integer
+			  (cl:lognot (cl:ash mask (byte-position bytespec))))
+	       (cl:ash (cl:logand newbyte mask) (byte-position bytespec)))))
 
-;;; TODO: mask-field
+(defun ldb (bytespec integer)
+  (cl:logand (cl:ash integer (cl:- (byte-position bytespec)))
+	     (cl:1- (cl:ash 1 (byte-size bytespec)))))
+
+(define-setf-expander ldb (bytespec integer &environment env)
+  (multiple-value-bind (temps values variables setter getter)
+      (get-setf-method integer env)
+    (let ((byte (gensym))
+	  (value (gensym)))
+    (values (cons byte temps)
+	    (cons bytespec values)
+	    (list value)
+	    `(let ((,(first variables) (dpb ,value ,byte ,getter)))
+	      ,setter
+	      ,value)
+	    `(ldb ,byte ,getter)))))
+
+(defun ldb-test (bytespec integer)
+  (not (zerop (ldb bytespec integer))))
+
+(defun mask-field (bytespec integer)
+  (cl:logand integer (dpb -1 bytespec 0)))
+
+(define-setf-method mask-field (bytespec integer &environment env)
+  (multiple-value-bind (temps values variables setter getter)
+      (get-setf-method integer env)
+    (let ((byte (gensym))
+	  (value (gensym)))
+    (values (cons byte temps)
+	    (cons bytespec values)
+	    (list value)
+	    `(let ((,(first variables) (deposit-field ,value ,byte ,getter)))
+	      ,setter
+	      ,value)
+	    `(mask-field ,byte ,getter)))))
 
 ;;; TODO: decode-float, scale-float, float-radix, float-sign, float-digits,
 ;;; float-precision, integer-decode-float
