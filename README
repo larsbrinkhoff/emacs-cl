@@ -1,13 +1,16 @@
+TODO: Come up with a name.
+
 This is an implementation of Common Lisp, written in Emacs Lisp.  It
 does not yet purport to conform to the ANSI standard since CLOS,
-extended LOOP, pretty printing, and compilation are missing.  Some
-algorithms and messages have been inspired by SBCL.
+extended LOOP, pretty printing, and compilation are missing.  However,
+most other Common Lisp features like lexical closures, packages,
+readtables, multiple values, bignums, adjustable arrays, etc, are
+present.  At this stage many bugs remain and error checking is sparse.
 
 See INSTALL for usage instructions.
 
-TODO: Come up with a name.
-
-Some notes on the internals of the implementation follows:
+Some algorithms and messages have been inspired by SBCL.  Notes on the
+internals of the implementation follows:
 
 
 
