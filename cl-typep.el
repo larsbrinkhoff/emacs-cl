@@ -65,7 +65,7 @@
   (cl::bignump object))
 
 (define-typep (object bit env)
-  (or (zerop object) (eql object 1)))
+  (or (eql object 0) (eql object 1)))
 
 (define-typep (object (bit-vector &optional (size '*)) env)
   (and (bool-vector-p object)

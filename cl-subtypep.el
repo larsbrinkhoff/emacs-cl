@@ -9,12 +9,14 @@
 (in-package "CL")
 
 (defvar *types*
-  '(complex number null boolean keyword symbol cons list))
+  '(nil complex number null boolean keyword symbol cons list character))
 
 (defvar *objects*
   (list (complex 0 1) 0 nil t (make-symbol "") (cons nil nil)
 	;; Should really be an uninterned keyword.
-	(cl:intern "reallyunlikelysymbolname" "KEYWORD")))
+	(cl:intern "reallyunlikelysymbolname" "KEYWORD")
+	;; This guarantees an unique character object.
+	(vector 'character 0)))
 
 (defvar *type-val* (make-hash-table :test 'equal))
 
@@ -37,22 +39,23 @@
   (register object))
 
 (defun simplify-integer-range (range &optional high)
-  (if (null range)
-      nil
-      (cons
-       (let ((x (first range)))
-	 (cond
-	   ((eq x '*)		x)
-	   ((integerp x)	x)
-	   ((realp x)		(if high (floor x) (ceiling x)))
-	   ((consp x)
-	    (setq x (car x))
-	    (cond
-	      ((integerp x)	(if high (1- x) (1+ x)))
-	      ((realp x)	(if high (1- (ceiling x)) (1+ (floor x))))
-	      (t		(error))))
-	   (t			(error))))
-       (simplify-integer-range (rest range) (not high)))))
+  range)
+;   (if (null range)
+;       nil
+;       (cons
+;        (let ((x (first range)))
+; 	 (cond
+; 	   ((eq x '*)		x)
+; 	   ((integerp x)	x)
+; 	   ((realp x)		(if high (floor x) (ceiling x)))
+; 	   ((consp x)
+; 	    (setq x (car x))
+; 	    (cond
+; 	      ((integerp x)	(if high (1- x) (1+ x)))
+; 	      ((realp x)	(if high (1- (ceiling x)) (1+ (floor x))))
+; 	      (t		(error))))
+; 	   (t			(error))))
+;        (simplify-integer-range (rest range) (not high)))))
 
 (defun negate-range (range)
   (cond
@@ -117,7 +120,7 @@
   (when (and ranges1 ranges2 (ll<= (first ranges2) (first ranges1)))
     (psetq ranges1 ranges2
 	   ranges2 ranges1))
-;  (print (format "union %s %s" ranges1 ranges2))
+;   (print (format "union %s %s" ranges1 ranges2))
   (let ((low1 (first ranges1))
 	(low2 (first ranges2))
 	(high1 (second ranges1))
@@ -172,6 +175,8 @@
   (cond
     ((member type *types*)
      `(,(gethash type *type-val*) (() () ())))
+    ((eq type t)
+     '(-1 ((* *) (* *) (* *))))
     ((atom type)
      (let ((num 0)
 	   (ranges

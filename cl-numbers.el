@@ -124,7 +124,15 @@
 ;;; TODO: SINH, COSH, TANH, ASINH, ACOSH, ATANH
 
 (defun cl:* (&rest numbers)
-  (reduce #'two-arg-+ numbers :initial-value 1))
+  (reduce #'two-arg-* numbers :initial-value 1))
+
+(defun two-arg-* (x y)
+  (cond
+    ((and (or (integerp x) (floatp x))
+	  (or (integerp y) (floatp y)))
+     (* x y))
+    (t
+     (error "TODO"))))
 
 (defun cl:+ (&rest numbers)
   (reduce #'two-arg-+ numbers :initial-value 0))

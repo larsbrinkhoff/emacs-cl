@@ -43,9 +43,18 @@
     ((characterp x)	(cl:make-string 1 :initial-element x))
     (t			(error))))
 
+;;; TODO: string-upcase, string-downcase, string-capitalize,
+;;; nstring-upcase, nstring-downcase, nstring-capitalize
+
+;;; TODO: string-trim, string-left-trim, string-right-trim
+
+;;; TODO: string=, string/=, string<, string>, string<=, string>=,
+;;; string-equal, string-not-equal, string-lessp, string-greaterp,
+;;; string-not-greaterp, string-not-lessp
+
 (defun cl:stringp (object)
   (or (simple-string-p object)
-      (and (vectorp object) (eq (aref object 0) 'string))))
+      (vector-and-typep object 'string)))
 
 (defun* cl:make-string (size &key initial-element element-type)
   (make-string size (if initial-element (char-code initial-element) 0)))
