@@ -6,6 +6,7 @@
 
   (load "cl-flow")
   (load "cl-numbers")
+  (load "cl-conses")
   (load "cl-structures")
 
   (load "cl-characters")
@@ -20,7 +21,6 @@
   (load "cl-subtypep")
 
   (load "cl-arrays")
-  (load "cl-conses")
   (load "cl-sequences")
   (load "cl-printer")
   nil)
