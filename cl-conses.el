@@ -389,7 +389,7 @@
 
 (defun MAPC (fn &rest lists)
   (let ((result (car lists)))
-    (while (notany (cl:function ENDP) lists))
+    (while (notany (cl:function ENDP) lists)
       (APPLY fn (mapcar (cl:function car) lists))
       (setq lists (mapcar (cl:function cdr) lists)))
     result))
@@ -400,6 +400,17 @@
       (push (APPLY fn (mapcar (cl:function car) lists)) result)
       (setq lists (mapcar 'cdr lists)))
     (nreverse result)))
+
+(defun MAPCAN (fn &rest lists)
+  (apply (cl:function nconc)
+	 (apply (cl:function MAPCAR) fn lists)))
+
+(defun MAPL (fn &rest lists)
+  (let ((result (car lists)))
+    (while (notany (cl:function ENDP) lists)
+      (APPLY fn lists)
+      (setq lists (mapcar (cl:function cdr) lists)))
+    result))
 
 (defun MAPLIST (fn &rest lists)
   (let ((result nil))
