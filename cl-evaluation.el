@@ -26,37 +26,41 @@
     ',name))
 
 (defun MACRO-FUNCTION (name &optional env)
-  (gethash name *macro-functions*))
+  (when (null env)
+    (setq env *global-environment*))
+  (let ((fn (lexical-function name env)))
+    (or fn (gethash name *macro-functions*))))
 
 (defsetf MACRO-FUNCTION (name &optional env) (fn)
-  `(setf (gethash ,name *macro-functions*) ,fn))
+  `(if (null ,env)
+       (setf (gethash ,name *macro-functions*) ,fn)
+       (set-local-macro ,name ,fn ,env)))
 
 (defmacro* cl:defmacro (name lambda-list &body body)
   `(progn
-    (setf (MACRO-FUNCTION ',name)
-          (function* (lambda (form env)
-	               (destructuring-bind ,lambda-list (cdr form)
-			 ,@body))))
+     (setf (MACRO-FUNCTION ',name)
+           (function* (lambda (form env)
+	                (destructuring-bind ,lambda-list (cdr form)
+			  ,@body))))
     ',name))
 
 (cl:defmacro DEFMACRO (name lambda-list &body body)
-  '(BACKQUOTE
-    (EVAL-WHEN ((COMMA (keyword "COMPILE-TOPLEVEL"))
-		(COMMA (keyword "COMPILE-TOPLEVEL"))
-		(COMMA (keyword "COMPILE-TOPLEVEL")))
-      (SETF (MACRO-FUNCTION (QUOTE (COMMA name)))
-	    (FUNCTION (LAMBDA (form env)
-		        (DESTRUCTURING-BIND (COMMA lambda-list) (CDR form)
-			  (COMMA-AT body)))))
-      (QUOTE (COMMA name)))))
+  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
+	       ,(keyword "COMPILE-TOPLEVEL")
+	       ,(keyword "COMPILE-TOPLEVEL"))
+      (SETF (MACRO-FUNCTION (QUOTE ,name))
+	    (LAMBDA (form env)
+	      (DESTRUCTURING-BIND ,lambda-list (CDR form)
+		,@body)))
+      (QUOTE ,name)))
 
 (cl:defmacro LAMBDA (lambda-list &body body)
-  (LIST 'FUNCTION (LIST* 'LAMBDA lambda-list body)))
+  `(FUNCTION (LAMBDA ,lambda-list ,@body)))
 
 (defun MACROEXPAND-1 (form &optional env)
   (cond
     ((consp form)
-     (let ((fn (MACRO-FUNCTION (car form))))
+     (let ((fn (MACRO-FUNCTION (car form) env)))
        (if fn
 	   (let ((new (funcall *MACROEXPAND-HOOK* fn form env)))
 	     (VALUES new (not (eq form new))))
@@ -79,13 +83,21 @@
 
 (defmacro* DEFINE-SYMBOL-MACRO (symbol expansion)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-    (setf (gethash ',symbol *symbol-macro-functions*)
-          (function* (lambda (form env) ',expansion)))
-    ',symbol))
+     (setf (gethash ',symbol *symbol-macro-functions*)
+           (function* (lambda (form env) ',expansion)))
+     ',symbol))
+
+(cl:defmacro DEFINE-SYMBOL-MACRO (symbol expansion)
+  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
+	       ,(keyword "LOAD-TOPLEVEL")
+	       ,(keyword "EXECUTE"))
+     (puthash (QUOTE ,symbol) (LAMBDA (form env) (QUOTE ,expansion))
+              *symbol-macro-functions*)
+     (QUOTE ,symbol)))
 
 ;;; TODO: symbol-macrolet
 
-(defvar *MACROEXPAND-HOOK* #'funcall)
+(defvar *MACROEXPAND-HOOK* #'FUNCALL)
 
 ;;;
 

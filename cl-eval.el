@@ -117,7 +117,16 @@
 
 ;;; TODO: LOCALLY
 
-;;; TODO: MACROLET
+(define-special-operator MACROLET (macros &rest forms) env
+  (let ((new-env (augment-environment env :macro (mapcar #'first macros)))
+	(lastval nil))
+    (dolist (macro macros)
+      (setf (MACRO-FUNCTION (first macro) new-env)
+	    (enclose `(LAMBDA (form env)
+		        ;; TODO: destructuring-bind
+		        (APPLY (LAMBDA ,@(rest macro)) (CDR form))))))
+    (dolist (form forms lastval)
+      (setq lastval (eval-with-env form new-env)))))
 
 (define-special-operator MULTIPLE-VALUE-CALL (fn &rest forms) env
   (let ((values nil))
@@ -276,10 +285,10 @@
 			   symbol-macro
 			   :initial-value var-info))
     (setq var-local (append variable var-local))
-    (setq fn-info (reduce (lambda (var fn) (acons fn :function var))
+    (setq fn-info (reduce (lambda (env fn) (acons fn :function env))
 			  function
 			  :initial-value fn-info))
-    (setq fn-info (reduce (lambda (mac var) (acons mac :macro env))
+    (setq fn-info (reduce (lambda (env mac) (acons mac :macro env))
 			  macro
 			  :initial-value fn-info))
     (setq fn-local (append function fn-local))
@@ -298,6 +307,10 @@
   (vector-and-typep object 'interpreted-function))
 
 
+
+(defun set-local-macro (name fn env)
+  (augment-environment env :macro (list name))
+  (setf (lexical-function name env) fn))
 
 (defun eval-lambda-form (form env &optional eval-args)
   (let ((new-env
@@ -321,7 +334,7 @@
 (defun eval-with-env (form env)
   (unless env
     (setq env *global-environment*))
-  (setq form (NTH-VALUE 0 (MACROEXPAND form)))
+  (setq form (NTH-VALUE 0 (MACROEXPAND form env)))
   (cond
     ((SYMBOLP form)
      (VALUES
@@ -337,7 +350,7 @@
      (if (consp (car form))
 	 (if (eq (caar form) 'LAMBDA)
 	     (eval-lambda-form form env t)
-	     (error "syntax error"))
+	     (error "syntax error: %s" form))
 	 (let ((fn (gethash (first form) *special-operator-evaluators*)))
 	   (if fn
 	       (apply fn env (rest form))

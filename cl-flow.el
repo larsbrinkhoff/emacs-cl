@@ -16,8 +16,10 @@
 		       (aref fn 2)))
     ((FUNCTIONP fn)
      (apply #'apply fn args))
+    ((functionp fn)
+     (apply #'apply fn args))
     (t
-     (apply #'apply (FDEFINITION fn) args))))
+     (apply #'APPLY (FDEFINITION fn) args))))
 
 (defmacro* DEFUN (name lambda-list &body body)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
@@ -80,8 +82,10 @@
      (eval-lambda-form (cons (aref fn 1) args) (aref fn 2)))
     ((FUNCTIONP fn)
      (apply fn args))
+    ((functionp fn)
+     (apply fn args))
     (t
-     (apply (FDEFINITION fn) args))))
+     (APPLY (FDEFINITION fn) args))))
 
 ;;; TODO: function
 
