@@ -362,7 +362,7 @@
 (DEFSETF REST (cons) (cdr)
   `(setcdr ,cons ,cdr))
 
-(defun* MEMBER (object list &key (key #'IDENTITY) test test-not)
+(cl:defun MEMBER (object list &key (key #'IDENTITY) test test-not)
   (when (and test test-not)
     (error))
   (when test-not
@@ -374,13 +374,13 @@
     (when (FUNCALL test object (FUNCALL key (car list)))
       (return-from MEMBER list))))
 
-(defun* MEMBER-IF (predicate list &key (key #'IDENTITY))
+(cl:defun MEMBER-IF (predicate list &key (key #'IDENTITY))
   (do ((list list (cdr list)))
       ((null list) nil)
     (when (FUNCALL predicate (FUNCALL key (car list)))
       (return-from MEMBER list))))
 
-(defun* MEMBER-IF-NOT (predicate list &key (key #'IDENTITY))
+(cl:defun MEMBER-IF-NOT (predicate list &key (key #'IDENTITY))
   (do ((list list (cdr list)))
       ((null list) nil)
     (unless (FUNCALL predicate (FUNCALL key (car list)))
@@ -436,12 +436,12 @@
     (when (and pair (FUNCALL test item (FUNCALL key (car pair))))
       (return-from ASSOC pair))))
 
-(defun* ASSOC-IF (predicate alist &key (key #'IDENTITY))
+(cl:defun ASSOC-IF (predicate alist &key (key #'IDENTITY))
   (dolist (pair alist)
     (when (and pair (FUNCALL predicate (FUNCALL key (car pair))))
       (return-from ASSOC-IF pair))))
 
-(defun* ASSOC-IF-NOT (predicate alist &key (key #'IDENTITY))
+(cl:defun ASSOC-IF-NOT (predicate alist &key (key #'IDENTITY))
   (dolist (pair alist)
     (when (and pair (not (FUNCALL predicate (FUNCALL key (car pair)))))
       (return-from ASSOC-IF pair))))
@@ -452,7 +452,7 @@
 (defun PAIRLIS (keys data &optional alist)
   (NCONC (MAPCAR #'CONS keys data) alist))
 
-(defun* RASSOC (item alist &key (key #'IDENTITY) test test-not)
+(cl:defun RASSOC (item alist &key (key #'IDENTITY) test test-not)
   (when (and test test-not)
     (error))
   (when test-not
@@ -463,12 +463,12 @@
     (when (and pair (FUNCALL test item (FUNCALL key (cdr pair))))
       (return-from ASSOC pair))))
 
-(defun* RASSOC-IF (predicate alist &key (key #'IDENTITY))
+(cl:defun RASSOC-IF (predicate alist &key (key #'IDENTITY))
   (dolist (pair alist)
     (when (and pair (FUNCALL predicate (FUNCALL key (cdr pair))))
       (return-from ASSOC-IF pair))))
 
-(defun* RASSOC-IF-NOT (predicate alist &key (key #'IDENTITY))
+(cl:defun RASSOC-IF-NOT (predicate alist &key (key #'IDENTITY))
   (dolist (pair alist)
     (when (and pair (not (FUNCALL predicate (FUNCALL key (cdr pair)))))
       (return-from ASSOC-IF pair))))
@@ -496,12 +496,32 @@
 	 (progn (setf ,plist (LIST* ,indicator ,value ,plist) ,value))
 	 (setf (SECOND tail) ,value))))
 
-;;; TODO: REMF
+(defun delete-property (plist indicator)
+  (cond
+    ((null plist)			nil)
+    ((eq (car plist) indicator)		(cddr plist))
+    (t					(RPLACD (cdr plist)
+						(delete-property (cddr plist)
+								 indicator))
+					plist)))
 
-;;; TODO: INTERSECTION, NINTERSECTION
+(cl:defmacro REMF (place indicator) ;TODO: &environment
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION place nil)
+    `(LET* (,@(MAPCAR #'list temps values)
+	    (,(first variables) (delete-property ,getter ,indicator)))
+       ,setter)))
 
-(defun* ADJOIN (object list &key test test-not)
-  (if (MEMBER object list :test test :test-not test-not)
+(cl:defun INTERSECTION (list1 list2 &key (key #'IDENTITY) test test-not)
+  (let ((result nil))
+    (dolist (x list1 result)
+      (when (MEMBER x list2 (kw KEY) key (kw TEST) test (kw TEST-NOT) test-not)
+	(push x result)))))
+
+(fset 'NINTERSECTION (symbol-function 'INTERSECTION))
+
+(cl:defun ADJOIN (object list &key (key #'IDENTITY) test test-not)
+  (if (MEMBER object list (kw KEY) key (kw TEST) test (kw TEST-NOT) test-not)
       list
       (cons object list)))
 
@@ -517,26 +537,43 @@
     (with-gensyms (obj)
       `(LET* ((,obj ,object)
 	      ,@(MAPCAR #'list temps values)
-	      (,(first variables) (ADJOIN ,obj ,getter :test ,test)))
+	      (,(first variables) (ADJOIN ,obj ,getter (kw TEST) ,test)))
 	 ,setter))))
 
-(defun* SET-DIFFERENCE (list1 list2 &key (key #'IDENTITY) test test-not)
-  (when (and test test-not)
-    (error))
-  (when test-not
-    (setq test (COMPLEMENT test-not)))
-  (unless test
-    (setq test #'EQL))
+(cl:defun SET-DIFFERENCE (list1 list2 &key (key #'IDENTITY) test test-not)
+  (let ((result nil))
+    (dolist (x list1 result)
+      (unless (MEMBER x list2 (kw KEY) key (kw TEST) test
+		              (kw TEST-NOT) test-not)
+	(push x result)))))
+
+(fset 'NSET-DIFFERENCE (symbol-function 'SET-DIFFERENCE))
+
+(cl:defun SET-EXCLUSIVE-OR (list1 list2 &key (key #'IDENTITY) test test-not)
   (let ((result nil))
     (dolist (x list1)
-      (unless (MEMBER x list2 :key key :test test :test-not test-not)
+      (unless (MEMBER x list2 (kw KEY) key (kw TEST) test
+		              (kw TEST-NOT) test-not)
 	(push x result)))
-    result))
+    (dolist (x list2 result)
+      (unless (MEMBER x list1 (kw KEY) key (kw TEST) test
+		              (kw TEST-NOT) test-not)
+	(push x result)))))
 
-;;; TODO: NSET-DIFFERENCE
+(fset 'NSET-EXCLUSIVE-OR (symbol-function 'SET-EXCLUSIVE-OR))
 
-;;; TODO: SET-EXCLUSIVE-OR, NSET-EXCLUSIVE-OR
+(cl:defun SUBSETP (list1 list2 &key key test test-not)
+  (EVERY (lambda (x) (MEMBER x list2 (kw KEY) key (kw TEST) test
+			             (kw TEST-NOT) test-not))
+	 list1))
 
-;;; TODO: SUBSETP
+(cl:defun UNION (list1 list2 &key key test test-not)
+  (let ((result nil))
+    (dolist (x list1)
+      (setq result (ADJOIN x result (kw KEY) key (kw TEST) test
+			            (kw TEST-NOT) test-not)))
+    (dolist (x list2 result)
+      (setq result (ADJOIN x result (kw KEY) key (kw TEST) test
+			            (kw TEST-NOT) test-not)))))
 
-;;; TODO: UNION, NUNION
+(fset 'NUNION (symbol-function 'UNION))
