@@ -20,18 +20,21 @@
     ((or (cl::ratiop num1) (cl::ratiop num2))
      (and (two-arg-= (numerator num1) (numerator num2))
 	  (two-arg-= (denominator num1) (denominator num2))))
-    ((or (cl::bignump num1) (cl::bignump num2))
-     ;; TODO
-     t)
+    ((and (cl::bignump num1) (cl::bignump num2))
+     (and (= (length num1) (length num2))
+	  (every #'eql num1 num2)))
+    ((and (cl:numberp num1) (cl:numberp num2))
+     nil)
     (t
      (error "type error: = %s %s" num1 num2))))
 
-;;; /=
+;;; TODO: /=
 
 (defun cl:< (number &rest numbers)
   (if (null numbers)
       t
-      (two-arg-< number (first numbers))))
+      (and (two-arg-< number (first numbers))
+	   (apply #'cl:< (first numbers) (rest numbers)))))
 
 (defun two-arg-< (num1 num2)
   (cond
@@ -48,12 +51,13 @@
     (t
      (error "type error: = %s %s" num1 num2))))
 
-;;; >
+;;; TODO: >
 
 (defun cl:<= (number &rest numbers)
   (if (null numbers)
       t
-      (two-arg-<= number (first numbers))))
+      (and (two-arg-<= number (first numbers))
+	   (apply #'cl:<= (first numbers) (rest numbers)))))
 
 (defun two-arg-<= (num1 num2)
   (cond
@@ -70,27 +74,54 @@
     (t
      (error "type error: = %s %s" num1 num2))))
 
-;;; >=
+;;; TODO: >=
 
-;;; max
+;;; TODO: max
 
-;;; min
+;;; TODO: min
 
-;;; minusp
+(defun cl:minusp (num)
+  (cond
+    ((or (integerp num) (floatp num))
+     (minusp num))
+    ((cl::bignump num)
+     (minusp (aref num (1- (length num)))))
+    ((cl::ratiop num)
+     (minusp (numerator num)))
+    (t
+     (error "type error"))))
 
-;;; plusp
+(defun cl:plusp (num)
+  (cond
+    ((or (integerp num) (floatp num))
+     (plusp num))
+    ((cl::bignump num)
+     (plusp (aref num (1- (length num)))))
+    ((cl::ratiop num)
+     (plusp (numerator num)))
+    (t
+     (error "type error"))))
 
-;;; zerop
+(defun cl:zerop (num)
+  (cond
+    ((or (integerp num) (floatp num))
+     (zerop num))
+    ((cl::ratiop num)
+     (zerop (numerator num)))
+    ((complexp num)
+     (and (cl:zerop (realpart num)) (cl:zerop (imagpart num))))
+    (t
+     (error "type error"))))
 
-;;; FLOOR, FFLOOR, CEILING, FCEILING, TRUNCATE, FTRUNCATE, ROUND, FROUND
+;;; TODO: FLOOR, FFLOOR, CEILING, FCEILING, TRUNCATE, FTRUNCATE, ROUND, FROUND
 
-;;; SIN, COS, TAN
+;;; TODO: SIN, COS, TAN
 
-;;; ASIN, ACOS, ATAN
+;;; TODO: ASIN, ACOS, ATAN
 
-;;; (defconstast pi ...)
+;;; TODO: (defconstast pi ...)
 
-;;; SINH, COSH, TANH, ASINH, ACOSH, ATANH
+;;; TODO: SINH, COSH, TANH, ASINH, ACOSH, ATANH
 
 (defun cl:* (&rest numbers)
   (reduce #'two-arg-+ numbers :initial-value 1))
@@ -212,9 +243,9 @@
     (t
      (error))))
 
-;;; EVENP, ODDP
+;;; TODO: EVENP, ODDP
 
-;;; EXP, EXPT
+;;; TODO: EXP, EXPT
 
 (defun gcd (&rest numbers)
   (reduce #'two-arg-gcd numbers :initial-value 0))
@@ -229,25 +260,25 @@
 	(abs x))
       0))
 
-;;; INCF, DECF
+;;; TODO: INCF, DECF
 
-;;; LCM
+;;; TODO: LCM
 
-;;; LOG
+;;; TODO: LOG
 
-;;; MOD, REM
+;;; TODO: MOD, REM
 
-;;; SIGNUM
+;;; TODO: SIGNUM
 
-;;; SQRT, ISQRT
+;;; TODO: SQRT, ISQRT
 
-;;; MAKE-RANDOM-STATE
+;;; TODO: MAKE-RANDOM-STATE
 
-;;; RANDOM
+;;; TODO: RANDOM
 
-;;; RANDOM-STATE-P
+;;; TODO: RANDOM-STATE-P
 
-;;; *RANDOM-STATE*
+;;; TODO: *RANDOM-STATE*
 
 (defun cl:numberp (object)
   (or (numberp object)
@@ -257,7 +288,7 @@
 		 (eq type 'ratio)
 		 (eq type 'complex))))))
 
-;;; CIS
+;;; TODO: CIS
 
 (defun complex (realpart &optional imagpart)
   (check-type realpart 'real)
@@ -321,16 +352,16 @@
       (aref num 2)
       1))
 
-;;; rational
+;;; TODO: rational
 
-;;; rationalize
+;;; TODO: rationalize
 
 (defun rationalp (num)
   (or (cl:integerp num) (cl::ratiop num)))
 
-;;; ash
+;;; TODO: ash
 
-;;; integer-length
+;;; TODO: integer-length
 
 (defun cl::bignump (num)
   (and (vectorp num) (eq (aref num 0) 'bignum)))
@@ -376,29 +407,42 @@
 	 (unless (whitespacep (char string j))
 	   (error)))))))
 
-;;; LOGAND, LOGANDC1, LOGANDC2, LOGEQV, LOGIOR, LOGNAND, LOGNOR,
-;;; LOGNOT, LOGORC1, LOGORC2, LOGXOR
+(defun cl:lognot (num)
+  (cond
+    ((integerp num)
+     (lognot num))
+    ((cl::bignump num)
+     (let ((new (make-vector (length num) 0)))
+       (aset new 0 'bignum)
+       (dotimes (i (1- (length num)))
+	 (aset new (1+ i) (lognot (aref num (1+ i)))))
+       new))
+    (t
+     (error "type error"))))
 
-;;; LOGBITP
+;;; TODO: LOGAND, LOGANDC1, LOGANDC2, LOGEQV, LOGIOR, LOGNAND, LOGNOR,
+;;; TODO: LOGORC1, LOGORC2, LOGXOR
 
-;;; LOGCOUNT
+;;; TODO: LOGBITP
 
-;;; LOGTEST
+;;; TODO: LOGCOUNT
 
-;;; BYTE, BYTE-SIZE, BYTE-POSITION
+;;; TODO: LOGTEST
 
-;;; DEPOSIT-FIELD
+;;; TODO: BYTE, BYTE-SIZE, BYTE-POSITION
 
-;;; DPB
+;;; TODO: DEPOSIT-FIELD
 
-;;; LDB
+;;; TODO: DPB
 
-;;; LDB-TEST
+;;; TODO: LDB
 
-;;; MASK-FIELD
+;;; TODO: LDB-TEST
 
-;;; DECODE-FLOAT, SCALE-FLOAT, FLOAT-RADIX, FLOAT-SIGN, FLOAT-DIGITS,
-;;; FLOAT-PRECISION, INTEGER-DECODE-FLOAT
+;;; TODO: MASK-FIELD
+
+;;; TODO: DECODE-FLOAT, SCALE-FLOAT, FLOAT-RADIX, FLOAT-SIGN, FLOAT-DIGITS,
+;;; TODO: FLOAT-PRECISION, INTEGER-DECODE-FLOAT
 
 (defun cl:float (num &optional prototype)
   (cond
@@ -415,4 +459,4 @@
 
 ;;; floatp ok as is
 
-;;; ARITHMETIC-ERROR-OPERANDS, ARITHMETIC-ERROR-OPERATION
+;;; TODO: ARITHMETIC-ERROR-OPERANDS, ARITHMETIC-ERROR-OPERATION

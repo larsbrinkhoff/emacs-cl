@@ -77,7 +77,10 @@
 ;;; broadcast-stream (atomic only)
 ;;; built-in-class (atomic only)
 ;;; cell-error (atomic only)
-;;; character (atomic only)
+
+(define-typep (object character env)
+  (characterp object))
+
 ;;; class (atomic only)
 
 (define-typep (object compiled-function env)
@@ -233,7 +236,7 @@
   (and (floatp object) (in-range object low high)))
 
 (define-typep (object standard-char env)
-  (find object "\n abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$"'(),_-./:;?+<=>#%&*@[\]{|}`^~"))
+  (find object "\n abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$\"'(),_-./:;?+<=>#%&*@[\]{|}`^~"))
 
 ;;; standard-class (atomic only)
 ;;; standard-generic-function (atomic only)
