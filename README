@@ -9,9 +9,11 @@ This implementation provides a Common Lisp environment, separate from
 Emacs Lisp, running in Emacs.  It does not intend to extend Emacs Lisp
 with Common Lisp functionality; however, Common Lisp functions compile
 to byte code, so Emacs Lisp functions can call Common Lisp functions
-and vice versa.  Most Emacs Lisp data can be passed unchanged to
-Common Lisp functions, except vectors, which are used to implement
-various Common Lisp types not present in Emacs Lisp.
+and vice versa.  All Emacs Lisp data can be passed unchanged to Common
+Lisp functions, except vectors, which are used to implement various
+Common Lisp types not present in Emacs Lisp.  An Emacs Lisp vector
+should be converted to a Common Lisp vector (SIMPLE-VECTOR or VECTOR)
+when passed to a Common Lisp function.
 
 See INSTALL for usage instructions.
 
