@@ -554,7 +554,7 @@
 
 (defmacro* DEFSETF (access-fn &rest args)
   (case (length args)
-    (0 (error "syntax error"))
+    (0 (ERROR "Syntax error"))
     (1 (short-form-defsetf access-fn (first args)))
     (t (apply #'long-form-defsetf access-fn args))))
 
@@ -581,6 +581,37 @@
 		    (apply (lambda ,lambda-list ,@body) temps)
 		    (cons ',access-fn temps))))))
 
+(cl:defmacro DEFSETF (access-fn &rest args)
+  (case (length args)
+    (0 (ERROR "Syntax error"))
+    (1 (cl-short-form-defsetf access-fn (first args)))
+    (t (apply #'cl-long-form-defsetf access-fn args))))
+
+(defun cl-short-form-defsetf (access-fn update-fn)
+  (with-gensyms (args var temps)
+    `(DEFINE-SETF-EXPANDER ,access-fn (&REST ,args)
+      (LET ((,var (GENSYM))
+	    (,temps (map-to-gensyms ,args)))
+	(VALUES ,temps
+		,args
+		(LIST ,var)
+		(BACKQUOTE (,update-fn (COMMA-AT ,temps) (COMMA ,var)))
+		(BACKQUOTE (,access-fn (COMMA-AT ,temps))))))))
+
+(defun* cl-long-form-defsetf (access-fn lambda-list variables &body body)
+  (let ((args (remove-if (lambda (x) (memq x LAMBDA-LIST-KEYWORDS))
+			 lambda-list)))
+    (with-gensyms (var temps)
+      `(DEFINE-SETF-EXPANDER ,access-fn ,lambda-list
+	(LET* ((,var (GENSYM))
+	       (,temps (map-to-gensyms (QUOTE ,args)))
+	       (,(first variables) ,var))
+	  (VALUES ,temps
+		  (LIST ,@args)
+		  (LIST ,var)
+		  (APPLY (LAMBDA ,lambda-list ,@body) ,temps)
+		  (BACKQUOTE (,access-fn (COMMA-AT ,temps)))))))))
+
 (defvar *setf-expanders* (make-hash-table))
 
 (defmacro* DEFINE-SETF-EXPANDER (access-fn lambda-list &body body)
@@ -595,7 +626,7 @@
   (setq lambda-list (copy-list lambda-list))
   (remf lambda-list '&ENVIRONMENT)
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
-     (puthash ',access-fn (LAMBDA ,lambda-list ,@body) *setf-expanders*)
+     (puthash (QUOTE ,access-fn) (LAMBDA ,lambda-list ,@body) *setf-expanders*)
      (QUOTE ,access-fn)))
 
 (DEFINE-SETF-EXPANDER VALUES (&rest forms)
@@ -644,7 +675,7 @@
     (let* ((name (first place))
 	   (fn (gethash (first place) *setf-expanders*)))
       (if fn
-	  (apply fn (rest place))
+	  (APPLY fn (rest place))
 	  (let ((temps (map-to-gensyms (rest place)))
 		(var (gensym)))
 	    (cl:values temps
