@@ -542,19 +542,16 @@
 	 (compile-trampoline lambda-list compiled-body new-env))))))
 
 (defun partition-bindings (bindings env)
-  (let ((local-bindings nil)
-	(closure-bindings nil)
+  (let ((lexical-bindings nil)
 	(special-bindings nil))
     (dolist (binding bindings)
       (let ((list (if (symbolp binding)
 		      (list binding nil)
 		      binding)))
 	(cond
-;	  ((MEMBER (first list) *free* (kw KEY) #'car)
-;	   (push list closure-bindings))
 	  (t
-	   (push list local-bindings)))))
-    (cl:values local-bindings closure-bindings special-bindings)))
+	   (push list lexical-bindings)))))
+    (cl:values lexical-bindings special-bindings)))
 
 (defun first-or-identity (x)
   (if (atom x) x (car x)))
@@ -564,19 +561,27 @@
       (car body)
       `(progn ,@body)))
 
+(defun side-effect-free-p (form)
+  (or (atom form)
+      (let ((fn (car form)))
+	(or (eq fn 'quote)
+	    (and (symbolp fn)
+		 (get fn 'side-effect-free)
+		 (every #'side-effect-free-p (cdr form)))))))
+
 (define-compiler LET (bindings &rest forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
     (let* ((vars (mapcar #'first-or-identity bindings))
 	   (new-env (env-with-vars env vars decls))
 	   (compiled-body (compile-body body new-env)))
-      (MULTIPLE-VALUE-BIND (local-bindings closure-bindings special-bindings)
+      (MULTIPLE-VALUE-BIND (lexical-bindings special-bindings)
 	  (partition-bindings bindings new-env)
 	(let* ((let-bindings
 		(append
 		 (mapcar (lambda (list)
 			   `(,(compile-variable (first list) new-env)
 			     ,(compile-form (second list) env)))
-			 local-bindings)
+			 lexical-bindings)
 		 (mapcar (lambda (list)
 			   `(,(first list)
 			     ,(compile-form (second list) env)))
@@ -589,8 +594,15 @@
 		       (t
 			(compile-env-inits
 			 compiled-body
-			 (compile-forms (mapcar #'car local-bindings) new-env)
+			 (compile-forms (mapcar #'car lexical-bindings)
+					new-env)
 			 new-env)))))
+	  (dolist (list let-bindings)
+	    (when (side-effect-free-p (second list))
+	      (case (tree-count (first list) body)
+		(0 (setq let-bindings (DELETE list let-bindings)))
+		(1 (setq body (NSUBST (second list) (first list) body))
+		   (setq let-bindings (DELETE list let-bindings))))))
 	  (if let-bindings
 	      `(let ,let-bindings ,@body)
 	      (body-form body)))))))
