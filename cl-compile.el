@@ -20,7 +20,7 @@
 	   (function (byte-compile compiled)))
       (when name
 	(setf (fdefinition name) function))
-      (cl:values (subst-free compiled) nil nil))))
+      (cl:values compiled nil nil))))
 
 
 
@@ -30,7 +30,7 @@
 (defvar *bound* nil
   "A list of variables bound in the function being compiled.")
 (defvar *free* nil
-  "An alist of free variables in the top-level form being compiled.")
+  "A list of free variables in the top-level form being compiled.")
 
 (defvar *unbound* nil)
 (defvar *closure-slot* nil)
@@ -63,18 +63,6 @@
 
 (defun symbol-lexical-p (sym)
   (not (symbol-special-p sym)))
-
-(defun subst-free (fn)
-  (cond
-    ((symbolp fn)
-     (let ((var (assq fn *free*)))
-       (if var
-	   (cdr var)
-	   fn)))
-    ((consp fn)
-     (cons (subst-free (car fn)) (subst-free (cdr fn))))
-    (t
-     fn)))
 
 (defun lambda-expr-p (form)
   (and (consp form)
@@ -120,9 +108,7 @@
     (ecase type
       ((:special nil)	var)
       (:lexical		(unless (memq var *bound*)
-			  (push (cons (lexical-value var env)
-				      `(lexical-value ',var ,env))
-				*free*))
+			  (pushnew var *free*))
 			(lexical-value var env))
       (:constant	(symbol-value var)))))
 
@@ -275,9 +261,34 @@
 		(t				    (ERROR 'PROGRAM-ERROR)))
 	      result)))))
 
+(let ((fn (vector))
+      (env (vector)))
+  (defvar *trampoline-template*
+    (byte-compile `(lambda (&rest args) (let ((env ,env)) (apply ,fn args)))))
+  (defvar *trampoline-fn-pos*
+    (position fn (aref *trampoline-template* 2)))
+  (defvar *trampoline-env-pos*
+    (position env (aref *trampoline-template* 2))))
+
+(defmacro defun-trampoline ()
+  `(defun trampoline (fn env)
+     (let* ((consts (copy-sequence (aref *trampoline-template* 2)))
+	    (tramp
+	     (make-byte-code
+	      ,@(let ((args nil))
+		  (dotimes (i (length *trampoline-template*) (nreverse args))
+		    (push (if (eq i 2)
+			      'consts
+			      `',(aref *trampoline-template* i))
+			  args))))))
+       (aset consts *trampoline-fn-pos* fn)
+       (aset consts *trampoline-env-pos* env)
+       tramp)))
+
+(defun-trampoline)
+
 (defvar *compile-lambda* nil)
 
-;;; TODO: lambda
 (defun* compile-lambda (form env)
   (MULTIPLE-VALUE-BIND (body decls) (cddr form)
     (let* ((vars (second form))
@@ -286,41 +297,26 @@
       (dolist (var (lambda-list-parameters vars))
 	(setf (lexical-value var new-env) (new-register))
 	(push var *bound*))
-      (expand-lambda vars (compile-forms body new-env) new-env))))
-
-;   (let ((vars (second form))
-; 	(body (cddr form))
-; 	(*bound* nil)
-; 	(*closure-slot* 0))
-;     (dolist (sym vars)
-;       (new-symbol sym))
-;     (do* ((forms body (cdr forms))
-; 	  (form #1=(first forms) #1#))
-; 	 ((or (atom form) (not (eq (first form) 'declare)))
-; 	  (let* ((*unbound* nil)
-; 		 (body (compile-forms forms))
-; 		 (lambda-expr
-; 		  `(lambda ,(mapcar #'symbol-register vars) ,@body))
-; 		 (compiled-expr (if *compile-lambda*
-; 				    (byte-compile lambda-expr)
-; 				    lambda-expr)))
-; 	    (if *unbound*
-; 		(let* ((closure (new-register)))
-; 		  `(let ((,closure
-; 			  (make-vector ,(1+ (length *unbound*)) nil)))
-; 		    (aset ,closure 0 ,compiled-expr)
-; 		    ,@(mappend (lambda (x)
-; 				 (unless (symbol-special-p (car x))
-; 				   `((aset ,closure ,(cadddr x)
-; 				      ,(compile-variable (car x))))))
-; 			       *unbound*)
-; 		    ,closure))
-; 		compiled-expr)))
-;       (compile-declare form))))
+      (let* ((compiled-body (compile-forms body new-env)))
+	(cond
+	  ((null *free*)
+	   (expand-lambda vars compiled-body new-env))
+	  ((every (lambda (var) (member var *bound*)) *free*)
+	   (let ((i -1))
+	     (dolist (var *free*)
+	       (let ((cvar (compile-variable var new-env)))
+		 (NSUBST `(aref env ,(incf i)) cvar compiled-body)))
+	     (expand-lambda
+	      vars
+	      `((let ((env (vector ,@(compile-args *free* new-env))))
+		  ,@compiled-body))
+	      new-env)))
+	  (t
+	   `(trampoline ,(expand-lambda vars compiled-body new-env) env)))))))
 
 (define-compiler LET (bindings &rest forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
-    (let* ((vars (lexical-binding-variables bindings))
+    (let* ((vars (lexical-binding-variables bindings env))
 	   (new-env (if vars (augment-environment env :variable vars) env)))
       (dolist (var vars)
 	(setf (lexical-value var new-env) (new-register))
@@ -339,7 +335,7 @@
 
 (define-compiler LET* (bindings &rest forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
-    (let* ((vars (lexical-binding-variables bindings))
+    (let* ((vars (lexical-binding-variables bindings env))
 	   (new-env (if vars (augment-environment env :variable vars) env)))
       (dolist (var vars)
 	(setf (lexical-value var new-env) (new-register))
@@ -374,26 +370,35 @@
       (dolist (var vars)
 	(setf (lexical-value var new-env) (new-register))
 	(push var *bound*))
-      (if (null vars)
-	  `(progn
-	     ,(compile-form form :values 0)
-	     ,@(compile-forms body env))
-	  `(let* ((,(first vars) ,(compile-form form env :values t))
-		  ,@(mapcar (lambda (var) `(,var (pop mvals))) (rest vars)))
-	     ,@(compile-forms body env))))))
+      (let ((compiled-body (compile-forms body new-env)))
+	(if (null vars)
+	    `(progn
+	       ,(compile-form form env :values 0)
+	       ,@compiled-body)
+	    `(let* ((,(compile-variable (first vars) new-env)
+		     ,(compile-form form env :values t))
+		    ,@(mapcar (lambda (var)
+				`(,(compile-variable var new-env)
+				  (pop mvals)))
+			      (rest vars)))
+	       ,@compiled-body))))))
 
 (define-compiler MULTIPLE-VALUE-CALL (fn &rest forms) env
   (if (null forms)
       (compile-form `(FUNCALL ,fn) env)
       `(APPLY ,(compile-form fn env)
 	      (append ,@(mapcar (lambda (form)
-				  `(MULTIPLE-VALUE-LIST
-				    ,(compile-form form env :values t)))
+				  (compile-form
+				   `(MULTIPLE-VALUE-LIST ,form)
+				   env :values t))
 				forms)))))
 
 (define-compiler MULTIPLE-VALUE-LIST (form) env
   (let ((val (new-register)))
-    `(let* ((,val ,(compile-form form env :values t)))
+    `(let ((,val ,(compile-form form env :values t)))
+       (if (zerop nvals)
+	   nil
+	   (cons ,val mvals)))))
 
 (define-compiler MULTIPLE-VALUE-PROG1 (form &rest forms) env
   (let ((val (new-register))
