@@ -32,11 +32,14 @@
           (function (lambda ,lambda-list ,@body)))
     ',name))
 
-(defun expand-type (type)
-  (let* ((name (if atom type type (car type)))
-	 (fn (gethash name *deftype-expanders*)))
+(defun expand-type (orig-type)
+  (let* ((type (ensure-list orig-type))
+	 (fn (gethash (first type) *deftype-expanders*)))
     (if fn
-	(expand-type (apply fn type)))))
+	(expand-type (apply fn (rest type)))
+	orig-type)))
+
+(DEFTYPE LIST () `(OR CONS NULL))
 
 (defmacro* CHECK-TYPE (place type &optional string &environment env)
   `(unless (TYPEP ,place ,type ,env)

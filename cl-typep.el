@@ -277,12 +277,19 @@
 (define-typep (object (VALUES &rest args) env :compound-only)
   (error "values not allowed"))
 
+(define-typep (object (VECTOR &optional type size) env)
+  (and (VECTORP object)
+       ;; TODO: SUBTYPEP upgraded type ...
+       (star-or T)
+       (star-or (eql size (LENGTH object)))))
+
 ;;; vector
 ;;; warning (atomic only)
 
 
 
 (defun TYPEP (object type &optional env)
+  (setq type (expand-type type))
   (if (consp type)
       (let ((fn (gethash (first type) *compound-typespecs*)))
 	(if fn

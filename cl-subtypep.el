@@ -247,6 +247,8 @@
        (error)))))
 
 (defun SUBTYPEP (type1 type2 &optional env)
+  (setq type1 (expand-type type1))
+  (setq type2 (expand-type type2))
   (let ((*types* *types*)
 	(*type-val* *type-val*)
 	(*objects* *objects*))
