@@ -160,7 +160,7 @@
     (do-list-designator (name symbol-names (cl:values T))
       (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL name package)
 	(when (or (null status) (eq status kw:INHERITED))
-	  (setq sym (nth-value 0 (INTERN name package))))
+	  (setq sym (cl:values (INTERN name package))))
 	(pushnew sym (aref package 3))))))
 
 (defun* SHADOWING-IMPORT (symbols &optional (package-designator *PACKAGE*))
@@ -311,8 +311,8 @@
 	  ((eq keyword (kw SIZE))
 	   nil)
 	  (t
-	   (ERROR "Unknown DEFPACKAGE keyword: ~S" keyword)))))
-    (with-gensyms (package)
+	   (ERROR "Unknown DEFPACKAGE option: ~S" option)))))
+    (with-gensyms (x package)
       `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
 	(LET ((,package (MAKE-PACKAGE
 			 ,(STRING name)
@@ -327,10 +327,11 @@
 	  ,@(when import-list
 	      `((IMPORT (QUOTE ,import-list) ,package)))
 	  ,@(when intern-list
-	      `((DOLIST (name (QUOTE ,intern-list))
-		  (INTERN name ,package))))
+	      `((DOLIST (,x (QUOTE ,intern-list))
+		  (INTERN ,x ,package))))
 	  ,@(when export-list
-	      `((EXPORT (QUOTE ,export-list) ,package)))
+	      `((DOLIST (,x (QUOTE ,export-list))
+		  (EXPORT (INTERN ,x ,package) ,package))))
 	  ,package)))))
 
 (defun el-maphash (fn hash)
