@@ -244,8 +244,10 @@
 ;   `(WITH-OPEN-STREAM (,var (MAKE-STRING-INPUT-STREAM ,string ,start ,end))
 ;      ,@body))
 
-(cl:defmacro WITH-INPUT-FROM-STRING ((var string &key index (start 0) end)
+(cl:defmacro WITH-INPUT-FROM-STRING ((var string &key index start end)
 				     &body body)
+  (when (null start)
+    (setq start 0))
   `(WITH-OPEN-STREAM (,var (MAKE-STRING-INPUT-STREAM ,string ,start ,end))
      ,@body))
 
