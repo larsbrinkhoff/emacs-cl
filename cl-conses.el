@@ -280,3 +280,42 @@
   (dolist (pair alist)
     (when (and pair (FUNCALL test item (FUNCALL key (car pair))))
       (return-from ASSOC pair))))
+
+(defun* ASSOC-IF (predicate alist &key (key #'IDENTITY))
+  (dolist (pair alist)
+    (when (and pair (FUNCALL predicate (FUNCALL key (car pair))))
+      (return-from ASSOC-IF pair))))
+
+(defun* ASSOC-IF-NOT (predicate alist &key (key #'IDENTITY))
+  (dolist (pair alist)
+    (when (and pair (not (FUNCALL predicate (FUNCALL key (car pair)))))
+      (return-from ASSOC-IF pair))))
+
+(defun COPY-ALIST (alist)
+  (mapcar (lambda (pair) (CONS (CAR pair) (CDR pair)))))
+
+(defun PAIRLIS (keys data &optional alist)
+  (NCONC (MAPCAR #'CONS keys data) alist))
+
+(defun* RASSOC (item alist &key (key #'IDENTITY) test test-not)
+  (when (and test test-not)
+    (error))
+  (when test-not
+    (setq test (COMPLEMENT test-not)))
+  (unless test
+    (setq test #'EQL))
+  (dolist (pair alist)
+    (when (and pair (FUNCALL test item (FUNCALL key (cdr pair))))
+      (return-from ASSOC pair))))
+
+(defun* RASSOC-IF (predicate alist &key (key #'IDENTITY))
+  (dolist (pair alist)
+    (when (and pair (FUNCALL predicate (FUNCALL key (cdr pair))))
+      (return-from ASSOC-IF pair))))
+
+(defun* RASSOC-IF-NOT (predicate alist &key (key #'IDENTITY))
+  (dolist (pair alist)
+    (when (and pair (not (FUNCALL predicate (FUNCALL key (cdr pair)))))
+      (return-from ASSOC-IF pair))))
+
+;;; TODO: GET-PROPERTIES plist indicator-list => indicator, value, tail
