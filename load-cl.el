@@ -1,4 +1,5 @@
 (require 'cl)
+(setq max-lisp-eval-depth 2000)
 
 ;;; Fake an IN-PACKAGE macro.
 (defmacro IN-PACKAGE (name) nil)
