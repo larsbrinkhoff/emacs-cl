@@ -10,9 +10,12 @@
 (defun APPLY (fn &rest args)
   (cond
     ((INTERPRETED-FUNCTION-P fn)
+     (PRINT args)
+     (PRINT (butlast args))
+     (PRINT (last args))
      (eval-with-env (append (list (aref fn 1))
 			    (butlast args)
-			    (last args))
+			    (car (last args)))
 		    (aref fn 2)))
     ((FUNCTIONP fn)
      (apply #'apply fn args))
