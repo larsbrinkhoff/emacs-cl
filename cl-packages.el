@@ -91,7 +91,9 @@
 			 *:internal*))
 	     (dolist (p (PACKAGE-USE-LIST package) (values nil nil))
 	       (multiple-value-bind (symbol found) (FIND-SYMBOL string p)
-		 (when (and found (member symbol (package-exported p)))
+		 (when (and found
+			    (or (eq p *emacs-lisp-package*)
+				(member symbol (package-exported p))))
 		   (return-from FIND-SYMBOL
 		     (values symbol *:inherited*)))))))))))
 
