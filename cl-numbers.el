@@ -683,12 +683,11 @@
 	  (psetq y (REM x y) x y))
 	(ABS x))))
 
-;;; TODO: &environment
 (cl:defmacro INCF (place &optional delta)
   (unless delta
     (setq delta 1))
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
-      (GET-SETF-EXPANSION place nil)
+      (GET-SETF-EXPANSION place nil) ;TODO: &environment
     `(LET* (,@(MAPCAR #'list temps values)
 	    (,(first variables)
 	     ,(if (eq delta 1)
@@ -696,12 +695,11 @@
 		  `(,(INTERN "+" *cl-package*) ,getter ,delta))))
        ,setter)))
 
-;;; TODO: &environment
 (cl:defmacro DECF (place &optional delta)
   (unless delta
     (setq delta 1))
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
-      (GET-SETF-EXPANSION place nil)
+      (GET-SETF-EXPANSION place nil) ;TODO: &environment
     `(LET* (,@(MAPCAR #'list temps values)
 	    (,(first variables)
 	     ,(if (eq delta 1)
@@ -1195,10 +1193,9 @@
   (LOGAND (ASH integer (cl:- (BYTE-POSITION bytespec)))
 	  (cl:1- (ASH 1 (BYTE-SIZE bytespec)))))
 
-;;; TODO: &environment
 (DEFINE-SETF-EXPANDER LDB (bytespec integer)
-  (multiple-value-bind (temps values variables setter getter)
-      (get-setf-method integer nil)
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION integer nil) ;TODO: environment
     (let ((byte (gensym))
 	  (value (gensym)))
       (values (cons byte temps)
@@ -1219,10 +1216,9 @@
 
 (DEFCONSTANT MOST-NEGATIVE-FIXNUM -134217728)
 
-;;; TODO: &environment
-(define-setf-method MASK-FIELD (bytespec integer)
-  (multiple-value-bind (temps values variables setter getter)
-      (get-setf-method integer nil)
+(DEFINE-SETF-EXPANDER MASK-FIELD (bytespec integer)
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION integer nil) ;TODO: &environment
     (let ((byte (gensym))
 	  (value (gensym)))
     (values (cons byte temps)
