@@ -142,7 +142,7 @@
 			(STRING name)))
     (aset package 2 (mapcar #'STRING new-nicknames))))
 
-(defun* SHADOW (symbol-names &optional (package-designator *PACKAGE))
+(defun* SHADOW (symbol-names &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
     (do-list-designator (name symbol-names (VALUES T))
       (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL name package)
@@ -150,27 +150,29 @@
 	  (setq sym (nth-value 0 (INTERN name package))))
 	(pushnew sym (aref package 3))))))
 
-(defun* SHADOWING-IMPORT (symbols &optional (package-designator *PACKAGE))
+(defun* SHADOWING-IMPORT (symbols &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
     (do-list-designator (symbol symbols (VALUES T))
-      (MULTIPLE-VALUE-BIND (sym found) (FIND-SYMBOL (SYMBOL-NAME sym package))
+      (MULTIPLE-VALUE-BIND (sym found)
+	  (FIND-SYMBOL (SYMBOL-NAME symbol) package)
 	(when found
 	  (UNINTERN sym package)))
       (IMPORT symbol package))))
 
 (defun DELETE-PACKAGE (package-designator)
-  (if (null (aref package 1))
-      nil
-      (let ((package (FIND-PACKAGE package-designator)))
-	(unless package
-	  (error "package error"))
-	(when (PACKAGE-USED-BY-LIST package)
-	  (error "package error"))
-	(dolist (p (PACKAGE-USE-LIST package))
-	  (aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))
-	(setq *all-packages* (delete package *all-packages*))
-	(aset package 1 nil)
-	T)))
+  (let ((package (FIND-PACKAGE package-designator)))
+    (if (null (aref package 1))
+	nil
+	(let ((package (FIND-PACKAGE package-designator)))
+	  (unless package
+	    (error "package error"))
+	  (when (PACKAGE-USED-BY-LIST package)
+	    (error "package error"))
+	  (dolist (p (PACKAGE-USE-LIST package))
+	    (aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))
+	  (setq *all-packages* (delete package *all-packages*))
+	  (aset package 1 nil)
+	  T))))
 
 ;;; with-package-iterator
 

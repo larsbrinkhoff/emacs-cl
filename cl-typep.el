@@ -36,8 +36,8 @@
 	   (high-exclusive (cl:< num high))
 	   (t (cl:<= num high))))))
 
-(defmacro star-or (type expr)
-  `(or (eq ,type '*) ,expr))
+(defmacro star-or (type &rest forms)
+  `(or (eq ,type '*) ,@forms))
 
 
 ;;; Definitions for all type specifiers recognized by TYPEP follows.
@@ -67,7 +67,7 @@
   (or (eq object 0) (eq object 1)))
 
 (define-typep (object (BIT-VECTOR &optional (size '*)) env)
-  (and (BOOL-VECTOR-P object)
+  (and (BIT-VECTOR-P object)
        (star-or size (eql size (length object)))))
 
 (define-typep (object BOOLEAN env)

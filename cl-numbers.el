@@ -258,38 +258,38 @@
 (defun SIN (x)
   (cond
     ((REALP x)		(sin (FLOAT x)))
-    ((COMLEXP x)	(error "TODO"))
+    ((COMPLEXP x)	(error "TODO"))
     (t			(error "type error"))))
 
 (defun COS (x)
   (cond
     ((REALP x)		(cos (FLOAT x)))
-    ((COMLEXP x)	(error "TODO"))
+    ((COMPLEXP x)	(error "TODO"))
     (t			(error "type error"))))
 
 (defun TAN (x)
   (cond
     ((REALP x)		(tan (FLOAT x)))
-    ((COMLEXP x)	(error "TODO"))
+    ((COMPLEXP x)	(error "TODO"))
     (t			(error "type error"))))
 
 (defun ASIN (x)
   (cond
     ((REALP x)		(asin (FLOAT x)))
-    ((COMLEXP x)	(error "TODO"))
+    ((COMPLEXP x)	(error "TODO"))
     (t			(error "type error"))))
 
 (defun ACOS (x)
   (cond
     ((REALP x)		(acos (FLOAT x)))
-    ((COMLEXP x)	(error "TODO"))
+    ((COMPLEXP x)	(error "TODO"))
     (t			(error "type error"))))
 
 (defun* ATAN (x &optional y)
   (when y (error "TODO"))
   (cond
     ((REALP x)		(atan (FLOAT x)))
-    ((COMLEXP x)	(error "TODO"))
+    ((COMPLEXP x)	(error "TODO"))
     (t			(error "type error"))))
 
 (DEFCONSTANT PI 3.141592653589793)
@@ -524,7 +524,7 @@
 	 (let* ((r (REALPART number))
 		(i (IMAGPART number))
 		(x (binary- (binary* r r) (binary* i i))))
-	   (COMPLEX (binary/ r x) (binary+ (binary/ i x)))))
+	   (COMPLEX (binary/ r x) (binary/ i x))))
 	(t
 	 (error)))
       (dolist (num numbers number)
@@ -637,11 +637,12 @@
 	  (psetq y (REM x y) x y))
 	(ABS x))))
 
+;;; TODO: &environment
 (cl:defmacro INCF (place &optional delta)
   (unless delta
     (setq delta 1))
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
-      (GET-SETF-EXPANSION place env)
+      (GET-SETF-EXPANSION place nil)
     `(LET* (,@(MAPCAR #'list temps values)
 	    (,(first variables)
 	     ,(if (eq delta 1)
@@ -649,11 +650,12 @@
 		  `(,(INTERN "+" *cl-package*) ,getter ,delta))))
        ,setter)))
 
+;;; TODO: &environment
 (cl:defmacro DECF (place &optional delta)
   (unless delta
     (setq delta 1))
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
-      (GET-SETF-EXPANSION place env)
+      (GET-SETF-EXPANSION place nil)
     `(LET* (,@(MAPCAR #'list temps values)
 	    (,(first variables)
 	     ,(if (eq delta 1)
@@ -733,11 +735,9 @@
 ;;; TODO: CIS
 
 (defun COMPLEX (realpart &optional imagpart)
-  (CHECK-TYPE realpart 'REAL)
   (if (or (null imagpart) (ZEROP imagpart))
       realpart
       (progn
-	(CHECK-TYPE realpart 'REAL)
 	(when (floatp realpart)
 	  (setq imagpart (float realpart)))
 	(when (floatp imagpart)
@@ -772,7 +772,7 @@
 (defun cl::ratio (num den)
   (unless (and (INTEGERP num) (INTEGERP den))
     (error "type error"))
-  (if (and (eq x MOST-NEGATIVE-FIXNUM) (eq y -1))
+  (if (and (eq num MOST-NEGATIVE-FIXNUM) (eq den -1))
       (vector 'bignum MOST-NEGATIVE-FIXNUM 0)
       (let* ((gcd (GCD num den))
 	     (num (binary/ num gcd))

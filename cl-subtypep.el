@@ -204,7 +204,7 @@
  	   (setq num (logior num (object-val object)))))))
     (t
      (ecase (first type)
-       (MOD	`(0 ((0 ,(1- mod)) () ())))
+       (MOD	`(0 ((0 ,(1- (second type))) () ())))
        (UNSIGNED-BYTE
 		`(0 ((0 ,(1- (expt 2 (second type)))) () ())))
        (SIGNED-BYTE
@@ -222,8 +222,8 @@
 		      (,(second type) ,(second type))
 		      (,(second type) ,(second type)))
 		    `(,(object-val (second type)) (() () ()))))
-       (MEMBER	(type-val `(OR ,@(mapcar (lambda (obj)) `(EQL ,obj))
-			       (rest type))))
+       (MEMBER	(type-val `(OR ,@(mapcar (lambda (obj) `(EQL ,obj))
+					 (rest type)))))
        (AND	(type-val `(NOT (OR ,@(mapcar (lambda (type) `(NOT ,type))
 				              (rest type))))))
        (OR	(reduce #'union-types (rest type) :key #'type-val))

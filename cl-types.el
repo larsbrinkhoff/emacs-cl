@@ -14,7 +14,7 @@
     ((eq type 'CHARACTER)
      (CHARACTER object))
     ((eq type 'COMPLEX)
-     (complex object (COERCE 0 (TYPE-OF object))))
+     (COMPLEX object (COERCE 0 (TYPE-OF object))))
     ((SUBTYPEP type 'FLOAT)
      (float object))
     ((eq type 'FUNCTION)

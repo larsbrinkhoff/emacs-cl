@@ -133,7 +133,7 @@
   (let* ((char2 (READ-CHAR stream T nil T))
 	 (fn (GET-DISPATCH-MACRO-CHARACTER char1 char2)))
     (if (null fn)
-	(error "invalid dispatching macro: %s" string)
+	(error "invalid dispatching macro: %s" (STRING char1))
 	(funcall fn stream char2 nil))))
 
 (defun quote-reader (stream ch)
@@ -210,7 +210,7 @@
 (defvar *READ-EVAL* T)
 
 (defun sharp-dot-reader (stream char n)
-  (if *read-eval*
+  (if *READ-EVAL*
       (VALUES (eval (READ stream T nil T)))
       (error "reader error: #. disabled")))
 

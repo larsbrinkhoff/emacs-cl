@@ -86,7 +86,7 @@
 	(car val)
 	default)))
 
-(defsetf GET (symbol prop &optional default) (val)
+(defsetf GET (symbol property &optional default) (val)
   `(put ,symbol ,property ,val))
 
 (defun REMPROP (symbol property)

@@ -29,7 +29,7 @@
 (DEFSETF CDR (cons) (cdr)
   `(PROGN
      (RPLACD ,cons ,cdr)
-     ,car))
+     ,cdr))
 
 (defun build-cxr (string index)
   (case (aref string index)
@@ -148,8 +148,8 @@
     ((ATOM tree)
      tree)
     (t
-     (RPLACA (NSUBST-IF new predicate (CAR tree) :key key))
-     (RPLACD (NSUBST-IF new predicate (CDR tree) :key key)))))
+     (RPLACA tree (NSUBST-IF new predicate (CAR tree) :key key))
+     (RPLACD tree (NSUBST-IF new predicate (CDR tree) :key key)))))
 
 (defun* NSUBST-IF-NOT (new predicate tree &key (key #'IDENTITY))
   (cond
@@ -158,10 +158,10 @@
     ((ATOM tree)
      tree)
     (t
-     (RPLACA (NSUBST-IF new predicate (CAR tree) :key key))
-     (RPLACD (NSUBST-IF new predicate (CDR tree) :key key)))))
+     (RPLACA tree (NSUBST-IF new predicate (CAR tree) :key key))
+     (RPLACD tree (NSUBST-IF new predicate (CDR tree) :key key)))))
 
-(defun TREE-EQUAL (tree1 tree2 &key test test-not)
+(defun* TREE-EQUAL (tree1 tree2 &key test test-not)
   (when (and test test-not)
     (error))
   (when test-not
@@ -212,8 +212,8 @@
 
 (DEFSETF FIRST (list) (new)
   `(PROGN
-    (RPLACA ,list ,new)
-    ,new))
+     (RPLACA ,list ,new)
+     ,new))
 
 (defun SECOND (list)
   (CADR list))
@@ -322,11 +322,11 @@
   list)
 
 (defun* LAST (list &optional (n 1))
-  (do ((l list (CDR l))
+  (do ((l list (cdr l))
        (r list)
        (i 0 (+ i 1)))
-      ((ATOM l) r)
-    (if (>= i n) (POP r))))
+      ((atom l) r)
+    (if (>= i n) (pop r))))
 
 ;;; Function LDIFF, TAILP
 
@@ -334,7 +334,7 @@
 
 (fset 'REST (symbol-function 'cdr-safe))
 
-(DEFSETF REST (cons) (car)
+(DEFSETF REST (cons) (cdr)
   `(setcdr ,cons ,cdr))
 
 (defun* MEMBER (object list &key (key #'IDENTITY) test test-not)

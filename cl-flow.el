@@ -93,7 +93,7 @@
   (cond
     ((INTERPRETED-FUNCTION-P fn)	(VALUES (aref fn 1) T nil))
     ((subrp fn)				(VALUES nil nil nil))
-    ((compiled-function-p fn)		(VALUES nil nil nil))
+    ((byte-code-function-p fn)		(VALUES nil nil nil))
     ((FUNCTIONP fn)			(VALUES nil T nil))
     (t					(error "type error"))))
 
@@ -102,7 +102,7 @@
       (INTERPRETED-FUNCTION-P object)))
 
 (defun COMPILED-FUNCTION-P (object)
-  (or (compiled-function-p object)
+  (or (byte-code-function-p object)
       (subrp object)))
 
 ;;; TODO: call-argument-limit
@@ -145,7 +145,46 @@
      (SETQ ,name ,initial-value)
      (QUOTE ,name)))
 
-;;; TODO: DESTRUCTURING-BIND
+; (dl:defmacro DESTRUCTURING-BIND (lambda-list form &body body)
+;   (with-gensyms (name)
+;     `(MACROLET ((,name ,lambda-list ,@body))
+;        (,name ,form))))
+
+(defun lambda-list-keyword-p (x)
+  (member x LAMBDA-LIST-KEYWORDS))
+
+(defun flatten (list)
+  (mappend (lambda (x) (if (consp x) (flatten x) (list x))) list))
+
+(defun destructure (lambda-list struct)
+  (if (null lambda-list)
+      nil
+      (let ((result nil)
+	    (current nil))
+	(setq current (pop lambda-list))
+	(when (eq current '&whole)
+	  (push `(SETQ ,(pop lambda-list) ,struct) result)
+	  (setq current (pop lambda-list)))
+	(push `(WHEN (ATOM ,struct) (ERROR)) result)
+	(while (and current (not (lambda-list-keyword-p current)))
+	  (cond
+	    ((symbolp current)
+	     (push `(SETQ ,current (CAR ,struct)) result))
+	    ((consp current)
+	     (let ((subtree (gensym)))
+	       (push `(SETQ ,subtree (CAR ,struct)) result)
+	       (setq result (append (reverse (destructure current subtree))
+				    result)))))
+	  (push `(SETQ ,struct (CDR ,struct)) result)
+	  (setq current (pop lambda-list)))
+	(nreverse result))))
+
+(cl:defmacro DESTRUCTURING-BIND (lambda-list form &body body)
+  (with-gensyms (val)
+    `(LET ,(remove-if #'lambda-list-keyword-p (flatten lambda-list))
+       (LET ((,val ,form))
+	 ,@(destructure lambda-list val))
+       ,@body)))
 
 ;;; Special Operators: LET, LET*
 
@@ -234,8 +273,8 @@
 	 (and (eq (length x) (length y))
 	      (every #'eq x y)))
 	((and (cl::ratiop x) (cl::ratiop y))
-	 (and (EQL (numerator x) (numerator y))
-	      (EQL (denominator x) (denominator y))))
+	 (and (EQL (NUMERATOR x) (NUMERATOR y))
+	      (EQL (DENOMINATOR x) (DENOMINATOR y))))
 	((and (COMPLEXP x) (COMPLEXP y))
 	 (and (EQL (REALPART x) (REALPART y))
 	      (EQL (IMAGPART x) (IMAGPART y))))

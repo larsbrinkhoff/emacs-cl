@@ -64,7 +64,6 @@
 		  :displaced-index-offset displaced-index-offset)))
 
 (defun ADJUSTABLE-ARRAY-P (array)
-  (CHECK-TYPE array 'array)
   (and (vectorp array)
        (case (aref array 0)
 	 ((bit-vector bit-array string char-array vector array) T))))
@@ -136,7 +135,7 @@
 
 (defun ARRAY-ROW-MAJOR-INDEX (array &rest subscripts)
   (apply #'cl:+ (maplist (lambda (x y) (cl:* (car x) (apply #'cl:* (cdr y))))
-			 subscripts (ARRAY-DIMENSIONS a))))
+			 subscripts (ARRAY-DIMENSIONS array))))
 
 (defun ARRAYP (object)
   (or (VECTORP object)
@@ -199,7 +198,7 @@
 	       (ARRAY-HAS-FILL-POINTER-P vector)
 	       (plusp (FILL-POINTER vector)))
     (error))
-  (aref vector (aref vector 2) (aset vector 1 (1- (aref vector 1)))))
+  (aref (aref vector 2) (aset vector 1 (1- (aref vector 1)))))
 
 (defun VECTOR-PUSH (new-element vector)
   (unless (and (VECTORP vector) (ARRAY-HAS-FILL-POINTER-P vector))
