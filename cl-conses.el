@@ -305,7 +305,8 @@
   (cond
     ((null object)	'T)
     ((consp object)	nil)
-    (t			(error "type error"))))
+    (t			(ERROR 'TYPE-ERROR (kw DATUM) object
+			       (kw EXPECTED-TYPE) 'LIST))))
 
 (fset 'NULL (symbol-function 'null))
 
@@ -333,7 +334,27 @@
       ((atom l) r)
     (if (>= i n) (pop r))))
 
-;;; Function LDIFF, TAILP
+(defun LDIFF (list object)
+  (unless (listp list)
+    (ERROR 'TYPE-ERROR (kw DATUM) list (kw EXPECTED-TYPE) 'LIST))
+  (let ((result nil))
+    (catch 'TAILP
+      (while (consp list)
+	(when (EQL object list)
+	  (throw 'TAILP nil))
+	(push (car list) result)
+	(setq list (cdr list))))
+    (nreverse result)))
+
+(defun TAILP (object list)
+  (unless (listp list)
+    (ERROR 'TYPE-ERROR (kw DATUM) list (kw EXPECTED-TYPE) 'LIST))
+  (catch 'TAILP
+    (while (consp list)
+      (when (EQL object list)
+	(throw 'TAILP T))
+      (setq list (cdr list)))
+    (EQL object list)))
 
 (fset 'NTHCDR (symbol-function 'nthcdr))
 
@@ -367,27 +388,29 @@
       (return-from MEMBER list))))
 
 (defun MAPC (fn &rest lists)
-  (let ((result (first lists)))
-    (while (not (some #'null lists))
-      (APPLY fn (mapcar #'car lists))
-      (setq lists (mapcar #'cdr lists)))
+  (let ((result (car lists)))
+    (while (notany (cl:function ENDP) lists))
+      (APPLY fn (mapcar (cl:function car) lists))
+      (setq lists (mapcar (cl:function cdr) lists)))
     result))
 
 (defun MAPCAR (fn &rest lists)
-  (if (some #'null lists)
-      nil
-      (cons (APPLY fn (mapcar #'car lists))
-	    (apply #'MAPCAR fn (mapcar #'cdr lists)))))
+  (let ((result nil))
+    (while (notany (cl:function ENDP) lists)
+      (push (APPLY fn (mapcar (cl:function car) lists)) result)
+      (setq lists (mapcar 'cdr lists)))
+    (nreverse result)))
 
-(defun MAPCAN (fn &rest seqs)
-  (apply #'nconc
-   (if (null (cdr seqs))
-       (mapcar fn (car seqs))
-       (cl-mapcar-many fn seqs))))
+(defun MAPLIST (fn &rest lists)
+  (let ((result nil))
+    (while (notany (cl:function ENDP) lists)
+      (push (APPLY fn lists) result)
+      (setq lists (mapcar 'cdr lists)))
+    (nreverse result)))
 
-;;; TODO: MAPL
-;;; TODO: MAPLIST
-;;; TODO: MAPCON
+(defun MAPCON (fn &rest lists)
+  (apply (cl:function nconc)
+	 (apply (cl:function MAPLIST) fn lists)))
 
 (defun ACONS (key datum alist)
   (CONS (CONS key datum) alist))
