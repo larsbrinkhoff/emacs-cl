@@ -3,6 +3,10 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements EVAL and environment objects.
 
+;;; Possible future implementation:
+;;; (defun EVAL (form)
+;;;   (funcall (cl:values (COMPILE nil `(LAMBDA () ,form)))))
+
 (IN-PACKAGE "EMACS-CL")
 
 (defvar *special-operator-evaluators* (make-hash-table))
