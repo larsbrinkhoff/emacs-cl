@@ -23,6 +23,12 @@
 			 ,@body))))
     ',name))
 
+(defun MACRO-FUNCTION (name &optional env)
+  (gethash name *macro-functions*))
+
+(defsetf MACRO-FUNCTION (name &optional env) (fn)
+  `(setf (gethash ,name *macro-functions*) ,fn))
+
 (defmacro* cl:defmacro (name lambda-list &body body)
   `(progn
     (setf (MACRO-FUNCTION ',name)
@@ -31,11 +37,16 @@
 			 ,@body))))
     ',name))
 
-(defun MACRO-FUNCTION (name &optional env)
-  (gethash name *macro-functions*))
-
-(defsetf MACRO-FUNCTION (name &optional env) (fn)
-  `(setf (gethash ,name *macro-functions*) ,fn))
+(cl:defmacro DEFMACRO (name lambda-list &body body)
+  '(BACKQUOTE
+    (EVAL-WHEN ((COMMA (INTERN "COMPILE-TOPLEVEL" "KEYWORD"))
+		(COMMA (INTERN "COMPILE-TOPLEVEL" "KEYWORD"))
+		(COMMA (INTERN "COMPILE-TOPLEVEL" "KEYWORD")))
+      (SETF (MACRO-FUNCTION (QUOTE (COMMA name)))
+	    (FUNCTION (LAMBDA (form env)
+		        (DESTRUCTURING-BIND (COMMA lambda-list) (CDR form)
+			  (COMMA-AT body)))))
+      (QUOTE (COMMA name)))))
 
 (cl:defmacro LAMBDA (lambda-list &body body)
   (LIST 'FUNCTION (LIST* 'LAMBDA lambda-list body)))
