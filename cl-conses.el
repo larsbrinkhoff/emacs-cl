@@ -312,7 +312,7 @@
 
 (DEFSETF NTH (n list) (new)
   (with-gensyms (cons)
-    `(LET ((,cons (NTHCDR n list)))
+    `(LET ((,cons (NTHCDR ,n ,list)))
        (WHEN ,cons
 	 (RPLACA ,cons ,new))
        ,new)))
