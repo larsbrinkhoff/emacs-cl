@@ -5,6 +5,9 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+(defun file-error (pathname)
+  (ERROR 'FILE-ERROR (kw PATHNAME) pathname))
+
 (defun DIRECTORY (pathspec)
   ;; TODO...
   (directory-files pathspec))
@@ -37,7 +40,7 @@
 	 (y (first x))
 	 (z (second x)))
     (when (null x)
-      (error "file error"))
+      (file-error pathspec))
     (cl:+ (binary* y 65536) z universal-time-offset)))
 
 (defun RENAME-FILE (filespec new-name)
@@ -48,5 +51,7 @@
 (defun DELETE-FILE (filespec)
   (if (file-exists-p filespec)
       (delete-file filespec)
-      (error "file error"))
+      (file-error filespec))
   T)
+
+;;; FILE-ERROR and FILE-ERROR-PATHNAME are defined in cl-conditions.el.
