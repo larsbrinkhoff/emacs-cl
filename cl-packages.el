@@ -265,7 +265,7 @@
       (aset package 4 (cons (FIND-PACKAGE p) (PACKAGE-USE-LIST package)))))
   T)
 
-(defmacro DEFPACKAGE (name &body options)
+(defmacro DEFPACKAGE (name &rest options)
   (let ((nicknames nil)
 	(documentation nil)
 	(use-list nil)

@@ -67,7 +67,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -84,7 +84,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -102,7 +102,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -116,7 +116,7 @@
      (CONS (SUBST new old (CAR tree) (kw KEY) KEY (kw TEST) TEST)
 	   (SUBST new old (CAR tree) (kw KEY) KEY (kw TEST) TEST)))))
 
-(defun SUBST-IF (new predicate tree &KEY KEY)
+(cl:defun SUBST-IF (new predicate tree &KEY KEY)
   (unless KEY
     (setq KEY #'IDENTITY))
   (cond
@@ -144,7 +144,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -184,7 +184,7 @@
 
 (cl:defun TREE-EQUAL (tree1 tree2 &KEY TEST TEST-NOT)
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -382,7 +382,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -451,7 +451,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -487,7 +487,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST

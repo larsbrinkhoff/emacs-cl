@@ -143,7 +143,6 @@
 
 (defun keyword-bindings (lambda-list)
   (let ((allow-other-keys (member '&ALLOW-OTHER-KEYS lambda-list))
-	(result nil)
 	(temp (gensym))
 	(keys (lambda-list-keys lambda-list))
 	(vars (lambda-list-keyword-vars lambda-list))

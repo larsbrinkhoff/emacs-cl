@@ -202,7 +202,7 @@
 (defun FILE-LENGTH (stream)
   (unless (TYPEP stream 'FILE-STREAM)
     (type-error stream 'FILE-STREAM))
-  (let ((len (file-attributes (STREAM-filename stream))))
+  (let ((len (file-attributes (FILE-STREAM-filename stream))))
     (cond
       ((integerp len)	len)
       ((null len)	nil)
@@ -265,7 +265,7 @@
   (when (TYPEP stream 'FILE-STREAM)
     (save-current-buffer
       (set-buffer (STREAM-content stream))
-      (write-region 1 (1+ (buffer-size)) (STREAM-filename stream))))
+      (write-region 1 (1+ (buffer-size)) (FILE-STREAM-filename stream))))
   (when (bufferp (STREAM-content stream))
     (kill-buffer (STREAM-content stream)))
   (setf (STREAM-openp stream) nil)
@@ -439,6 +439,7 @@
 
 (cl:defmacro WITH-INPUT-FROM-STRING ((var string &key INDEX START END)
 				     &body body)
+  ;; TODO: INDEX
   (when (null START)
     (setq START 0))
   `(WITH-OPEN-STREAM (,var (MAKE-STRING-INPUT-STREAM ,string ,START ,END))

@@ -28,7 +28,7 @@
 (defun just-one (list)
   (cond
     ((atom list)	list)
-    ((cdr list)		(error))
+    ((cdr list)		(error "error"))
     (t			(car list))))
 
 (defun mappend (fn &rest lists)

@@ -362,8 +362,7 @@
 (defun FORMAT (stream-designator format &rest args)
   (let ((stream (or (and (eq stream-designator 'T) *STANDARD-OUTPUT*)
 		    stream-designator
-		    (MAKE-STRING-OUTPUT-STREAM)))
-	(i 0))
+		    (MAKE-STRING-OUTPUT-STREAM))))
     (if (FUNCTIONP format)
 	(APPLY format stream args)
 	(let ((state (make-format-state format args)))

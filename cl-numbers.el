@@ -487,7 +487,7 @@
        ((integerp y)	(bignum+fixnum x y))
        (t		(bignum+bignum x y))))
     (t
-     (error))))
+     (error "error"))))
 
 (defun bignum+fixnum (x y)
   (let* ((x0 (aref x 1))
@@ -531,7 +531,7 @@
 	     (aset bignum (incf i) n))
 	   bignum)))
     (t
-     (error))))
+     (error "error"))))
 
 (defun truncate-sign-extension (list &optional prev)
   (if (null list)
@@ -593,7 +593,7 @@
 	((bignump number)
 	 (bignum+fixnum (LOGNOT number) 1))
 	(t
-	 (error)))
+	 (error "error")))
       (dolist (num numbers number)
 	(setq number (binary- number num)))))
 
@@ -617,7 +617,7 @@
 		(x (binary- (binary* r r) (binary* i i))))
 	   (COMPLEX (binary/ r x) (cl:- (binary/ i x)))))
 	(t
-	 (error)))
+	 (error "error")))
       (dolist (num numbers number)
 	(setq number (binary/ number num)))))
 
@@ -961,7 +961,7 @@
 	    (incf shift))
 	  (canonical-bignum new)))
        (t
-	(error))))
+	(error "error"))))
     (t
      (while (> shift 0)
        (setq num (binary+ num num)

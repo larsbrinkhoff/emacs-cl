@@ -170,7 +170,7 @@
       (when include
 	(add-struct-subtype (first include) name))
       (when (and type (not named) predicate)
-	(error))
+	(error "error"))
       (unless predicate
 	(setq predicate (symcat name "-P")))
 
@@ -191,38 +191,37 @@
 
 	;; Constructors.
 	,@(mapcar
-	   (lambda (constructor)
-	     (let ((slotps (map-to-gensyms slots)))
-	       `(cl:defun ,@constructor
+	    (lambda (constructor)
+	      `(cl:defun ,@constructor
 		 ,(ecase type
 		    ((nil)
 		     `(let ((object (make-vector ,struct-size ',name)))
-		       ,@(let ((index initial-offset))
-			   (mapcar (lambda (slot)
-				     `(aset object ,(incf index)
-					    ,(slot-name-or-initval
-					      slot constructor)))
-				   slots))
-		       object))
+		        ,@(let ((index initial-offset))
+			    (mapcar (lambda (slot)
+				      `(aset object ,(incf index)
+					     ,(slot-name-or-initval
+					       slot constructor)))
+				    slots))
+		        object))
 		    (vector
 		     `(let ((object (MAKE-ARRAY ,struct-size)))
-		       ,@(let ((index (1- initial-offset)))
-		           `(,@(when named
-			         `((setf (AREF object ,(incf index) ',name))))
-			     ,@(mapcar (lambda (slot)
-					 `(setf (AREF object ,(incf index))
-					        ,(slot-name-or-initval
-						  slot constructor)))
-				       slots)))
-		       object))
+		        ,@(let ((index (1- initial-offset)))
+			    `(,@(when named
+				  `((setf (AREF object ,(incf index) ',name))))
+			      ,@(mapcar (lambda (slot)
+					  `(setf (AREF object ,(incf index))
+					         ,(slot-name-or-initval
+						   slot constructor)))
+					slots)))
+		        object))
 		    (list
 		     `(list ,@(make-list initial-offset nil)
 		            ,@(when named (list (list 'quote name)))
 		            ,@(mapcar (lambda (slot)
 					(slot-name-or-initval
 					 slot constructor))
-				      slots)))))))
-	   constructors)
+				      slots))))))
+	    constructors)
 
 	;; Copier.
 	,@(when copier

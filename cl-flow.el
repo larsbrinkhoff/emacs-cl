@@ -125,9 +125,10 @@
 
 (defmacro* DEFCONSTANT (name initial-value &optional documentation)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-    (defconst ,name ,initial-value)
-    (pushnew ',name *constants*)
-    ',name))
+     (defconst ,name ,initial-value
+       ,@(when documentation `(,documentation)))
+     (pushnew ',name *constants*)
+     ',name))
 
 (cl:defmacro DEFCONSTANT (name initial-value &optional documentation)
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
@@ -143,13 +144,11 @@
 (DEFCONSTANT LAMBDA-PARAMETERS-LIMIT 50)
 
 (cl:defmacro DEFVAR (name &optional (initial-value nil valuep) documentation)
-  (with-gensyms (val)
-    `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
-       ,@(when valuep
-	   `((LET ((,val ,initial-value))
-	       (UNLESS (BOUNDP (QUOTE ,name))
-		 (SETQ ,name ,val)))))
-       (QUOTE ,name))))
+  `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
+     ,@(when valuep
+	 `((UNLESS (BOUNDP (QUOTE ,name))
+	     (SETQ ,name ,initial-value))))
+       (QUOTE ,name)))
 
 (cl:defmacro DEFPARAMETER (name initial-value &optional documentation)
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
@@ -648,7 +647,7 @@
     (let ((var (gensym)))
       (cl:values nil nil (list var) `(SETQ ,place ,var) place)))
    (t
-    (error))))
+    (error "error"))))
 
 (defmacro* SETF (place value &rest more &environment env)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)

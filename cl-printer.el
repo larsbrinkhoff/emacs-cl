@@ -380,9 +380,6 @@
       (WRITE-CHAR (AREF "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" digit)
 		  stream))))
 
-(defun write-char-to-stream (char)
-  (WRITE-CHAR (CODE-CHAR char) stream))
-
 (defun print-float (float stream)
   (let ((standard-output #'write-char-to-*standard-output*))
     (prin1 float)))

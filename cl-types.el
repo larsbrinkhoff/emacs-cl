@@ -76,7 +76,7 @@
 	  (ARRAY	`(ARRAY T ,(array-dims object)))
 	  (BIGNUM	'BIGNUM)
 	  (bit-array	`(ARRAY BIT ,(array-dims object)))
-	  (BIT-VECTOR	`(BIT-VECTOR ,(vector-size object 2)))
+	  (BIT-VECTOR	`(BIT-VECTOR ,(vector-size object)))
 	  (char-array	`(ARRAY CHARACTER ,(array-dims object)))
 	  (CHARACTER	'CHARACTER)
 	  (COMPLEX	'COMPLEX)

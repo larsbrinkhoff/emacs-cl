@@ -50,7 +50,7 @@
     ((STRINGP x)	x)
     ((SYMBOLP x)	(SYMBOL-NAME x))
     ((CHARACTERP x)	(MAKE-STRING 1 (kw INITIAL-ELEMENT) x))
-    (t			(error))))
+    (t			(type-error x '(OR STRING SYMBOL CHARACTER)))))
 
 (cl:defun STRING-UPCASE (string &KEY (START 0) END)
   (NSTRING-UPCASE (COPY-SEQ string) (kw START) START (kw END) END))

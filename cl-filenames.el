@@ -15,7 +15,7 @@
      ;; TODO: parse logical pathnames
      (cl:values (PARSE-NAMESTRING pathspec)))
     ((STREAMP pathspec)
-     (PATHNAME (STREAM-filename pathspec)))
+     (PATHNAME (FILE-STREAM-filename pathspec)))
     (t
      (type-error pathspec '(OR PATHNAME STRING STREAM)))))
 
@@ -201,8 +201,9 @@
 			    &KEY (START 0) END JUNK-ALLOWED)
   (cond
     ((STREAMP thing)
-     (PARSE-NAMESTRING (STREAM-filename thing) host default (kw START) START
-		       (kw END) END (kw JUNK-ALLOWED) JUNK-ALLOWED))
+     (PARSE-NAMESTRING (FILE-STREAM-filename thing) host default
+		       (kw START) START (kw END) END
+		       (kw JUNK-ALLOWED) JUNK-ALLOWED))
     ((PATHNAMEP thing)
      (if (EQUAL (PATHNAME-HOST thing) host)
 	 (cl:values thing START)
@@ -210,8 +211,8 @@
     ((STRINGP thing)
      ;; TODO: parse logical pathnames
      (let* ((string (SUBSEQ thing START END))
-	    (dir (parse-dir (file-name-directory thing)))
-	    (name+ver (file-name-nondirectory thing))
+	    (dir (parse-dir (file-name-directory string)))
+	    (name+ver (file-name-nondirectory string))
 	    (name-ver (file-name-sans-versions name+ver))
 	    (ver (parse-ver name-ver (substring name+ver (length name-ver))))
 	    (name (maybe-wild (file-name-sans-extension name-ver)))

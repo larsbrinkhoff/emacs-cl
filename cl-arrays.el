@@ -226,13 +226,13 @@
   (cond
     ((VECTORP array)		(LENGTH array))
     ((ARRAYP array)		(nth axis (ARRAY-DIMENSIONS array)))
-    (t				(error))))
+    (t				(error "error"))))
 
 (defun ARRAY-DIMENSIONS (array)
   (cond
     ((VECTORP array)		(vector-size array))
     ((ARRAYP array)		(array-dims array))
-    (t				(error))))
+    (t				(error "error"))))
 
 (defun ARRAY-ELEMENT-TYPE (array)
   (cond
@@ -243,7 +243,7 @@
        (bit-array			'BIT)
        (char-array			'CHARACTER)
        ((simple-vector vector array)	T)))
-    (t					(error))))
+    (t					(error "error"))))
 
 (defun ARRAY-HAS-FILL-POINTER-P (array)
   (unless (ARRAYP array)
@@ -308,7 +308,7 @@
     ((vector-and-typep array 'ARRAY)
      (aref (array-storage array) index))
     (t
-     (error))))
+     (error "error"))))
 
 (defsetf ROW-MAJOR-AREF (array index) (new)
   `(cond
@@ -352,12 +352,12 @@
   (unless (and (VECTORP vector)
 	       (ARRAY-HAS-FILL-POINTER-P vector)
 	       (plusp (FILL-POINTER vector)))
-    (error))
+    (error "error"))
   (aref (vector-storage vector) (decf (vector-fp vector))))
 
 (defun VECTOR-PUSH (object vector)
   (unless (and (VECTORP vector) (ARRAY-HAS-FILL-POINTER-P vector))
-    (error))
+    (error "error"))
   (let ((ptr (FILL-POINTER vector))
 	(storage (vector-storage vector)))
     (unless (eq ptr (vector-size vector))
@@ -400,7 +400,7 @@
     ((vector-and-typep array 'bit-array)
      (bref (array-storage array) (apply #'ARRAY-ROW-MAJOR-INDEX subscripts)))
     (t
-     (error))))
+     (error "error"))))
 
 (defsetf BIT set-bit)
 
@@ -415,7 +415,7 @@
     ((vector-and-typep array 'bit-array)
      (setf (SBIT (array-storage array) index) bit))
     (t
-     (error))))
+     (error "error"))))
 
 (defun SBIT (array index)
   (bref array index))

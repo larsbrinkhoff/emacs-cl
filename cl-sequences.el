@@ -35,7 +35,7 @@
      (if (ARRAY-HAS-FILL-POINTER-P sequence)
 	 (if (cl:< index (FILL-POINTER sequence))
 	     (AREF sequence index)
-	     (error))
+	     (error "error"))
 	 (AREF sequence index)))
     (t
      (error "type error"))))
@@ -183,7 +183,7 @@
 
 (cl:defun COUNT (obj seq &KEY FROM-END TEST TEST-NOT (START 0) END KEY)
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -227,7 +227,7 @@
 	 (FILL-POINTER sequence)
 	 (vector-size sequence)))
     (t
-     (error))))
+     (error "error"))))
 
 (defun REVERSE (seq)
   (cond
@@ -273,7 +273,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -309,7 +309,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -354,7 +354,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -380,7 +380,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -422,7 +422,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -492,7 +492,7 @@
   (let* ((len1 (LENGTH seq1))
 	 (len2 (LENGTH seq2))
 	 (len (+ len1 len2))
-	 (result (ecase type
+	 (result (case type
 		  (LIST		(make-list len nil))
 		  (VECTOR	(make-vector (1+ len) 'SIMPLE-VECTOR))
 		  (t		(type-error type '(MEMBER LIST VECTOR))))))
@@ -511,7 +511,7 @@
 
 (cl:defun REMOVE (obj seq &KEY FROM-END TEST TEST-NOT (START 0) END COUNT KEY)
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -548,7 +548,7 @@
 
 (cl:defun DELETE (obj seq &KEY FROM-END TEST TEST-NOT (START 0) END COUNT KEY)
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -596,7 +596,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
@@ -611,7 +611,7 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error))
+    (error "error"))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST

@@ -24,7 +24,7 @@
   (let ((pos (position object *objects*)))
     (if pos
 	(ash 1 pos)
-	(error))))
+	(error "error"))))
 
 (defun register (object)
   (dolist (type *types*)
@@ -53,8 +53,8 @@
 ; 	    (cond
 ; 	      ((integerp x)	(if high (1- x) (1+ x)))
 ; 	      ((realp x)	(if high (1- (ceiling x)) (1+ (floor x))))
-; 	      (t		(error))))
-; 	   (t			(error))))
+; 	      (t		(error "error"))))
+; 	   (t			(error "error"))))
 ;        (simplify-integer-range (rest range) (not high)))))
 
 (defun negate-range (range)
@@ -244,7 +244,7 @@
        (dolist (object (rest type))
 	 (pushnew object *objects*)))
       (t
-       (error)))))
+       (error "error")))))
 
 (defun SUBTYPEP (type1 type2 &optional env)
   (setq type1 (expand-type type1))
