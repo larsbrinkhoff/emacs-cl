@@ -5,6 +5,8 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+;;; System Class SEQUENCE
+
 (defun COPY-SEQ (sequence)
   (cond
     ((listp sequence)
@@ -23,7 +25,7 @@
     ((VECTORP sequence)
      (subseq (aref sequence 2) 0 (FILL-POINTER sequence)))
     (t
-     (error))))
+     (type-error sequence 'SEQUENCE))))
 
 (defun ELT (sequence index)
   (cond
@@ -49,6 +51,7 @@
        (SETF (AREF ,sequence ,index) ,obj)))
 
 (cl:defun FILL (seq obj &key (start 0) end)
+  ;; TODO: use fillarray when possible
   (let ((len (LENGTH seq)))
     (unless end
       (setq end len))
@@ -222,21 +225,18 @@
 	   (kw FROM-END) from-end (kw START) start
 	   (kw END) end (kw KEY) key))
 
-(defmacro* dovector ((var vector &optional result) &body body)
-  (with-gensyms (i len vec)
-    `(let* (,var (,i 0) (,vec ,vector) (,len (LENGTH ,vec)))
-       (while (< ,i ,len)
-	 (setq ,var (AREF ,vec ,i))
-	 ,@body
-	 (incf ,i))
-       ,result)))
-
-(defmacro* dosequence ((var sequence &optional result) &body body)
-  (let ((seq (gensym)))
-    `(let ((,seq ,sequence))
-       (if (listp ,seq)
-	   (dolist (,var ,seq ,result) ,@body)
-	   (dovector (,var ,seq ,result) ,@body)))))
+;;; TODO: POSITION
+;;; TODO: POSITION-IF
+;;; TODO: POSITION-IF-NOT
+;;; TODO: SEARCH
+;;; TODO: MISMATCH
+;;; TODO: REPLACE
+;;; TODO: SUBSTITUTE
+;;; TODO: SUBSTITUTE-IF
+;;; TODO: SUBSTITUTE-IF-NOT
+;;; TODO: NSUBSTITUTE
+;;; TODO: NSUBSTITUTE-IF
+;;; TODO: NSUBSTITUTE-IF-NOT
 
 (defun CONCATENATE (type &rest sequences)
   (ecase type
@@ -257,10 +257,26 @@
 	   (aset string (incf i) (CHAR-CODE x))))
        string))))
 
-;;; ...
+;;; TODO: MERGE
 
-;;; TODO: merge
+;;; TODO: REMOVE, REMOVE-IF, REMOVE-IF-NOT, DELETE, DELETE-IF, DELETE-IF-NOT
 
-;;; TODO: remove, remove-if, remove-if-not, delete, delete-if, delete-if-not
+;;; TODO: REMOVE-DUPLICATES, DELETE-DUPLICATES
 
-;;; TODO: remove-duplicates, delete-duplicates
+
+
+(defmacro* dovector ((var vector &optional result) &body body)
+  (with-gensyms (i len vec)
+    `(let* (,var (,i 0) (,vec ,vector) (,len (LENGTH ,vec)))
+       (while (< ,i ,len)
+	 (setq ,var (AREF ,vec ,i))
+	 ,@body
+	 (incf ,i))
+       ,result)))
+
+(defmacro* dosequence ((var sequence &optional result) &body body)
+  (let ((seq (gensym)))
+    `(let ((,seq ,sequence))
+       (if (listp ,seq)
+	   (dolist (,var ,seq ,result) ,@body)
+	   (dovector (,var ,seq ,result) ,@body)))))
