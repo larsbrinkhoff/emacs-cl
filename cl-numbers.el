@@ -574,7 +574,7 @@
     (error))
   (if (and (eq x MOST-NEGATIVE-FIXNUM) (eq y -1))
       (vector 'bignum MOST-NEGATIVE-FIXNUM 0)
-      (let* ((GCD (gcd num den))
+      (let* ((gcd (GCD num den))
 	     (num (/ num gcd))
 	     (den (/ den gcd)))
 	(cond

@@ -213,7 +213,7 @@
 (defun sharp-c-reader (stream char n)
   (let ((list (READ stream T nil T)))
     (if (and (consp list) (= (length list) 2))
-	(values (complex (first list) (second list)))
+	(values (COMPLEX (first list) (second list)))
 	(error "syntax error"))))
 
 (defun sharp-a-reader (stream char n) nil)
