@@ -166,6 +166,11 @@
 (defun IDENTITY (object)
   object)
 
+(defun COMPLEMENT (fn)
+  (let ((env (augment-environment nil :variable '(fn))))
+    (setf (lexical-value 'fn env) fn)
+    (enclose '(LAMBDA (x) (NOT (FUNCALL fn x))) env)))
+
 (defmacro AND (&rest forms)
   `(and ,@forms))
 
