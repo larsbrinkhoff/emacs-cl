@@ -27,3 +27,19 @@ vector			[VECTOR <fill-pointer> <elements> <offset>]
 array			[ARRAY <dimensions> <elements> <offset>]
 interpreted-function	[INTERPRETED-FUNCTION <fn> <env>]
 instance of type T	[T <slot> ...]
+
+
+
+
+There are problems with the cl:function macro when its output appears
+in compiled files:
+
+ * When applied to a byte-code function the result will be printed
+   with the #[...] syntax.  That works, but separate invokations of
+   cl:function will result in distinct, though equal, code vectors.
+
+ * When's applied to a subr, the result will be printed with the
+   #<subr ...> syntax, which will raise a syntax error when loaded.
+
+In generall, Emacs' byte compiler doesn't preserve object identity,
+which is a problem.
