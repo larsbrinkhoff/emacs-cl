@@ -87,6 +87,8 @@
       (dolist (form body lastval)
 	(setq lastval (eval-with-env form new-env))))))
 
+;;; TODO: let* bindings shouldn't be evaluated in an environment where
+;;; succeeding bindings exist.
 (defun eval-let (bindings forms env old-env)
   (let* ((vars (mappend (lambda (binding)
 			  (let ((var (if (symbolp binding)
@@ -115,6 +117,7 @@
 	 (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
 	   (dolist (form body lastval)
 	     (setq lastval (eval-with-env form new-env))))
+      (setq oldvals (nreverse oldvals))
       (dolist (binding bindings)
 	(multiple-value-bind (var val) (if (symbolp binding)
 					   (values binding nil)
@@ -122,7 +125,6 @@
 						   (second binding)))
 	  (unless (member var vars)
 	    (setf (symbol-value var) (pop oldvals))))))))
-
 
 (define-special-operator LET (bindings &rest forms) env
   (eval-let bindings forms env env))
