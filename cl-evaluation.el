@@ -46,11 +46,6 @@
        (setf (gethash ,name *macro-functions*) ,fn)
        (set-local-macro ,name ,fn ,env)))
 
-(DEFSETF MACRO-FUNCTION (name &optional env) (fn)
-  `(IF (NULL ,env)
-       (puthash ,name ,fn *macro-functions*)
-       (set-local-macro ,name ,fn ,env)))
-
 (defmacro* cl:defmacro (name lambda-list &body body)
   `(progn
      (setf (MACRO-FUNCTION ',name)
@@ -60,12 +55,20 @@
     ',name))
 
 (cl:defmacro DEFMACRO (name lambda-list &body body)
-  `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
-      (SETF (MACRO-FUNCTION (QUOTE ,name))
-	    (LAMBDA (form env)
-	      (DESTRUCTURING-BIND ,lambda-list (CDR form)
-		,@body)))
-      (QUOTE ,name)))
+  (with-gensyms (fvar evar)
+    (let ((env (getf lambda-list '&ENVIRONMENT))
+	  (form fvar))
+      (remf lambda-list '&ENVIRONMENT)
+      (when env
+	(setq evar env))
+      (if (eq (first lambda-list) '&WHOLE)
+	  (push (GENSYM) (cddr lambda-list))
+	  (setq form `(CDR ,fvar)))
+      `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
+	(SETF (MACRO-FUNCTION (QUOTE ,name))
+	      (LAMBDA (,fvar ,evar)
+		(DESTRUCTURING-BIND ,lambda-list ,form ,@body)))
+	(QUOTE ,name)))))
 
 (cl:defmacro LAMBDA (lambda-list &body body)
   `(FUNCTION (LAMBDA ,lambda-list ,@body)))

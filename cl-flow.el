@@ -168,7 +168,7 @@
      (SETQ ,name ,initial-value)
      (QUOTE ,name)))
 
-; (dl:defmacro DESTRUCTURING-BIND (lambda-list form &body body)
+; (cl:defmacro DESTRUCTURING-BIND (lambda-list form &body body)
 ;   (with-gensyms (name)
 ;     `(MACROLET ((,name ,lambda-list ,@body))
 ;        (,name ,form))))
@@ -179,14 +179,15 @@
 (defun flatten (list)
   (mappend (lambda (x) (if (consp x) (flatten x) (list x))) list))
 
-(defun destructure (lambda-list struct)
+(defun destructure (lambda-list whole)
   (if (null lambda-list)
       nil
       (let ((result nil)
-	    (current nil))
+	    (current nil)
+	    (struct whole))
 	(setq current (pop lambda-list))
-	(when (eq current '&whole)
-	  (push `(SETQ ,(pop lambda-list) ,struct) result)
+	(when (eq current '&WHOLE)
+	  (push `(SETQ ,(pop lambda-list) ,whole) result)
 	  (setq current (pop lambda-list)))
 	(push `(WHEN (ATOM ,struct) (ERROR)) result)
 	(while (and current (not (lambda-list-keyword-p current)))
@@ -203,10 +204,10 @@
 	(nreverse result))))
 
 (cl:defmacro DESTRUCTURING-BIND (lambda-list form &body body)
-  (with-gensyms (val)
+  (with-gensyms (whole)
     `(LET ,(remove-if #'lambda-list-keyword-p (flatten lambda-list))
-       (LET ((,val ,form))
-	 ,@(destructure lambda-list val))
+       (LET ((,whole ,form))
+	 ,@(destructure lambda-list whole))
        ,@body)))
 
 ;;; Special Operators: LET, LET*
@@ -657,6 +658,11 @@
      (puthash (SECOND ,name) ,fn *setf-definitions*))
     (T
      (not-function-name-error ,name))))
+
+(DEFSETF MACRO-FUNCTION (name &optional env) (fn)
+  `(IF (NULL ,env)
+       (puthash ,name ,fn *macro-functions*)
+       (set-local-macro ,name ,fn ,env)))
 
 (DEFINE-SETF-EXPANDER THE (type form)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
