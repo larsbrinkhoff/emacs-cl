@@ -5,22 +5,6 @@
 
 (IN-PACKAGE "EMACS-CL")
 
-(DEFSTRUCT (PATHNAME (:predicate PATHNAMEP)
-		     (:copier nil)
-		     (:constructor mkpathname (HOST DEVICE DIRECTORY
-					       NAME TYPE VERSION)))
-  HOST
-  DEVICE
-  DIRECTORY
-  NAME
-  TYPE
-  VERSION)
-
-(DEFSTRUCT (LOGICAL-PATHNAME (:predicate nil)
-			     (:copier nil)
-			     (:constructor nil)
-			     (:include PATHNAME)))
-
 (defun PATHNAME (pathspec)
   (cond
     ((PATHNAMEP pathspec)
@@ -33,6 +17,9 @@
     (t
      (type-error pathspec '(OR PATHNAME STRING STREAM)))))
 
+(defun mkpathname (host device directory name type version)
+  (vector 'PATHNAME host device directory name type version))
+
 (cl:defun MAKE-PATHNAME (&key HOST DEVICE DIRECTORY NAME
 			      TYPE VERSION DEFAULTS CASE)
   (unless DEFAULTS
@@ -41,10 +28,32 @@
   (MERGE-PATHNAMES (mkpathname HOST DEVICE DIRECTORY NAME TYPE VERSION)
 		   DEFAULTS))
 
-;;; PATHNAMEP defined by defstruct.
+(defun PATHNAMEP (object)
+  (vector-and-typep object 'PATHNAME))
 
-;;; PATHNAME-HOST, PATHNAME-DEVICE, PATHNAME-DIRECTORY,
-;;; PATHNAME-NAME, PATHNAME-TYPE, PATHNAME-VERSION defined by defstruct.
+(defun PATHNAME-HOST (pathname-designator)
+  (let ((pathname (PATHNAME pathname-designator)))
+    (aref pathname 1)))
+
+(defun PATHNAME-DEVICE (pathname-designator)
+  (let ((pathname (PATHNAME pathname-designator)))
+    (aref pathname 2)))
+
+(defun PATHNAME-DIRECTORY (pathname-designator)
+  (let ((pathname (PATHNAME pathname-designator)))
+    (aref pathname 3)))
+
+(defun PATHNAME-NAME (pathname-designator)
+  (let ((pathname (PATHNAME pathname-designator)))
+    (aref pathname 4)))
+
+(defun PATHNAME-TYPE (pathname-designator)
+  (let ((pathname (PATHNAME pathname-designator)))
+    (aref pathname 5)))
+
+(defun PATHNAME-VERSION (pathname-designator)
+  (let ((pathname (PATHNAME pathname-designator)))
+    (aref pathname 6)))
 
 ;;; TODO: LOAD-LOGICAL-PATHNAME-TRANSLATIONS
 
@@ -80,7 +89,7 @@
     (concat
      dir
      name
-     (if (or (zerop (length name)) (zerop (length type))) "" ".")
+     (if (zerop (length type)) "" ".")
      type ver)))
 
 (defun FILE-NAMESTRING (pathname-designator)
@@ -309,10 +318,11 @@
      (wild-or-nil (PATHNAME-TYPE to-wildcard) (PATHNAME-TYPE source))
      (wild-or-nil (PATHNAME-VERSION to-wildcard) (PATHNAME-VERSION source)))))
 
-(cl:defun MERGE-PATHNAMES (pathname-d &optional (default
+(cl:defun MERGE-PATHNAMES (pathname-d &optional (default-d
 						 *DEFAULT-PATHNAME-DEFAULTS*)
 					        (default-version (kw NEWEST)))
-  (let ((pathname (PATHNAME pathname-d)))
+  (let ((pathname (PATHNAME pathname-d))
+	(default (PATHNAME default-d)))
     ;; TODO: read spec more closely.
     (mkpathname (or (PATHNAME-HOST pathname) (PATHNAME-HOST default))
 		(or (PATHNAME-DEVICE pathname) (PATHNAME-DEVICE default))
