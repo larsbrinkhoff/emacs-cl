@@ -471,8 +471,20 @@
 	  (VALUES (COMPLEX (first list) (second list)))
 	  (error "syntax error")))))
 
-;;; TODO: #nA
-(defun sharp-a-reader (stream char n) nil)
+(defun array-content-dimensions (n contents)
+  (cond
+    ((zerop n)	nil)
+    ((eq n 1)	(list (LENGTH contents)))
+    (t		(cons (LENGTH contents)
+		      (array-content-dimensions (1- n) (ELT contents 0))))))
+
+(defun sharp-a-reader (stream char n)
+  (unless-read-suppress-let (contents (READ stream T nil T))
+    (unless n
+      (ERROR 'READER-ERROR))
+    (MAKE-ARRAY (array-content-dimensions n contents)
+		(kw INITIAL-CONTENTS) contents)))
+
 ;;; TODO: #S
 (defun sharp-s-reader (stream char n) nil)
 
