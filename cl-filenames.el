@@ -59,7 +59,7 @@
 (DEFSETF LOGICAL-PATHNAME-TRANSLATIONS (host) (trans)
   `(puthash ,host ,trans *logical-pathname-translations*))
 
-;;; TODO: LOGICAL-PATHNAME
+;;; *DEFAULT-PATHNAME-DEFAULTS* defined below.
 
 (defun maybe-empty (component)
   (cond
@@ -168,6 +168,9 @@
 	  (setq i (1+ j))))
       (nreverse dir))))
 
+(defvar *DEFAULT-PATHNAME-DEFAULTS*
+  (mkpathname nil nil (parse-dir default-directory) nil nil nil))
+
 (defun parse-ver (name string)
   (if (STRING= name "")
       nil
@@ -212,8 +215,6 @@
 	       (or end (LENGTH thing)))))
     (t
      (type-error thing '(OR PATHNAME STRING STREAM)))))
-
-(defvar *DEFAULT-PATHNAME-DEFAULTS* (PARSE-NAMESTRING default-directory))
 
 (cl:defun WILD-PATHNAME-P (pathname-designator &optional field)
   (let ((pathname (PATHNAME pathname-designator)))
