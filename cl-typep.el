@@ -314,4 +314,4 @@
       (let ((fn (gethash type *atomic-typespecs*)))
 	(if fn
 	    (funcall fn object env)
-	    (error "invalid typespec: %s" type)))))
+	    (ERROR "Invalid typespec: ~A" type)))))
