@@ -158,6 +158,9 @@
 	(t
 	 nil))))
 
+(defun IDENTITY (object)
+  object)
+
 (defmacro AND (&rest forms)
   `(and ,@forms))
 

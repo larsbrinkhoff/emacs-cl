@@ -56,7 +56,14 @@
 
 ;;; TODO: subseq
 
-;;; TODO: map
+(defun* MAP (type fn &rest sequences)
+  (unless (eq type 'LIST)
+    (error "TODO"))
+  (let ((result nil))
+    (dolist (seq sequences)
+      (dosequence (x seq)
+        (push (FUNCALL fn x) result)))
+    result))
 
 ;;; TODO: map-into
 
