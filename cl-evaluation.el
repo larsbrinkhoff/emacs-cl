@@ -130,16 +130,16 @@
 	    MULTIPLE-VALUE-PROG1 PROGN PROGV QUOTE RETURN-FROM SETQ
 	    SYMBOL-MACROLET TAGBODY THE THROW UNWIND-PROTECT)))
 
-(defun quoted-object-p (thing)
-  (and (consp thing)
-       (eq (car thing) 'QUOTE)))
+(defun quoted-object-p (object)
+  (and (consp object)
+       (eq (car object) 'QUOTE)))
 
-(defun CONSTANTP (form &optional env)
+(defun CONSTANTP (object &optional env)
   (unless env
     (setq env *global-environment*))
-  (or (KEYWORDP form)
-      (and (atom form)
-	   (if (symbolp form)
-	       (memq form *constants*)
-	       T))
-      (quoted-object-p form)))
+  (cond
+    ((KEYWORDP object))
+    ((symbolp object)
+     (memq object *constants*))
+    ((atom object))
+    ((quoted-object-p object))))
