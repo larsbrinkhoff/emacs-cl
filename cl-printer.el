@@ -110,16 +110,17 @@
 	(*PRINT-RIGHT-MARGIN* right-margin))
     (cond
       ((INTEGERP object)
-       (prin1-integer object stream))
+       (print-integer object stream *PRINT-BASE* *PRINT-RADIX*))
       ((floatp object)
-       (prin1-float object stream))
+       (print-float object stream))
       ((symbolp object)
        (cond
 	 ((eq (NTH-VALUE 0 (FIND-SYMBOL (SYMBOL-NAME object) *PACKAGE*))
 	      object)
 	  (print-symbol-name object stream))
 	 ((null (SYMBOL-PACKAGE object))
-	  (WRITE-STRING "#:" stream)
+	  (when *PRINT-GENSYM*
+	    (WRITE-STRING "#:" stream))
 	  (print-symbol-name object stream))
 	 ((eq (SYMBOL-PACKAGE object) *keyword-package*)
 	  (WRITE-STRING ":" stream)
@@ -156,9 +157,14 @@
        (PRIN1 (IMAGPART object) stream)
        (WRITE-STRING ")" stream))
       ((BIT-VECTOR-P object)
-       (WRITE-STRING "#*" stream)
-       (dotimes (i (LENGTH object))
-	 (PRIN1 (AREF object i) stream)))
+       (cond
+	 (*PRINT-ARRAY*
+	  (WRITE-STRING "#*" stream)
+	  (dotimes (i (LENGTH object))
+	    (PRIN1 (AREF object i) stream)))
+	 (t
+	  (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t
+					          (kw IDENTITY) t)))))
       ((STRINGP object)
        (when *PRINT-ESCAPE*
 	 (WRITE-STRING "\"" stream))
@@ -173,12 +179,24 @@
        (when *PRINT-ESCAPE*
 	 (WRITE-STRING "\"" stream)))
       ((VECTORP object)
-       (WRITE-STRING "#(" stream)
-       (dotimes (i (LENGTH object))
-	 (when (> i 0)
-	   (WRITE-STRING " " stream))
-	 (PRIN1 (AREF object i) stream))
-       (WRITE-STRING ")" stream))
+       (cond
+	 (*PRINT-ARRAY*
+	  (WRITE-STRING "#(" stream)
+	  (dotimes (i (LENGTH object))
+	    (when (> i 0)
+	      (WRITE-STRING " " stream))
+	    (PRIN1 (AREF object i) stream))
+	  (WRITE-STRING ")" stream))
+	 (t
+	  (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t
+						  (kw IDENTITY) t)))))
+      ((ARRAYP object)
+       (cond
+	 (*PRINT-ARRAY*
+	  (print-array object stream))
+	 (t
+	  (PRINT-UNREADABLE-OBJECT (object stream
+				    (kw TYPE) t (kw IDENTITY) t)))))
       ((PACKAGEP object)
        (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t)
          (PRIN1 (PACKAGE-NAME object) stream)))
@@ -221,38 +239,60 @@
 (defun write-char-to-*standard-output* (char)
   (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*))
 
-(defun prin1-integer (number stream)
-  (when *PRINT-RADIX*
-    (case *PRINT-BASE*
+(cl:defun print-integer (number stream &optional (base 10) radix)
+  (when radix
+    (case base
       (2	(WRITE-STRING "#b" stream))
       (8	(WRITE-STRING "#o" stream))
       (10)
       (16	(WRITE-STRING "#x" stream))
-      (t	(WRITE-STRING "#" stream)
-		(let* ((base *PRINT-BASE*) (*PRINT-BASE* 10)) (PRIN1 base)))))
+      (t	(WRITE-CHAR (ch 35) stream)
+		(print-integer base stream)
+		(WRITE-STRING (ch 114) stream))))
   (cond
     ((ZEROP number)
      (WRITE-STRING "0" stream))
     ((MINUSP number)
      (WRITE-STRING "-" stream)
      (setq number (cl:- number))))
-  (print-digits number stream)
-  (when (and *PRINT-RADIX* (eq *PRINT-BASE* 10))
+  (print-digits number stream base)
+  (when (and radix (eq base 10))
     (WRITE-STRING "." stream)))
 
-(defun print-digits (number stream)
+(defun print-digits (number stream base)
   (when (PLUSP number)
-    (MULTIPLE-VALUE-BIND (number digit) (TRUNCATE number *PRINT-BASE*)
-      (print-digits number stream)
+    (MULTIPLE-VALUE-BIND (number digit) (TRUNCATE number base)
+      (print-digits number stream base)
       (WRITE-CHAR (AREF "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" digit)
 		  stream))))
 
 (defun write-char-to-stream (char)
   (WRITE-CHAR (CODE-CHAR char) stream))
 
-(defun prin1-float (float stream)
+(defun print-float (float stream)
   (let ((standard-output #'write-char-to-*standard-output*))
     (prin1 float)))
+
+(defun print-array (array stream)
+  (let ((dims (ARRAY-DIMENSIONS array)))
+    (WRITE-CHAR (ch 35) stream)
+    (print-integer (LENGTH dims) stream)
+    (WRITE-CHAR (ch 65) stream)
+    (if (zerop (LENGTH dims))
+	(WRITE-CHAR (ch 48) stream)
+	(print-array-elts array stream dims '()))))
+
+(defun print-array-elts (array stream dims indices)
+  (if (null dims)
+      (PRIN1 (apply #'AREF array indices))
+      (progn
+	(WRITE-CHAR (ch 40) stream)
+	(dotimes (i (first dims))
+	  (when (> i 0)
+	    (WRITE-STRING " " stream))
+	  (print-array-elts array stream (rest dims)
+			    (append indices (list i))))
+	(WRITE-CHAR (ch 41) stream))))
 
 (defun PRIN1 (object &optional stream)
   (WRITE object (kw STREAM) stream (kw ESCAPE) t))
@@ -282,19 +322,19 @@
   (WITH-OUTPUT-TO-STRING (stream)
     (funcall (cl:function PRINC) object stream)))
 
-(defvar *PRINT-ARRAY* nil)
+(defvar *PRINT-ARRAY* t)
 
 (defvar *PRINT-BASE* 10)
 
 (defvar *PRINT-RADIX* nil)
 
-(defvar *PRINT-CASE* nil)
+(defvar *PRINT-CASE* (kw UPCASE))
 
 (defvar *PRINT-CIRCLE* nil)
 
 (defvar *PRINT-ESCAPE* nil)
 
-(defvar *PRINT-GENSYM* nil)
+(defvar *PRINT-GENSYM* t)
 
 (defvar *PRINT-LEVEL* nil)
 
