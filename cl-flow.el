@@ -79,7 +79,7 @@
     (t
      (error "type error"))))
     
-;;; Special operators: FLET, LABELS, MACROLET.
+;;; Special operators: FLET, LABELS, MACROLET
 
 (defun FUNCALL (fn &rest args)
   (cond
@@ -148,6 +148,43 @@
      (SETQ ,name ,initial-value)
      (QUOTE ,name)))
 
+;;; TODO: DESTRUCTURING-BIND
+
+;;; Special Operators: LET, LET*
+
+;;; Special Operator: PROGV
+
+;;; Special Operator: SETQ
+
+(cl:defmacro PSETQ (&rest forms)
+  (if (oddp (length forms))
+      (error "syntax error")
+      (do ((forms forms (cddr forms))
+	   (vars nil)
+	   (vals nil))
+	  ((null forms)
+	   (let ((temps (map-to-gensyms vars)))
+	     `(LET ,(MAPCAR #'LIST temps vals)
+	        (SETQ ,@(MAPCAN #'LIST vars temps)))))
+	(push (first forms) vars)
+	(push (second forms) vals))))
+
+;;; Special Operator: BLOCK
+
+;;; Special Operator: CATCH
+
+;;; Special Operator: GO
+
+;;; Special Operator: RETURN-FROM
+
+;;; TODO: RETURN
+
+;;; Special Operator: TAGBODY
+
+;;; Special Operator: THROW
+
+;;; Special Operator: UNWIND-PROTECT
+
 (defun expand-tagbody-forms (body start end)
   (do ((clauses nil)
        (clause (list (list start)))
@@ -181,6 +218,8 @@
 		  (case ,pc
 		    ,@(expand-tagbody-forms body start end))))))
       nil)))
+
+;;; Constant Variable: NIL
 
 (fset 'NOT (symbol-function 'not))
 

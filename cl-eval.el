@@ -123,18 +123,18 @@
   (when (oddp (length forms))
     (error "syntax error"))
   (do* (lastval
-	(forms forms (cddr forms))
-	(var (first forms))
-	(val (eval-with-env (second forms) env)))
+	(forms forms (cddr forms)))
        ((null forms)
 	(VALUES lastval))
-    (setq lastval
-	  (ecase (nth-value 0 (variable-information var env))
-	    ;;((nil)		(error "unbound variable %s" form))
-	    ((:special nil)	(set var val))
-	    (:lexical		(setf (lexical-value var env) val))
-	    (:symbol-macro	(error "shouldn't happen"))
-	    (:constant		(error "setting constant"))))))
+    (let ((var (first forms))
+	  (val (eval-with-env (second forms) env)))
+      (setq lastval
+	    (ecase (nth-value 0 (variable-information var env))
+	      ;;((nil)		(error "unbound variable %s" form))
+	      ((:special nil)	(set var val))
+	      (:lexical		(setf (lexical-value var env) val))
+	      (:symbol-macro	(error "shouldn't happen"))
+	      (:constant	(error "setting constant")))))))
 
 ;;; TODO: SYMBOL-MACROLET
 
