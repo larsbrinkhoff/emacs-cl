@@ -5,6 +5,8 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+(define-storage-layout pathname (host device directory name type version))
+
 (defun PATHNAME (pathspec)
   (cond
     ((PATHNAMEP pathspec)
@@ -32,28 +34,22 @@
   (vector-and-typep object 'PATHNAME))
 
 (defun PATHNAME-HOST (pathname-designator)
-  (let ((pathname (PATHNAME pathname-designator)))
-    (aref pathname 1)))
+  (pathname-host (PATHNAME pathname-designator)))
 
 (defun PATHNAME-DEVICE (pathname-designator)
-  (let ((pathname (PATHNAME pathname-designator)))
-    (aref pathname 2)))
+  (pathname-device (PATHNAME pathname-designator)))
 
 (defun PATHNAME-DIRECTORY (pathname-designator)
-  (let ((pathname (PATHNAME pathname-designator)))
-    (aref pathname 3)))
+  (pathname-directory (PATHNAME pathname-designator)))
 
 (defun PATHNAME-NAME (pathname-designator)
-  (let ((pathname (PATHNAME pathname-designator)))
-    (aref pathname 4)))
+  (pathname-name (PATHNAME pathname-designator)))
 
 (defun PATHNAME-TYPE (pathname-designator)
-  (let ((pathname (PATHNAME pathname-designator)))
-    (aref pathname 5)))
+  (pathname-type (PATHNAME pathname-designator)))
 
 (defun PATHNAME-VERSION (pathname-designator)
-  (let ((pathname (PATHNAME pathname-designator)))
-    (aref pathname 6)))
+  (pathname-version (PATHNAME pathname-designator)))
 
 ;;; TODO: LOAD-LOGICAL-PATHNAME-TRANSLATIONS
 

@@ -12,26 +12,9 @@
 ;;; System Class	BIT-VECTOR
 ;;; Type		SIMPLE-BIT-VECTOR
 
-(defmacro array-dims (array)
-  `(aref ,array 1))
+(define-storage-layout array (dims storage offset))
 
-(defmacro array-storage (array)
-  `(aref ,array 2))
-
-(defmacro array-offset (array)
-  `(aref ,array 3))
-
-(defmacro vector-size (vector)
-  `(aref ,vector 1))
-
-(defmacro vector-storage (vector)
-  `(aref ,vector 2))
-
-(defmacro vector-offset (vector)
-  `(aref ,vector 3))
-
-(defmacro vector-fp (vector)
-  `(aref ,vector 4))
+(define-storage-layout vector (size storage offset fp))
 
 (defun set-initial-contents (n i storage contents fn)
   (cond

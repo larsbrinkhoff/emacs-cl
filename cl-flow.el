@@ -5,6 +5,8 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+(define-storage-layout interp-fn (lambda-exp env name))
+
 (defvar *setf-definitions* (make-hash-table))
 
 (defun APPLY (fn &rest args)
@@ -12,10 +14,10 @@
     ((COMPILED-FUNCTION-P fn)
      (apply #'apply fn args))
     ((INTERPRETED-FUNCTION-P fn)
-     (eval-lambda-form (append (list (aref fn 1))
+     (eval-lambda-form (append (list (interp-fn-lambda-exp fn))
 			       (butlast args)
 			       (car (last args)))
-		       (aref fn 2)))
+		       (interp-fn-env fn)))
     ((functionp fn)
      (apply #'apply fn args))
     (t
@@ -90,7 +92,8 @@
     ((COMPILED-FUNCTION-P fn)
      (apply fn args))
     ((INTERPRETED-FUNCTION-P fn)
-     (eval-lambda-form (cons (aref fn 1) args) (aref fn 2)))
+     (eval-lambda-form (cons (interp-fn-lambda-exp fn) args)
+		       (interp-fn-env fn)))
     ((functionp fn)
      (apply fn args))
     (t
@@ -100,7 +103,8 @@
 
 (defun FUNCTION-LAMBDA-EXPRESSION (fn)
   (cond
-    ((INTERPRETED-FUNCTION-P fn)	(VALUES (aref fn 1) T nil))
+    ((INTERPRETED-FUNCTION-P fn)	(VALUES (interp-fn-lambda-exp fn)
+						T nil))
     ((subrp fn)				(VALUES nil nil nil))
     ((byte-code-function-p fn)		(VALUES nil nil nil))
     ((FUNCTIONP fn)			(VALUES nil T nil))

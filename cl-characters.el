@@ -6,12 +6,11 @@
 (IN-PACKAGE "EMACS-CL")
 
 ;;; System Class CHARACTER
-
 ;;; Type BASE-CHAR
-
 ;;; Type STANDARD-CHAR
-
 ;;; Type EXTENDED-CHAR
+
+(define-storage-layout char (code))
 
 (defun CHAR= (&rest chars)
   (apply #'cl:= (mapcar #'CHAR-CODE chars)))
@@ -114,7 +113,7 @@
 
 (defun CHAR-CODE (char)
   ;;(CHECK-TYPE char 'CHARACTER)
-  (aref char 1))
+  (char-code char))
 
 (fset 'CHAR-INT (symbol-function 'CHAR-CODE))
 

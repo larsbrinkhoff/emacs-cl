@@ -331,7 +331,7 @@
 (defun function-name (fn)
   (cond
     ((INTERPRETED-FUNCTION-P fn)
-     (aref fn 3))
+     (interp-fn-name fn))
     ((byte-code-function-p fn)
      "")
     ((subrp fn)
@@ -349,7 +349,7 @@
 (defun set-function-name (fn name)
   (cond
     ((INTERPRETED-FUNCTION-P fn)
-     (setf (aref fn 3) name))
+     (setf (interp-fn-name fn) name))
     ((byte-code-function-p fn)
      name)
     ((subrp fn)

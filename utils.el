@@ -90,3 +90,12 @@
 
 (defmacro ch= (char code)
   `(eq (aref ,char 1) ,code))
+
+(defmacro define-storage-layout (type slots)
+  (let ((index 0))
+    `(progn
+       ,@(mapcar (lambda (slot)
+		   `(defmacro ,(symcat type "-" slot) (object)
+		      (list 'aref object ,(incf index))))
+		 slots)
+       ',type)))

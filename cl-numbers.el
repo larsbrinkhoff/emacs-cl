@@ -47,6 +47,12 @@
 ;;; Type FIXNUM
 ;;; Type BIGNUM
 
+(define-storage-layout ratio (num den))
+
+(define-storage-layout complex (real imag))
+
+(define-storage-layout random-state (x))
+
 (defun cl:= (number &rest numbers)
   (every (lambda (n) (binary= number n)) numbers))
 
@@ -792,8 +798,8 @@
    'RANDOM-STATE
    (cond
      ((null state)		0)
-     ((eq state T)		(aref *RANDOM-STATE* 1))
-     ((RANDOM-STATE-P state)	(aref state 1))
+     ((eq state T)		(random-state-x *RANDOM-STATE*))
+     ((RANDOM-STATE-P state)	(random-state-x state))
      (t				(type-error state
 					    '(OR BOOLEAN RANDOM-STATE))))))
 
@@ -847,12 +853,12 @@
 
 (defun REALPART (num)
   (if (COMPLEXP num)
-      (aref num 1)
+      (complex-real num)
       num))
 
 (defun IMAGPART (num)
   (if (COMPLEXP num)
-      (aref num 2)
+      (complex-imag num)
       0))
 
 (defun UPGRADED-COMPLEX-PART-TYPE (typespec &optional env)
@@ -883,12 +889,12 @@
 
 (defun NUMERATOR (num)
   (if (ratiop num)
-      (aref num 1)
+      (ration-num num)
       num))
 
 (defun DENOMINATOR (num)
   (if (ratiop num)
-      (aref num 2)
+      (ratio-den num)
       1))
 
 (defun RATIONAL (num)
