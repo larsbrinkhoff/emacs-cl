@@ -226,7 +226,7 @@
 
 (defvar *standard-readtable*
   (let ((readtable (MAKE-READTABLE)))
-    (setf (READTABLE-CASE readtable) :upcase)
+    (setf (READTABLE-CASE readtable) (kw UPCASE))
 
     (setf (READTABLE-SYNTAX-TYPE readtable) (make-vector 256 :constituent))
     (setf (aref (READTABLE-SYNTAX-TYPE readtable) 32) :whitespace)
@@ -528,11 +528,16 @@
 
 
 (defun char-convert-case (char)
-  (ecase (READTABLE-CASE *READTABLE*)
-    (:preserve	char)
-    (:upcase	(CHAR-UPCASE char))
-    (:downcase	(CHAR-DOWNCASE char))
-    (:invert	(error "not implemented"))))
+  (let ((case (READTABLE-CASE *READTABLE*)))
+    (cond
+      ((eq case (kw PRESERVE))	char)
+      ((eq case (kw UPCASE))	(CHAR-UPCASE char))
+      ((eq case (kw DOWNCASE))	(CHAR-DOWNCASE char))
+      ((eq case (kw INVERT))	(error "TODO"))
+      (t			(type-error case `(MEMBER ,(kw PRESERVE)
+							  ,(kw UPCASE)
+							  ,(kw DOWNCASE)
+							  ,(kw INVERT)))))))
 
 (defun* process-token (package colons token escape)
   (when (and (zerop colons) (not escape))
