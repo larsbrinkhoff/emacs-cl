@@ -39,7 +39,13 @@
 
 
 
-(defvar *registers* (list (gensym)))
+(defvar *genreg-counter* 0)
+
+(defun genreg ()
+  (prog1 (make-symbol (format "R%d" *genreg-counter*))
+    (incf *genreg-counter*)))
+
+(defvar *registers* (list (genreg)))
 (defvar *next-register* nil)
 
 (defvar *bound* nil
@@ -56,7 +62,7 @@
   (prog1
       (car *next-register*)
     (when (null (cdr *next-register*))
-      (setf (cdr *next-register*) (list (gensym))))
+      (setf (cdr *next-register*) (list (genreg))))
     (setf *next-register* (cdr *next-register*))))
 
 (defun lambda-expr-p (form)
@@ -77,14 +83,17 @@
     (compile-form form *global-environment*)))
 
 (defun compiler-macroexpand (form env)
-  (let ((exp1 t) (exp2 t))
+  (let ((exp1 t) (exp2 nil))
     (while (or exp1 exp2)
       (MULTIPLE-VALUE-SETQ (form exp1) (MACROEXPAND form env))
-      (let ((fn (COMPILER-MACRO-FUNCTION (car form) env)))
-	(when fn
-	  (let ((new (funcall fn form env)))
-	    (setq exp2 (not (eq form new))
-		  form new)))))))
+      (when (consp form)
+	(let ((fn (COMPILER-MACRO-FUNCTION (car form) env)))
+	  (if fn
+	      (let ((new (funcall fn form env)))
+		(setq exp2 (not (eq form new))
+		      form new))
+	      (setq exp2 nil))))))
+  form)
 
 (defun* compile-form (form &optional env &key (values 1))
   (when (and (consp form) (symbolp (first form)))
@@ -107,7 +116,10 @@
 	     `(progn (setq nvals 1 mvals nil) ,val)
 	     val))))
     ((lambda-expr-p (first form))
-     `(,(compile-lambda form env) ,@(compile-forms (rest form) env)))
+     (let* ((lexp (first form))
+	    (vars (cadr lexp))
+	    (body (cddr lexp)))
+       `(,(compile-lambda vars body env t) ,@(compile-forms (rest form) env))))
     ((symbolp (first form))
      (let* ((name (first form))
 	    (fn (gethash name *form-compilers*)))
@@ -133,10 +145,6 @@
 	(let ((comp (compile-form form env :values 0)))
 	  (when comp
 	    (push comp result))))))
-
-(defun variable-bound-p (var env)
-  (multiple-value-bind (type localp decls) (variable-information var env)
-    type))
 
 (defun compile-variable (var env)
   (multiple-value-bind (type localp decls) (variable-information var env)
@@ -223,38 +231,69 @@
 (define-compiler EVAL-WHEN (situations &rest body) env
   `(progn ,@(compile-body body env)))
 
-(define-compiler FLET (fns &rest body) env
-  (let ((new-env (augment-environment env :function (mapcar #'first fns))))
-    (dolist (fn fns)
-      (setf (lexical-function (first fn) new-env)
-	    (compile-form `(LAMBDA ,@(rest fn)) env)))
-    `(progn ,@(compile-body body new-env))))
+(define-compiler FLET (fns &rest forms) env
+  (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
+    (let ((new-env (augment-environment env :function (mapcar #'first fns)))
+	  (bindings nil))
+      (dolist (fn fns)
+	(let ((reg (new-register)))
+	  (setf (lexical-function (first fn) new-env) reg)
+	  (push `(,reg ,(compile-lambda (cadr fn) (cddr fn) env)) bindings)))
+      (let ((compiled-body (compile-body body new-env)))
+	(cond
+	  ((null *free*))
+	  ((create-environment-p env new-env)
+	   (setq compiled-body (compile-environment compiled-body new-env)))
+	  (t
+	   (setq compiled-body
+		 (compile-env-inits compiled-body
+				    (mapcar
+				     (lambda (fn)
+				       (lexical-function (car fn) new-env))
+				     fns)
+				    new-env))))
+	`(let ,bindings ,@compiled-body)))))
 
 (defun compile-funcall (fn args env)
-  (if (and (consp fn) (eq (first fn) 'QUOTE) (symbolp (second fn)))
-      (if (eq (second fn) 'FUNCALL)
-	  (compile-form `(FUNCALL ,@args) env)
-	  `(,(second fn) ,@(compile-forms args env)))
-      (let ((fn (compile-form fn env))
-	    (args (compile-forms args env)))
-	(cond
-	  ((subrp fn)
-	   `(,(intern (function-name fn)) ,@args))
-	  ((byte-code-function-p fn)
-	   `(funcall ,fn ,@args))
-	  (t
-	   `(FUNCALL ,fn ,@args))))))
+  (let ((compiled-args (compile-forms args env)))
+    (if (and (consp fn) (eq (first fn) 'QUOTE) (symbolp (second fn)))
+	(let ((name (second fn)))
+	  (if (eq name 'FUNCALL)
+	      (compile-form `(FUNCALL ,@args) env)
+	      (multiple-value-bind (type localp decls)
+		  (function-information name env)
+		(if localp
+		    (progn
+		      (when (and (not (memq name *bound*))
+				 (not (MEMBER name *free* (kw KEY) #'car)))
+			(push (cons name (lexical-function name env))
+			      *free*))
+		      `(funcall ,(lexical-function name env)
+			        ,@compiled-args))
+		    `(,name ,@(compile-forms args env))))))
+	(let ((fn (compile-form fn env)))
+	  (cond
+	    ((subrp fn)
+	     `(,(intern (function-name fn)) ,@args))
+	    ((byte-code-function-p fn)
+	     `(funcall ,fn ,@args))
+	    (t
+	     `(FUNCALL ,fn ,@args)))))))
 
 (define-compiler FUNCALL (fn &rest args) env
   (compile-funcall fn args env))
 
 (define-compiler FUNCTION (name) env
   (if (lambda-expr-p name)
-      (let ((*bound* nil))
-	(compile-lambda name env))
+      (compile-lambda (cadr name) (cddr name) env)
       (multiple-value-bind (type localp decl) (function-information name env)
 	(cond
-	  (localp		(lexical-function name env))
+	  (localp		(when (and (not (memq name *bound*))
+					   (not (MEMBER name *free*
+							(kw KEY) #'car)))
+				  (push (cons name (lexical-function name env))
+					*free*))
+				(lexical-function name env))
 	  ((symbolp name)	(symbol-function name))
 	  ((setf-name-p name)	(FDEFINITION name))
 	  (t			(ERROR "Syntax error: (FUNCTION ~S)" name))))))
@@ -271,12 +310,33 @@
        ,@(when else
 	   (list (compile-form else env)))))
 
-(define-compiler LABELS (fns &rest body) env
-  (let ((new-env (augment-environment env :function (mapcar #'first fns))))
-    (dolist (fn fns)
-      (setf (lexical-function (first fn) new-env)
-	    (compile-form `(LAMBDA ,@(rest fn)) new-env)))
-    `(progn ,@(compile-body body new-env))))
+(define-compiler LABELS (fns &rest forms) env
+  (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
+    (let ((new-env (augment-environment env :function (mapcar #'first fns)))
+	  (bindings nil)
+	  (inits nil))
+      (dolist (fn fns)
+	(let ((reg (new-register)))
+	  (setf (lexical-function (first fn) new-env) reg)
+	  (push reg bindings)))
+      (dolist (fn fns)
+	(setq inits `(,(lexical-function (first fn) new-env)
+		      ,(compile-lambda (cadr fn) (cddr fn) new-env)
+		      ,@inits)))
+      (let ((compiled-body (compile-body body new-env)))
+	(cond
+	  ((null *free*))
+	  ((create-environment-p env new-env)
+	   (setq compiled-body (compile-environment compiled-body new-env)))
+	  (t
+	   (setq compiled-body
+		 (compile-env-inits compiled-body
+				    (mapcar
+				     (lambda (fn)
+				       (lexical-function (car fn) new-env))
+				     fns)
+				    new-env))))
+	`(let ,bindings (setf ,@inits) ,@compiled-body)))))
 
 (defun lambda-list-parameters (lambda-list)
   (let ((result nil))
@@ -345,10 +405,14 @@
 	new-env)
       env))
 
+(defun variable-bound-p (var env)
+  (multiple-value-bind (type localp decls) (variable-information var env)
+    type))
+
 (defun create-environment-p (env new-env)
   (let ((vars (mapcar #'car *free*)))
-    (and  (every (lambda (var) (not (variable-bound-p var env))) vars)
-	  (some (lambda (var) (variable-bound-p var new-env)) vars))))
+    (and (every (lambda (var) (not (variable-bound-p var env))) vars)
+	 (some (lambda (var) (variable-bound-p var new-env)) vars))))
 
 (defun initial-environment (env)
   (mapcar (lambda (var)
@@ -361,8 +425,8 @@
 	(nfree (length *free*))
 	make-env)
     (cond
-      ((<= n 2)
-       (setq make-env (if (eq n 1) `(cons ,@inits nil) `(cons ,@inits)))
+      ((<= nfree 2)
+       (setq make-env (if (eq nfree 1) `(cons ,@inits nil) `(cons ,@inits)))
        (MAPC (lambda (var accessor)
 	       (setq body (NSUBST `(,accessor env) (cdr var) body)))
 	     *free* '(car cdr)))
@@ -377,8 +441,9 @@
 (defun compile-env-inits (body vars env)
   (let ((inits nil))
     (dolist (var *free*)
-      (when (and (memq (car var) vars)
-		 (eq (compile-variable (car var) env) (cdr var)))
+      (when (memq (cdr var) vars)
+	    ;(and (memq (car var) vars)
+	    ;	 (eq (compile-variable (car var) env) (cdr var)))
 	(let ((reg (new-register)))
 	  (setq inits `(,reg ,(cdr var) ,@inits))
 	  (setq body (NSUBST reg (cdr var) body))
@@ -387,23 +452,27 @@
 	`((setf ,@inits) ,@body)
 	body)))
 
-(defun compile-trampoline (body vars env)
-  `(trampoline ,(expand-lambda vars (compile-env-inits body vars env) env)
+(defun compile-trampoline (lambda-list body env)
+  `(trampoline ,(expand-lambda
+		 lambda-list
+		 (compile-env-inits body (compile-forms lambda-list env) env)
+		 env)
                env))
 
-(defun compile-lambda (form env)
-  (MULTIPLE-VALUE-BIND (body decls) (parse-body (cddr form))
-    (let* ((vars (second form))
+(defun compile-lambda (lambda-list forms env &optional keep-bindings)
+  (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
+    (let* ((vars lambda-list)
 	   (new-env (env-with-vars env vars decls))
-	   (compiled-body (compile-body body new-env)))
+	   (compiled-body (let ((*bound* (when keep-bindings *bound*)))
+			    (compile-body body new-env))))
       (cond
 	((null *free*)
-	 (expand-lambda vars compiled-body new-env))
+	 (expand-lambda lambda-list compiled-body new-env))
 	((create-environment-p env new-env)
 	 (expand-lambda
-	  vars (compile-environment compiled-body new-env) new-env))
+	  lambda-list (compile-environment compiled-body new-env) new-env))
 	(t
-	 (compile-trampoline compiled-body vars new-env)))))))
+	 (compile-trampoline lambda-list compiled-body new-env))))))
 
 (defun partition-bindings (bindings env)
   (let ((local-bindings nil)
@@ -446,9 +515,10 @@
 		       ((create-environment-p env new-env)
 			(compile-environment compiled-body new-env))
 		       (t
-			(compile-env-inits compiled-body
-					   (mapcar #'car local-bindings)
-					   new-env)))))
+			(compile-env-inits
+			 compiled-body
+			 (compile-forms (mapcar #'car local-bindings) new-env)
+			 new-env)))))
 	  (if let-bindings
 	      `(let ,let-bindings ,@body)
 	      `(progn ,@body)))))))
@@ -482,7 +552,9 @@
 	(setq compiled-body
 	      (if (create-environment-p env new-env)
 		  (compile-environment compiled-body new-env)
-		  (compile-env-inits compile-env-inits vars new-env))))
+		  (compile-env-inits compiled-body
+				     (compile-forms vars new-env)
+				     new-env))))
       (case (length vars)
 	(0 `(progn
 	     ,(compile-form form env :values 0)
