@@ -5,11 +5,20 @@
 
 (IN-PACKAGE "EMACS-CL")
 
-;;; TODO: Function COMPILE-FILE
+;;; TODO:
+; (cl:defun COMPILE-FILE (input-file &key output-file
+;				     (verbose *COMPILE-VERBOSE*)
+; 				     (print *COMPILE-PRINT*)
+; 				     external-format)
+;   nil)
 
 ;;; TODO: Function COMPILE-FILE-PATHNAME
 
-;;; TODO: Function LOAD
+(cl:defun LOAD (filespec &key (verbose *LOAD-VERBOSE*) (print *LOAD-PRINT*)
+		              if-does-not-exist external-format)
+  (let ((*LOAD-PATHNAME* filespec)
+	(*LOAD-TRUENAME* (TRUENAME filespec)))
+    (load filespec)))
 
 ;;; TODO: Macro WITH-COMPILATION-UNIT
 
@@ -17,18 +26,27 @@
 ; not yet	         (kw ANSI-CL)
 			 (kw EMACS-CL)))
 
-;;; TODO: Variable *COMPILE-FILE-PATHNAME*
-;;; TODO:          *COMPILE-FILE-TRUENAME*
+(defvar *COMPILE-FILE-PATHNAME* nil)
+(defvar *COMPILE-FILE-TRUENAME* nil)
 
-;;; TODO: Variable *LOAD-PATHNAME*
-;;; TODO:          *LOAD-TRUENAME*
+(defvar *LOAD-PATHNAME* nil)
+(defvar *LOAD-TRUENAME* nil)
 
-;;; TODO: Variable *COMPILE-PRINT*
-;;; TODO:          *COMPILE-VERBOSE*
+(defvar *COMPILE-PRINT* nil)
+(defvar *COMPILE-VERBOSE* nil)
 
-;;; TODO: Variable *LOAD-PRINT*
-;;; TODO:          *LOAD-VERBOSE*
+(defvar *LOAD-PRINT* nil)
+(defvar *LOAD-VERBOSE* nil)
 
-;;; TODO: Variable *MODULES*
+(defvar *MODULES* nil)
 
-;;; TODO: Function PROVIDE, REQUIRE
+(defun PROVIDE (name)
+  (let ((string (STRING name)))
+    (pushnew string *MODULES* :test #'STRING=)
+    string))
+
+(defun REQUIRE (name &optional pathnames)
+  (let ((string (STRING name)))
+    (unless (find string *MODULES* :test #'STRING=)
+      (do-list-designator (file pathnames)
+	(LOAD file)))))
