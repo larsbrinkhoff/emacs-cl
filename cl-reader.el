@@ -450,9 +450,9 @@
   (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL token package)
     (VALUES
       (cond
-	((or (eq status *:external*) (eq status *:inherited*))
+	((or (eq status (kw EXTERNAL)) (eq status (kw INHERITED)))
 	 sym)
-	((eq status *:internal*)
+	((eq status (kw INTERNAL))
 	 (if (and (< colons 2) (not (eq package *PACKAGE*)))
 	     (error "internal symbol")
 	     sym))

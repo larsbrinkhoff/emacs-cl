@@ -41,7 +41,7 @@
     (do-list-designator (sym symbols (VALUES T))
       (MULTIPLE-VALUE-BIND (s status) (FIND-SYMBOL (SYMBOL-NAME sym) package)
 	(cond
-	  ((eq status *:inherited*)
+	  ((eq status (kw INHERITED))
 	   (IMPORT sym package))
 	  ((null status)
 	   (error "package error"))))
@@ -93,7 +93,7 @@
 	     (progn
 	       (unless (SYMBOL-PACKAGE symbol)
 		 (setf (SYMBOL-PACKAGE symbol) *emacs-lisp-package*))
-	       (VALUES symbol *:external*))
+	       (VALUES symbol (kw external)))
 	     (VALUES nil nil))))
       (t
        (let* ((table (package-table package))
@@ -101,8 +101,8 @@
 	 (if (not (eq symbol not-found))
 	     (VALUES symbol
 		     (if (member symbol (package-exported package))
-			 *:external*
-			 *:internal*))
+			 (kw external)
+			 (kw INTERNAL)))
 	     (dolist (p (PACKAGE-USE-LIST package) (VALUES nil nil))
 	       (MULTIPLE-VALUE-BIND (symbol found) (FIND-SYMBOL string p)
 		 (when (and found
@@ -111,14 +111,14 @@
 			    (or (eq p *emacs-lisp-package*)
 				(member symbol (package-exported p))))
 		   (return-from FIND-SYMBOL
-		     (VALUES symbol *:inherited*)))))))))))
+		     (VALUES symbol (kw INHERITED))))))))))))
 
 (defun FIND-ALL-SYMBOLS (name)
   (let ((string (STRING name))
 	(syms nil))
     (dolist (p *all-packages* (VALUES syms))
       (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL string p)
-	(if (or (eq status :internal) (eq status *:external*))
+	(if (or (eq status :internal) (eq status (kw external)))
 	    (push sym syms))))))
 
 (defun* IMPORT (symbols &optional (package-designator *PACKAGE*))
@@ -146,7 +146,7 @@
   (let ((package (FIND-PACKAGE package-designator)))
     (do-list-designator (name symbol-names (VALUES T))
       (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL name package)
-	(when (or (null status) (eq status *:inherited*))
+	(when (or (null status) (eq status (kw INHERITED)))
 	  (setq sym (nth-value 0 (INTERN name package))))
 	(pushnew sym (aref package 3))))))
 
@@ -278,10 +278,6 @@
 	      (set symbol symbol)
 	      (pushnew symbol (aref package 7)))
 	    (VALUES symbol nil))))))
-
-(defconst *:internal* (kw INTERNAL))
-(defconst *:external* (kw EXTERNAL))
-(defconst *:inherited* (kw INHERITED))
 
 (defvar *PACKAGE* (FIND-PACKAGE "CL-USER"))
 
