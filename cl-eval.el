@@ -141,15 +141,15 @@
 	(setq lastval (eval-with-env form env))))))
 
 (define-special-operator MACROLET (macros &rest forms) env
-  (let ((new-env (augment-environment env :macro (mapcar #'first macros)))
-	(lastval nil))
-    (dolist (macro macros)
-      (setf (MACRO-FUNCTION (first macro) new-env)
-	    (enclose `(LAMBDA (form env)
-		        ;; TODO: destructuring-bind
-		        (APPLY (LAMBDA ,@(rest macro)) (CDR form)))
-		     env (first macro))))
-    (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
+  (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
+    (let ((new-env (augment-environment env :macro (mapcar #'first macros)))
+	  (lastval nil))
+      (dolist (macro macros)
+	(setf (MACRO-FUNCTION (first macro) new-env)
+	      (enclose `(LAMBDA (form env)
+			 ;; TODO: destructuring-bind
+			 (APPLY (LAMBDA ,@(rest macro)) (CDR form)))
+		       env (first macro))))
       (dolist (form body lastval)
 	(setq lastval (eval-with-env form new-env))))))
 
@@ -224,7 +224,17 @@
 	      (:symbol-macro	(error "shouldn't happen"))
 	      (:constant	(error "setting constant")))))))
 
-;;; TODO: SYMBOL-MACROLET
+(define-special-operator SYMBOL-MACROLET (macros &rest forms) env
+  (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
+    (let ((new-env (augment-environment env :symbol-macro
+					(mapcar #'first macros)))
+	  (lastval nil))
+      (dolist (macro macros)
+	(setf (lexical-value (first macro) new-env)
+	      (enclose `(LAMBDA (form env) (QUOTE ,(second macro)))
+		       env (first macro))))
+      (dolist (form body lastval)
+	(setq lastval (eval-with-env form new-env))))))
 
 (defun go-tag-p (object)
   (or (INTEGERP object) (symbolp object)))
@@ -295,15 +305,15 @@
   (unless env
     (setq env *global-environment*))
   (values
-    (let ((info (assoc fn (aref env 4))))
-      (if info
-	  (cdr info)
-	  (cond
-	    ((FBOUNDP fn)			:function)
-	    ((gethash fn *macro-functions*)	:macro)
-	    ((SPECIAL-OPERATOR-P fn)		:special-operator))))
-    (member fn (aref env 5))
-    nil))
+   (let ((info (assoc fn (aref env 4))))
+     (if info
+	 (cdr info)
+	 (cond
+	   ((FBOUNDP fn)			:function)
+	   ((gethash fn *macro-functions*)	:macro)
+	   ((SPECIAL-OPERATOR-P fn)		:special-operator))))
+   (member fn (aref env 5))
+   nil))
 
 (defun lexical-function (name env)
   (cdr-safe (assoc name (aref env 6))))
@@ -341,8 +351,10 @@
     (setq var-info (reduce (lambda (env var) (acons var :symbol-macro env))
 			   symbol-macro
 			   :initial-value var-info))
-    (setq var-local (append variable var-local))
+    (setq var-local (append variable symbol-macro var-local))
     (dolist (var variable)
+      (push (cons var nil) var-storage))
+    (dolist (var symbol-macro)
       (push (cons var nil) var-storage))
     (setq fn-info (reduce (lambda (env fn) (acons fn :function env))
 			  function
@@ -350,7 +362,7 @@
     (setq fn-info (reduce (lambda (env mac) (acons mac :macro env))
 			  macro
 			  :initial-value fn-info))
-    (setq fn-local (append function fn-local))
+    (setq fn-local (append function macro fn-local))
     (setq block-info (cons block block-info))
     (setq tagbody-info (cons tagbody tagbody-info))
   (vector 'environment var-info var-local var-storage
@@ -448,7 +460,7 @@
        ((nil)		(ERROR 'UNBOUND-VARIABLE (kw NAME) form))
        (:special	(SYMBOL-VALUE form))
        (:lexical	(lexical-value form env))
-       (:symbol-macro	(error "shouldn't happen yet"))
+       (:symbol-macro	(error "shouldn't happen"))
        (:constant	(SYMBOL-VALUE form))))
     ((ATOM form)
      form)
