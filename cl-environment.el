@@ -108,7 +108,7 @@
     ((null x)
      (switch-to-buffer (generate-new-buffer "*ED*")))
     ((or (PATHNAMEP x) (STRINGP x))
-     (load-file (NAMESTRING (PATHNAME x))))
+     (find-file (NAMESTRING (PATHNAME x))))
     ((or (SYMBOLP x) (setf-name-p x))
      (find-tag (prin1-to-string x)))
     (t
