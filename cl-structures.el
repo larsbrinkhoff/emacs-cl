@@ -4,7 +4,11 @@
 ;;;;
 ;;;; This file implements operators in chapter 8, Structures.
 
-;;; TODO: defstruct
+(IN-PACKAGE "CL")
+
+;;; A hash table keyed on a structure type (symbol).  The data is a
+;;; list of types that are subtypes of the key type.
+(defvar *structure-subtypes* (make-hash-table))
 
 (defun strcat (&rest string-designators)
   (apply #'CONCATENATE 'STRING (mapcar #'STRING string-designators)))
@@ -23,7 +27,7 @@
 	  (include		nil)
 	  (initial-offset	nil)
 	  (named		nil)
-	  (predicate		(symcat name "-P"))
+	  (predicate		nil)
 	  (print-object		nil)
 	  (print-function	nil)
 	  (type			nil)
@@ -53,9 +57,11 @@
 	    (:print-function	(setq print-function (first args)))
 	    (:type		(setq type (first args))))))
 
-      ;; Some option post-processing.
+      ;; Provide a default constructor if appropriate.
       (when (and (null constructors) (not no-constructor))
 	(setq constructors (list (symcat "MAKE-" name))))
+
+      ;; Calculate initial-offset and structure size.
       (when (and initial-offset (not type))
 	(error ":initial-offset used without :type"))
       (unless initial-offset
@@ -63,6 +69,15 @@
       (setq struct-size (+ initial-offset (length slots)))
       (unless (and type (not named))
 	(incf struct-size))
+
+      ;; Register the structure as a subtype of an included structure,
+      ;; and provide a default predicate if appropriate.
+      (when include
+	(pushnew name (gethash (first include) *structure-subtypes*)))
+      (when (and type (not named) predicate)
+	(error))
+      (unless predicate
+	(setq predicate (symcat name "-P")))
 
       ;; Macro expansion.
       `(eval-when (:compile-toplevel :load-toplevel :execute)
@@ -89,7 +104,8 @@
 			   ,@(mapcar (lambda (slot)
 				       `(setf (AREF object ,(incf index))
 					      ,slot))
-				     slots)))))
+				     slots)))
+		     object))
 		  (list
 		   `(list ,@(make-list initial-offset nil)
 		          ,@(when named (list (list 'quote name)))
@@ -104,11 +120,30 @@
 	;; Predicate.
 	,@(when predicate
 	   `((defun ,predicate (object)
-	       (and (vectorp object) (eq (aref object 0) ',name)))))
+	       (TYPEP object ',name))))
 
 	;; TYPEP.
-	(define-typep (object ,name env)
-	  (and (vectorp object) (eq (aref object 0) ',name)))
+	,@(unless (and type (not named))
+	   `((define-typep (object ,name env)
+	       ,(ecase type
+		  ((nil)
+		   `(and (vectorp object)
+		     (let ((type (aref object 0)))
+		       (or (eq type ',name)
+			   (member type (gethash ',name
+						 *structure-subtypes*))))))
+		  (vector
+		   `(and (VECTORP object)
+		     (let ((type (AREF object ,initial-offset)))
+		       (or (eq type ',name)
+			   (member type (gethash ',name
+						 *structure-subtypes*))))))
+		  (list
+		   `(and (listp object)
+		     (let ((type (nth ,initial-offset object)))
+		       (or (eq type ',name)
+			   (member type (gethash ',name
+						 *structure-subtypes*))))))))))
 
 	;; Accessors.
 	,@(let ((index initial-offset))
