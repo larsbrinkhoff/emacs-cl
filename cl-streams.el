@@ -172,8 +172,8 @@
 (defun get-output-stream-string (stream)
   (stream-content stream))
 
-(defun* make-string-input-stream (string &optional (start 0) end)
-  (make-stream :content (let ((substr (substring string start end)))
+(defun* make-string-input-stream (string &optional (start 0) (end NIL))
+  (make-stream :content (let ((substr (substring string start (OR end nil))))
 			  (if (> (length substr) 0)
 			      substr
 			      :eof))

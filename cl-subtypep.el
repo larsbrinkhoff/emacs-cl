@@ -1,12 +1,12 @@
 ;;;; -*- emacs-lisp -*-
-;;;;
-;;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;;
-;;;; This file implements the SUBTYPEP operator.  The implementation
-;;;; is based on Henry Baker's paper A Decision Procedure for Common
-;;;; Lisp's SUBTYPEP Predicate.
+;;;
+;;; Copyright (C) 2003 Lars Brinkhoff.
+;;;
+;;; This file implements the SUBTYPEP operator.  The implementation is
+;;; based on Henry Baker's paper A Decision Procedure for Common
+;;; Lisp's SUBTYPEP Predicate.
 
-(in-package "CL")
+(IN-PACKAGE "CL")
 
 (defvar *types*
   '(NIL COMPLEX NUMBER NULL BOOLEAN KEYWORD SYMBOL CONS LIST CHARACTER))

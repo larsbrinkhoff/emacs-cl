@@ -1,8 +1,9 @@
-(let ((load-path (cons "~/src/emacs-cl" load-path)))
-  (require 'cl)
+(require 'cl)
+(defmacro IN-PACKAGE (name) nil)
+
+(let ((load-path (cons "~/src/emacs-cl" load-path))
+      (debug-on-error t))
   (load "utils")
-  (defmacro in-package (name) nil)
-  (defmacro IN-PACKAGE (name) nil)
 
   (load "cl-flow")
   (load "cl-numbers")
@@ -16,11 +17,12 @@
   (load "cl-symbols")
   (load "cl-packages")
   (load "cl-streams")
-  (load "cl-reader")
 
   (load "cl-typep")
   (load "cl-types")
   (load "cl-subtypep")
 
-  (load "cl-printer")
-  nil)
+  (load "cl-reader")
+  (load "cl-printer"))
+
+(IN-PACKAGE "CL-USER")

@@ -180,10 +180,10 @@
 		    ((nil)
 		     `(let ((object (make-vector ,struct-size ',name)))
 		       ,@(let ((index initial-offset))
-			      `(mapcar (lambda (slot)
-					 `((aset object ,(incf index)
-					         ,(slot-name slot)))
-					 slots)))
+			   (mapcar (lambda (slot)
+				     `(aset object ,(incf index)
+					    ,(slot-name slot)))
+				   slots))
 		       object))
 		    (vector
 		     `(let ((object (MAKE-ARRAY ,struct-size)))
@@ -210,12 +210,9 @@
 	,@(when predicate
 	    (multiple-value-bind (type-predicate get-type)
 		(ecase type
-		  ((nil)	(values 'vectorp
-					'(aref object 0)))
-		  (vector	(values 'VECTORP
-					`(AREF object ,initial-offset)))
-		  (list		(values 'listp
-					`(nth ,initial-offset object))))
+		  ((nil)      (values 'vectorp '(aref object 0)))
+		  (vector     (values 'VECTORP `(AREF object ,initial-offset)))
+		  (list	      (values 'listp   `(nth ,initial-offset object))))
 	      `((defun ,predicate (object)
 		  (and (,type-predicate object)
 		       (struct-subtypep ,get-type ',name))))))

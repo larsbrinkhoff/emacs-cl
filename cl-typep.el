@@ -1,10 +1,9 @@
 ;;;; -*- emacs-lisp -*-
-;;;;
-;;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;;
-;;;; This file implements the TYPEP operator.
+;;;
+;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; This file implements the TYPEP operator.
 
-(in-package "CL")
+(IN-PACKAGE "CL")
 
 (defvar *atomic-typespecs* (make-hash-table))
 (defvar *compound-typespecs* (make-hash-table))
@@ -196,8 +195,9 @@
 
 ;;; reader-error (atomic only)
 
-(define-typep (object READTABLE env)
-  (READTABLEP object))
+;;; DEFSTRUCT arranges for this.
+; (define-typep (object READTABLE env)
+;  (READTABLEP object))
 
 (define-typep (object (REAL &optional (low '*) (high '*)) env)
   (and (REALP object) (in-range object low high)))

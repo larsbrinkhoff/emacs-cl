@@ -1,10 +1,10 @@
-;;; -*- emacs-lisp -*-
+;;;; -*- emacs-lisp -*-
 ;;;
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;;
 ;;; This file implements operators in chapter 12, Numbers.
 
-(in-package "CL")
+(IN-PACKAGE "CL")
 
 ;;; Various test cases for bignum addition.
 (defun bignum-test ()
@@ -545,7 +545,7 @@
 	(vector 'complex realpart imagpart))))
 
 (defun COMPLEXP (object)
-  (vector-and-typep object 'complex))
+  (cl-truth (vector-and-typep object 'complex)))
 
 (defun CONJUGAGE (num)
   (COMPLEX (REALPART num) (- (IMAGPART num))))
@@ -661,7 +661,7 @@
       (incf i)
       (when (= i end)
 	(if junk-allowed
-	    (return-from PARSE-INTEGER (values nil i))
+	    (return-from PARSE-INTEGER (values NIL i))
 	    (error))))
     (setq char (CHAR string i))
     (when (find char "+-")
@@ -670,10 +670,10 @@
       (incf i)
       (when (= i end)
 	(if junk-allowed
-	    (return-from PARSE-INTEGER (values nil i))
+	    (return-from PARSE-INTEGER (values NIL i))
 	    (error)))
       (setq char (CHAR string i)))
-    (while (setq digit (DIGIT-CHAR-P char radix))
+    (while (el-truth (setq digit (DIGIT-CHAR-P char radix)))
 ;     (print (format "before: %s %s" (cl:* integer 10) digit))
       (setq integer (cl:+ (cl:* integer radix) digit))
 ;     (PRINT integer)

@@ -109,7 +109,8 @@
 
 (DEFCONSTANT T 'T)
 
-(setf (symbol-function 'EQ) (symbol-function 'eq))
+(defun EQ (x y)
+  (or (eq x y) NIL))
 
 (defun EQL (x y)
   (or (eq x y)
@@ -122,9 +123,9 @@
 	((and (cl::ratiop x) (cl::ratiop y))
 	 (and (EQL (numerator x) (numerator y))
 	      (EQL (denominator x) (denominator y))))
-	((and (complexp x) (complexp y))
-	 (and (EQL (realpart x) (realpart y))
-	      (EQL (imagpart x) (imagpart y))))
+	((el-truth (AND (COMPLEXP x) (COMPLEXP y)))
+	 (AND (EQL (REALPART x) (REALPART y))
+	      (EQL (IMAGPART x) (IMAGPART y))))
 	(t
 	 NIL))))
 

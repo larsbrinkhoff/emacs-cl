@@ -1,10 +1,9 @@
 ;;;; -*- emacs-lisp -*-
-;;;;
-;;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;;
-;;;; This file implements operators in chapter 4, Types and Classes.
+;;;
+;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; This file implements operators in chapter 4, Types and Classes.
 
-(in-package "CL")
+(IN-PACKAGE "CL")
 
 (defmacro* CHECK-TYPE (place type &optional string &environment env)
   `(unless (TYPEP ,place ,type ,env)

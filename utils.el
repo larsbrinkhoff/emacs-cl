@@ -8,7 +8,9 @@
   (apply #'CONCATENATE 'STRING (mapcar #'STRING string-designators)))
 
 (defun symcat (&rest string-designators)
-  (nth-value 0 (INTERN (apply #'strcat string-designators))))
+  (let ((sym (intern (apply #'strcat string-designators))))
+    (setf (SYMBOL-PACKAGE sym) *PACKAGE*)
+    sym))
 
 (defun just-one (list)
   (cond

@@ -141,7 +141,7 @@
 (defun left-paren-reader (stream char)
   (do ((list nil)
        (char #1=(PEEK-CHAR t stream) #1#))
-      ((EQL char (CODE-CHAR 41))
+      ((el-truth (EQL char (CODE-CHAR 41)))
        (values (nreverse list)))
     (push (READ stream T NIL T) list)))
 
@@ -164,7 +164,8 @@
 
 (defun semicolon-reader (stream ch)
   (do ()
-      ((CHAR= (READ-CHAR stream nil (CODE-CHAR 10) T) (CODE-CHAR 10))
+      ((el-truth (CHAR= (READ-CHAR stream nil (CODE-CHAR 10) T)
+			(CODE-CHAR 10)))
        (values))))
 
 (defun backquote-reader (stream char)
@@ -264,13 +265,14 @@
 (defvar *READTABLE* (COPY-READTABLE nil))
 
 (defun char-convert-case (char)
-  (case (READTABLE-CASE *READTABLE*)
-    (:preserve char)
-    (:upcase (CHAR-UPCASE char))
-    (:downcase (CHAR-DOWNCASE char))
-    (:invert (error "not implemented"))))
+  (ecase (READTABLE-CASE *READTABLE*)
+    (:preserve	char)
+    (:upcase	(CHAR-UPCASE char))
+    (:downcase	(CHAR-DOWNCASE char))
+    (:invert	(error "not implemented"))))
 
-(defun* READ (&optional stream (eof-error-p T) eof-value recursive-p)
+(defun* READ (&optional stream (eof-error-p T) (eof-value NIL)
+			(recursive-p NIL))
   (let (char
 	(escape nil)
 	(package nil)
@@ -279,7 +281,7 @@
     (tagbody
       STEP-1
        (setq char (READ-CHAR stream eof-error-p eof-value recursive-p))
-       (when (EQL char eof-value)
+       (WHEN (EQL char eof-value)
 	 (return-from READ eof-value))
 
       (case (char-syntx char)
@@ -303,7 +305,7 @@
 
       STEP-8a
       (cond
-	((CHAR= char (CODE-CHAR 58))
+	((el-truth (CHAR= char (CODE-CHAR 58)))
 	 (incf colons)
 	 (when (or (and package (not (zerop (length token))))
 		   (> colons 2))
@@ -314,8 +316,8 @@
 	(t
 	 (setq token (concat token (list (CHAR-CODE char))))))
       STEP-8
-      (setq char (READ-CHAR stream nil nil T))
-      (when (null char)
+      (setq char (READ-CHAR stream NIL NIL T))
+      (WHEN (NULL char)
 	(go STEP-10))
       (case (char-syntx char)
 	((:constituent :non-terminating-macro)
@@ -376,23 +378,27 @@
       ((:internal :inherited)
        (error))
       ((nil)
-       (return-from READ (INTERN token package))))))
+       (return-from READ (nth-value 0 (INTERN token package)))))))
 
 (defvar *READ-BASE* 10)
 
 (defun potential-number-p (string)
-  (and
-   (every (lambda (char)
-	    (or (DIGIT-CHAR-P char *READ-BASE*)
-		(find char "+-/.^_DEFLSdefls")))
-	  string)
-   (or (some #'DIGIT-CHAR-P string)
-       (and (some (lambda (char) (DIGIT-CHAR-P char *READ-BASE*)) string)
-	    (not (find (CODE-CHAR 46) string))))
-   (let ((char (aref string 0)))
-     (or (DIGIT-CHAR-P char *READ-BASE*)
-	 (find char "+-.^_")))
-   (not (find (aref string (1- (length string))) "+-"))))
+  (cl-truth
+   (and
+    (every (lambda (char)
+	     (or (el-truth (DIGIT-CHAR-P (CODE-CHAR char) *READ-BASE*))
+		 (find char "+-/.^_DEFLSdefls")))
+	   string)
+    (or (some (lambda (char) (el-truth (DIGIT-CHAR-P (CODE-CHAR char))))
+	      string)
+	(and (some (lambda (char)
+		     (el-truth (DIGIT-CHAR-P (CODE-CHAR char) *READ-BASE*)))
+		   string)
+	     (not (find 46 string))))
+    (let ((char (aref string 0)))
+      (or (el-truth (DIGIT-CHAR-P (CODE-CHAR char) *READ-BASE*))
+	  (find char "+-.^_")))
+    (not (find (aref string (1- (length string))) "+-")))))
 
 (defun* parse-number (string)
   (when (potential-number-p string)
@@ -417,8 +423,9 @@
        (nreverse list))
     (push (READ stream t nil recursive-p) list)))
 
-(defun* READ-FROM-STRING (string &optional (eof-error-p T) eof-value
-				 &key (start 0) end preserve-whitespace)
+(defun* READ-FROM-STRING (string &optional (eof-error-p T) (eof-value NIL)
+				 &key (start 0) (end NIL)
+				      (preserve-whitespace NIL))
   (let ((stream (make-string-input-stream string start end)))
     (IF preserve-whitespace
 	(READ-PRESERVING-WHITESPACE stream eof-error-p eof-value)

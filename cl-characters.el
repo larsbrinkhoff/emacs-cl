@@ -51,15 +51,15 @@
 (defun CHAR= (ch1 ch2)
   ;;(CHECK-TYPE ch1 'character)
   ;;(CHECK-TYPE ch2 'character)
-  (eq (CHAR-CODE ch1) (CHAR-CODE ch2)))
+  (EQ (CHAR-CODE ch1) (CHAR-CODE ch2)))
 
 (defun CHAR-UPCASE (char)
-  (if (LOWER-CASE-P char)
+  (IF (LOWER-CASE-P char)
       (CODE-CHAR (- (CHAR-CODE char) 32))
       char))
 
 (defun CHAR-DOWNCASE (char)
-  (if (UPPER-CASE-P char)
+  (IF (UPPER-CASE-P char)
       (CODE-CHAR (+ (CHAR-CODE char) 32))
       char))
 
