@@ -3,6 +3,10 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file provides various small utilities.
 
+(defmacro* with-gensyms (syms &body body)
+  `(let ,(mapcar (lambda (sym) (gensym)) syms)
+     ,@body))
+
 (defun strcat (&rest string-designators)
   (apply #'CONCATENATE 'STRING (mapcar #'STRING string-designators)))
 
