@@ -19,12 +19,12 @@
 	   vars))
 
 (defun expand-do (let setq vars test result body)
-  (with-gensyms (block start)
+  (with-gensyms (start)
     `(,let ,(var-inits vars)
-       (BLOCK ,block
+       (BLOCK nil
 	 (TAGBODY
 	   ,start
-	   (WHEN ,test (RETURN-FROM ,block (PROGN ,@result)))
+	   (WHEN ,test (RETURN (PROGN ,@result)))
 	   ,@body
 	   (,setq ,@(var-steps vars))
 	   (GO ,start))))))
