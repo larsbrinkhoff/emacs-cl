@@ -17,13 +17,13 @@
   "cl-flow"
   "cl-numbers"
   "cl-conses"
+  "cl-characters"
   "cl-strings"
   "cl-arrays"
   "cl-sequences"
   "cl-structures"
   "cl-iteration"
 
-  "cl-characters"
   "cl-symbols"
   "cl-packages"
 
