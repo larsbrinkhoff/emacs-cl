@@ -19,19 +19,17 @@
 
 (fset 'CAR (symbol-function 'car-safe))
 
-(defsetf CAR (cons) (car)
-  `(setcar ,cons ,car))
-
 (DEFSETF CAR (cons) (car)
-  `(setcar ,cons ,car))
+  `(PROGN
+     (RPLACA ,cons ,car)
+     ,car))
 
 (fset 'CDR (symbol-function 'cdr-safe))
 
-(defsetf CDR (cons) (car)
-  `(setcdr ,cons ,cdr))
-
-(DEFSETF CDR (cons) (car)
-  `(setcdr ,cons ,cdr))
+(DEFSETF CDR (cons) (cdr)
+  `(PROGN
+     (RPLACD ,cons ,cdr)
+     ,car))
 
 (defun build-cxr (string index)
   (case (aref string index)
@@ -212,39 +210,91 @@
 
 (fset 'FIRST (symbol-function 'car-safe))
 
-(defsetf FIRST (list) (new)
-  `(progn
+(DEFSETF FIRST (list) (new)
+  `(PROGN
     (RPLACA ,list ,new)
     ,new))
 
 (defun SECOND (list)
   (CADR list))
 
+(DEFSETF SECOND (list) (new)
+  `(PROGN
+     (RPLACA (CDR ,list) ,new)
+     ,new))
+
 (defun THIRD (list)
   (CADDR list))
+
+(DEFSETF THIRD (list) (new)
+  `(PROGN
+     (RPLACA (CDDR ,list) ,new)
+     ,new))
 
 (defun FOURTH (list)
   (CADDDR list))
 
+(DEFSETF FOURTH (list) (new)
+  `(PROGN
+     (RPLACA (CDDDR ,list) ,new)
+     ,new))
+
 (defun FIFTH (list)
   (CAR (CDDDDR list)))
+
+(DEFSETF FIFTH (list) (new)
+  `(PROGN
+     (RPLACA (CDDDDR ,list) ,new)
+     ,new))
 
 (defun SIXTH (list)
   (CADR (CDDDDR list)))
 
+(DEFSETF SIXTH (list) (new)
+  `(PROGN
+     (RPLACA (CDR (CDDDDR ,list)) ,new)
+     ,new))
+
 (defun SEVENTH (list)
   (CADDR (CDDDDR list)))
+
+(DEFSETF SEVENTH (list) (new)
+  `(PROGN
+     (RPLACA (CDDR (CDDDDR ,list)) ,new)
+     ,new))
 
 (defun EIGHTH (list)
   (CADDDR (CDDDDR list)))
 
+(DEFSETF EIGHTH (list) (new)
+  `(PROGN
+     (RPLACA (CDDDR (CDDDDR ,list)) ,new)
+     ,new))
+
 (defun NINTH (list)
   (CAR (CDDDDR (CDDDDR list))))
+
+(DEFSETF NINTH (list) (new)
+  `(PROGN
+     (RPLACA (CDDDDR (CDDDDR ,list)) ,new)
+     ,new))
 
 (defun TENTH (list)
   (CADR (CDDDDR (CDDDDR list))))
 
+(DEFSETF EIGHTH (list) (new)
+  `(PROGN
+     (RPLACA (CDR (CDDDDR (CDDDDR ,list))) ,new)
+     ,new))
+
 (fset 'NTH (symbol-function 'nth))
+
+(DEFSETF NTH (n list) (new)
+  (with-gensyms (cons)
+    `(LET ((,cons (NTHCDR n list)))
+       (WHEN ,cons
+	 (RPLACA ,cons ,new))
+       ,new)))
 
 (defun ENDP (object)
   (cond
@@ -280,9 +330,12 @@
 
 ;;; Function LDIFF, TAILP
 
-;;; Function NTHCDR
+(fset 'NTHCDR (symbol-function 'nthcdr))
 
-;;; Accessor REST
+(fset 'REST (symbol-function 'cdr-safe))
+
+(DEFSETF REST (cons) (car)
+  `(setcdr ,cons ,cdr))
 
 (defun* MEMBER (object list &key (key #'IDENTITY) test test-not)
   (when (and test test-not)
