@@ -154,6 +154,10 @@
      (aref (aref array 2) (just-one subscripts)))
     ((vector-and-typep array 'ARRAY)
      (aref (aref array 2) (apply #'ARRAY-ROW-MAJOR-INDEX array subscripts)))
+    ((vector-and-typep array 'bit-array)
+     (BIT (aref array 2) (apply #'ARRAY-ROW-MAJOR-INDEX array subscripts)))
+    ((vector-and-typep array 'char-array)
+     (CHAR (aref array 2) (apply #'ARRAY-ROW-MAJOR-INDEX array subscripts)))
     (t
      (type-error array 'ARRAY))))
 
@@ -184,6 +188,14 @@
      (aset (aref array 2)
 	   (apply #'ARRAY-ROW-MAJOR-INDEX array subscripts)
 	   object))
+    ((vector-and-typep array 'bit-array)
+     (aset (aref array 2)
+	   (apply #'ARRAY-ROW-MAJOR-INDEX array subscripts)
+	   (bit-bool object)))
+    ((vector-and-typep array 'char-array)
+     (aset (aref array 2)
+	   (apply #'ARRAY-ROW-MAJOR-INDEX array subscripts)
+	   (CHAR-CODE object)))
     (t
      (type-error array 'ARRAY))))
 
