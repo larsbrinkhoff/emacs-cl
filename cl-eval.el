@@ -50,12 +50,9 @@
 
 (defun lexical-or-global-function (name env)
   (multiple-value-bind (type localp decl) (function-information name env)
-    (case type
-      ((nil)		(ERROR 'UNDEFINED-FUNCTION (kw NAME) name))
-      (:function	(if localp
-			    (lexical-function name env)
-			    (FDEFINITION name)))
-      (t		(error "syntax error")))))
+    (if (eq type :function)
+	(if localp (lexical-function name env) (FDEFINITION name))
+	(ERROR 'UNDEFINED-FUNCTION (kw NAME) name))))
 
 (define-special-operator FUNCTION (form) env
   (cl:values
