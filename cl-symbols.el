@@ -9,7 +9,7 @@
 (defun KEYWORDP (sym)
   (and (SYMBOLP sym)
        (SYMBOL-PACKAGE sym)
-       (equal (package-name (SYMBOL-PACKAGE sym)) "KEYWORD")))
+       (equal (PACKAGE-NAME (SYMBOL-PACKAGE sym)) "KEYWORD")))
 
 (fset 'MAKE-SYMBOL (symbol-function 'make-symbol))
 
@@ -59,7 +59,7 @@
 (defsetf SYMBOL-PACKAGE (sym) (package)
   `(if (null ,package)
        (progn (remhash ,sym *symbol-package-table*) ,package)
-       (puthash ,sym *symbol-package-table* ,package)))
+       (setf (gethash ,sym *symbol-package-table*) ,package)))
 
 (fset 'SYMBOL-PLIST (symbol-function 'symbol-plist))
 

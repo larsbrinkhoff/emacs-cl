@@ -9,8 +9,6 @@
 
 (defvar *symbol-macro-functions* (make-hash-table))
 
-(defvar *constants* '(NIL T PI))
-
 (defun COMPILER-MACRO-FUNCTION (name &optional env)
   (gethash name *compiler-macro-functions*))
 

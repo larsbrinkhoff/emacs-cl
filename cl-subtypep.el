@@ -12,7 +12,7 @@
   '(NIL COMPLEX NUMBER NULL BOOLEAN KEYWORD SYMBOL CONS LIST CHARACTER))
 
 (defvar *objects*
-  (list (complex 0 1) 0 NIL T (make-symbol "") (cons nil nil)
+  (list (COMPLEX 0 1) 0 NIL T (make-symbol "") (cons nil nil)
 	;; Should really be an uninterned keyword.
 	(INTERN "reallyunlikelysymbolname" "KEYWORD")
 	;; This guarantees an unique character object.
@@ -216,7 +216,7 @@
        ((FLOAT SHORT-FLOAT SINGLE-FLOAT DOUBLE-FLOAT LONG-FLOAT)
 		`(0 (() () ,(rest type))))
        (REAL	`(0 (,(rest type) ,(rest type) ,(rest type))))
-       (EQL	(if (realp (second type))
+       (EQL	(if (REALP (second type))
 		    `(,(object-val (second type))
 		      (,(second type) ,(second type))
 		      (,(second type) ,(second type))

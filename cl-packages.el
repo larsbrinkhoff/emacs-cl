@@ -3,22 +3,21 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 11, Packages.
 
-(DEFSTRUCT (PACKAGE (:constructor mk-package ())
-		    (:predicate PACKAGEP)
-		    (:copier nil))
-  NAME
-  NICKNAMES
-  SHADOWING-SYMBOLS
-  USE-LIST
-  USED-BY-LIST
-  table
-  doc)
+; (DEFSTRUCT (PACKAGE (:constructor mk-package ())
+; 		    (:predicate PACKAGEP)
+; 		    (:copier nil))
+;   NAME
+;   NICKNAMES
+;   SHADOWING-SYMBOLS
+;   USE-LIST
+;   USED-BY-LIST
+;   table)
 
 (defconst not-found (cons nil nil))
 
 (defun* FIND-SYMBOL (string &optional (p *package*))
   (let* ((package (FIND-PACKAGE p))
-	 (table (PACKAGE-table
+	 (table (package-table
 		 (or package
 		     (error (format "package \"%s\" not found" p)))))
 	 (symbol (gethash string table not-found)))
@@ -29,7 +28,7 @@
 (defvar *all-packages* nil)
 
 (defun FIND-PACKAGE (name)
-  (if (PACKAGEP name)
+  (IF (PACKAGEP name)
       name
       (let ((string (STRING name)))
 	(find-if 
@@ -59,18 +58,19 @@
 
 (defun DELETE-PACKAGE (package)
   (dolist (p (PACKAGE-USE-LIST package))
-    (setf (PACKAGE-USED-BY-LIST p) (delete package (PACKAGE-USED-BY-LIST p))))
-  (setf *all-packages* (delete package *all-packages*)))
+    (aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))
+  (setq *all-packages* (delete package *all-packages*)))
 
 (defun* MAKE-PACKAGE (name &key nicknames use)
-  (let ((package (mk-package))
-	(use-packages (mapcar (lambda (p) (FIND-PACKAGE p)) use)))
-    (setf (PACKAGE-table package) (make-hash-table :test 'equal)
-	  (PACKAGE-NAME package) (STRING name)
-	  (PACKAGE-NICKNAMES package) nicknames
-	  (PACKAGE-USE-LIST package) use-packages)
+  (let ((package (make-vector 7 'PACKAGE))
+	(use-packages (mapcar #'FIND-PACKAGE use)))
+    (aset package 1 (STRING name))
+    (aset package 2 nicknames)
+    (aset package 3 NIL)
+    (aset package 4 use-packages)
+    (aset package 6 (make-hash-table :test 'equal))
     (dolist (p use-packages)
-      (push package (PACKAGE-USED-BY-LIST p)))
+      (aset p 5 (cons package (aref p 5))))
     (push package *all-packages*)
     package))
 
@@ -81,7 +81,7 @@
 (defun* UNINTERN (symbol &optional (package *package*))
   (when (eq (SYMBOL-PACKAGE symbol) package)
     (setf (SYMBOL-PACKAGE symbol) nil))
-  (let* ((table (PACKAGE-table package))
+  (let* ((table (package-table package))
 	 (name (symbol-name symbol))
 	 (sym (gethash name table not-found)))
     (unless (eq sym not-found)
@@ -96,16 +96,14 @@
   (let ((package (FIND-PACKAGE package)))
     (dolist (p (ensure-list packages-to-unuse))
       (let ((p (FIND-PACKAGE p)))
-	(setf (PACKAGE-USE-LIST package)
-	      (delete p (PACKAGE-USE-LIST package))
-	      (PACKAGE-USED-BY-LIST p)
-	      (delete package (PACKAGE-USED-BY-LIST p))))))
+	(aset package 4 (delete p (PACKAGE-USE-LIST package)))
+	(aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))))
   t)
 
 (defun* USE-PACKAGE (packages-to-use &optional (package *package*))
   (let ((package (FIND-PACKAGE package)))
     (dolist (p (ensure-list packages-to-use))
-      (pushnew (FIND-PACKAGE p) (PACKAGE-USE-LIST package))))
+      (aset package 4 (cons (FIND-PACKAGE p) (PACKAGE-USE-LIST package)))))
   t)
 
 (defmacro DEFPACKAGE (name &body options)
@@ -130,14 +128,13 @@
 	(let ((,package (MAKE-PACKAGE ,name
 				      :nicknames ,nicknames
 				      :use ,use-list)))
-	  (setf (PACKAGE-doc doc))
 	  ,package)))))
 
 (defmacro* DO-SYMBOLS ((var &optional (package *package*) result)
 		       &body body)
   (let ((ignore (gensym)))
     `(progn
-      (maphash (lambda (,ignore ,var) ,@body) (PACKAGE-table ,package))
+      (maphash (lambda (,ignore ,var) ,@body) (package-table ,package))
       ,result)))
 
 ;;; do-external-symbols
@@ -153,12 +150,29 @@
 	  (values symbol status)
 	  (let ((symbol (make-symbol name)))
 	    (setf (SYMBOL-PACKAGE symbol) package)
-	    (setf (gethash name (PACKAGE-table package)) symbol)
+	    (setf (gethash name (package-table package)) symbol)
 	    (values symbol nil))))))
 
-;;; package-error
+(defun PACKAGE-NAME (package)
+  (aref package 1))
 
-;;; package-error-package
+(defun PACKAGE-NICKNAMES (package)
+  (aref package 2))
+
+(defun PACKAGE-SHADOWING-SYMBOLS (package)
+  (aref package 3))
+
+(defun PACKAGE-USE-LIST (package)
+  (aref package 4))
+
+(defun PACKAGE-USED-BY-LIST (package)
+  (aref package 5))
+
+(defun package-table (package)
+  (aref package 6))
+
+(defun PACKAGEP (package)
+  (cl-truth (vector-and-typep package 'PACKAGE)))
 
 (MAKE-PACKAGE "COMMON-LISP" :nicknames '("CL"))
 (MAKE-PACKAGE "COMMON-LISP-USER" :nicknames '("CL-USER") :use '("CL"))
@@ -167,34 +181,40 @@
 
 (defvar *package* (FIND-PACKAGE "CL-USER"))
 
+;;; package-error
+
+;;; package-error-package
+
 (dolist (sym
 	  '(*GENSYM-COUNTER* *MACROEXPAND-HOOK* ADJUST-ARRAY ADJUSTABLE-ARRAY-P
-	    AND AREF ARRAY ARRAY-DIMENSION ARRAY-DIMENSIONS ARRAY-ELEMENT-TYPE
-	    ARRAY-HAS-FILL-POINTER-P ARRAYP ASH ATAN ATOM BACKQUOTE BASE-CHAR
-	    BASE-STRING BIGNUM BIT BIT-VECTOR BIT-VECTOR-P BLOCK BOOLEAN BOUNDP
-	    BYTE BYTE-POSITION BYTE-SIZE CAR CAAAAR CAAADR CAAAR CAADAR CAADDR
-	    CAADR CAAR CADAAR CADADR CADAR CADDAR CADDDR CADDR CADR CATCH
-	    CDAAAR CDAADR CDAAR CDADAR CDADDR CDADR CDAR CDDAAR CDDADR CDDAR
-	    CDDDAR CDDDDR CDDDR CDDR CDR CHARACTER CHARACTERP CHECK-TYPE COMMA
+	    ALPHA-CHAR-P ALPHANUMERICP AND AREF ARRAY ARRAY-DIMENSION
+	    ARRAY-DIMENSIONS ARRAY-ELEMENT-TYPE ARRAY-HAS-FILL-POINTER-P ARRAYP
+	    ASH ATAN ATOM BACKQUOTE BASE-CHAR BASE-STRING BIGNUM BIT
+	    BIT-VECTOR BIT-VECTOR-P BLOCK BOOLEAN BOUNDP BYTE BYTE-POSITION
+	    BYTE-SIZE CAR CAAAAR CAAADR CAAAR CAADAR CAADDR CAADR CAAR CADAAR
+	    CADADR CADAR CADDAR CADDDR CADDR CADR CATCH CDAAAR CDAADR CDAAR
+	    CDADAR CDADDR CDADR CDAR CDDAAR CDDADR CDDAR CDDDAR CDDDDR CDDDR
+	    CDDR CDR CHAR-CODE CHAR-CODE-LIMIT CHAR-DOWNCASE CHAR-NAME
+	    CHAR-UPCASE CHAR= CHARACTER CHARACTERP CHECK-TYPE CODE-CHAR COMMA
 	    COMMA-AT COMMA-DOT COMPILED-FUNCTION COMPILED-FUNCTION-P
 	    COMPILER-MACRO-FUNCTION COMPLEX COMPLEXP CONCATENATE CONJUGATE
 	    CONS CONSP COPY-SEQ COPY-STRUCTURE COPY-SYMBOL COPY-TREE
 	    DEFCONSTANT DEFINE-COMPILER-MACRO DEFINE-SETF-EXPANDER
 	    DEFINE-SYMBOL-MACRO DEFMACRO DEFPACKAGE DEFSETF DEFSTRUCT DEFUN
-	    DELETE-PACKAGE DENOMINATOR DEPOSIT-FIELD DO-SYMBOLS DOUBLE-FLOAT
-	    DPB ELT EQ EQL EQUAL EVAL-WHEN EXTENDED-CHAR FDEFINITION
-	    FIND-ALL-SYMBOLS FIND-PACKAGE FIND-SYMBOL FIXNUM FLET FLOAT
-	    FUNCTION FUNCTIONP GENSYM GENTEMP GET GET-SETF-EXPANSION GO
+	    DELETE-PACKAGE DENOMINATOR DEPOSIT-FIELD DIGIT-CHAR-P DO-SYMBOLS
+	    DOUBLE-FLOAT DPB ELT EQ EQL EQUAL EVAL-WHEN EXTENDED-CHAR
+	    FDEFINITION FIND-ALL-SYMBOLS FIND-PACKAGE FIND-SYMBOL FIXNUM FLET
+	    FLOAT FUNCTION FUNCTIONP GENSYM GENTEMP GET GET-SETF-EXPANSION GO
 	    HASH-TABLE IF IMAGPART IN-PACKAGE INTEGER INTEGER-LENGTH INTEGERP
 	    INTERN KEYWORD KEYWORDP LABELS LDB LDB-TEST LENGTH LET LET* LIST
 	    LIST-ALL-PACKAGES LOAD-TIME-VALUE LOCALLY LOGAND LOGANDC1 LOGANDC2
 	    LOGBITP LOGCOUNT LOGEQV LOGIOR LOGNAND LOGNOR LOGNOT LOGORC1
-	    LOGORC2 LOGTEST LOGXOR LONG-FLOAT MACRO-FUNCTION MACROEXPAND
-	    MACROEXPAND-1 MACROLET MAKE-ARRAY MAKE-LIST MAKE-PACKAGE
-	    MAKE-SYMBOL MAKUNBOUND MAPCAN MAPCAR MASK-FIELD MAX MEMBER MIN
-	    MINUSP MOD MOST-NEGATIVE-FIXNUM MOST-POSITIVE-FIXNUM
-	    MULTIPLE-VALUE-CALL MULTIPLE-VALUE-PROG1 NIL NOT NULL NUMBER
-	    NUMBERP NUMERATOR OR PACKAGE PACKAGE-NAME PACKAGE-NICKNAMES
+	    LOGORC2 LOGTEST LOGXOR LONG-FLOAT LOWER-CASE-P MACRO-FUNCTION
+	    MACROEXPAND MACROEXPAND-1 MACROLET MAKE-ARRAY MAKE-LIST
+	    MAKE-PACKAGE MAKE-SYMBOL MAKUNBOUND MAPCAN MAPCAR MASK-FIELD MAX
+	    MEMBER MIN MINUSP MOD MOST-NEGATIVE-FIXNUM MOST-POSITIVE-FIXNUM
+	    MULTIPLE-VALUE-CALL MULTIPLE-VALUE-PROG1 NAME-CHAR NIL NOT NULL
+	    NUMBER NUMBERP NUMERATOR OR PACKAGE PACKAGE-NAME PACKAGE-NICKNAMES
 	    PACKAGE-SHADOWING-SYMBOLS PACKAGE-USE-LIST PACKAGE-USED-BY-LIST
 	    PACKAGEP PARSE-INTEGER PEEK-CHAR PHASE PRINT PROGN PROGV QUOTE
 	    RANDOM RATIO RATIONAL RATIONALP READ-CHAR READ-LINE REAL REALP
@@ -206,6 +226,6 @@
 	    SYMBOL-PACKAGE SYMBOL-PLIST SYMBOL-VALUE SYMBOLP T TAGBODY THE
 	    THROW TYPE-OF TYPEP UNREAD-CHAR UNSIGNED-BYTE UNUSE-PACKAGE
 	    UNWIND-PROTECT UPGRADED-ARRAY-ELEMENT-TYPE
-	    UPGRADED-COMPLEX-PART-TYPE USE-PACKAGE UNINTERN VALUES VECTORP
-	    WRITE-CHAR WRITE-LINE WRITE-STRING ZEROP))
+	    UPGRADED-COMPLEX-PART-TYPE UPPER-CASE-P USE-PACKAGE UNINTERN VALUES
+	    VECTORP WRITE-CHAR WRITE-LINE WRITE-STRING ZEROP))
   (setf (SYMBOL-PACKAGE sym) (FIND-PACKAGE "COMMON-LISP")))

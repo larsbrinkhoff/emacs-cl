@@ -7,7 +7,7 @@
 
 ;;; TODO: apply
 
-(defmacro* (DEFUN name lambda-list &body body)
+(defmacro* DEFUN (name lambda-list &body body)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (SETF (FDEFINITION ,name) (function* (lambda ,lambda-list ,@body)))))
 
@@ -60,6 +60,8 @@
         '(&allow-other-keys &aux &body &environment &key &optional
 	  &rest &whole))
 
+(defvar *constants* '(NIL T PI))
+
 (defmacro* DEFCONSTANT (name initial-value &optional documentation)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     (defvar ,name ,initial-value)
@@ -103,9 +105,7 @@
 (DEFCONSTANT NIL 'NIL)
 
 (defun NOT (x)
-  (if (eq x 'NIL)
-      'T
-      'NIL))
+  (if (eq x 'NIL) 'T 'NIL))
 
 (DEFCONSTANT T 'T)
 

@@ -202,14 +202,14 @@
 
 ;;; TODO: asin, acos, atan
 
-;;; TODO: (defconstast pi ...)
+(DEFCONSTANT PI 3.141592653589793)
 
 ;;; TODO: sinh, cosh, tanh, asinh, acosh, atanh
 
 (defun cl:* (&rest numbers)
   (reduce #'binary* numbers :initial-value 1))
 
-(defconst multiplication-limit (ceiling (sqrt MOST-POSITIVE-FIXNUM)))
+(defconst multiplication-limit (ceiling (sqrt most-positive-fixnum)))
 
 (defun binary* (x y)
   (cond
@@ -533,7 +533,7 @@
 ;;; TODO: CIS
 
 (defun COMPLEX (realpart &optional imagpart)
-  (CHECK-TYPE realpart 'real)
+  (CHECK-TYPE realpart 'REAL)
   (if (or (null imagpart) (zerop imagpart))
       realpart
       (progn
@@ -665,7 +665,7 @@
 	    (error))))
     (setq char (char string i))
     (when (find char "+-")
-      (when (char= char (code-char 45))
+      (when (CHAR= char (CODE-CHAR 45))
 	(setq sign -1))
       (incf i)
       (when (= i end)
@@ -673,7 +673,7 @@
 	    (return-from PARSE-INTEGER (values nil i))
 	    (error)))
       (setq char (char string i)))
-    (while (setq digit (digit-char-p char radix))
+    (while (setq digit (DIGIT-CHAR-P char radix))
 ;     (print (format "before: %s %s" (cl:* integer 10) digit))
       (setq integer (cl:+ (cl:* integer radix) digit))
 ;     (PRINT integer)

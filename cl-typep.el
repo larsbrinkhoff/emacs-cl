@@ -78,7 +78,7 @@
 ;;; built-in-class (atomic only)
 ;;; cell-error (atomic only)
 
-(define-typep (object character env)
+(define-typep (object CHARACTER env)
   (CHARACTERP object))
 
 ;;; class (atomic only)

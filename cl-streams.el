@@ -50,7 +50,7 @@
 	(if eof-error-p
 	    (error "end of file")
 	    eof-value)
-	(code-char ch))))
+	(CODE-CHAR ch))))
 
 (defun UNREAD-CHAR (char &optional stream-designator)
   (let ((stream (resolve-input-stream-designator stream-designator)))
@@ -72,9 +72,9 @@
 	 ((eq char eof-value)
 	  (return-from READ-LINE
 	    (values (if (= (length line) 0) eof-value line) t)))
-	 ((= char (code-char 10))
+	 ((= char (CODE-CHAR 10))
 	  (return-from READ-LINE (values line nil))))
-       (setq line (concat line (list (char-code char))))))))
+       (setq line (concat line (list (CHAR-CODE char))))))))
 
 (defun* WRITE-STRING (string &optional stream-designator &key (start 0) end)
   (do ((stream (resolve-output-stream-designator stream-designator))
@@ -198,7 +198,7 @@
 	         (lambda (char stream)
 		   (setf (stream-content stream)
 			 (concat (stream-content stream)
-				 (list (char-code char)))))))
+				 (list (CHAR-CODE char)))))))
 
 (defmacro* with-input-from-string ((var string &key index (start 0) end)
 				   &body body)

@@ -14,26 +14,26 @@
 
 (defun* get-dispatch-macro-character (disp-char sub-char
 				      &optional (readtable *readtable*))
-  (let ((string (concat (list (char-code disp-char) (char-code sub-char)))))
+  (let ((string (concat (list (CHAR-CODE disp-char) (CHAR-CODE sub-char)))))
     (gethash string (readtable-dispatch-table readtable))))
 
 (defun* set-dispatch-macro-character (disp-char sub-char new-function
 				      &optional (readtable *readtable*))
-  (let ((string (concat (list (char-code disp-char) (char-code sub-char)))))
+  (let ((string (concat (list (CHAR-CODE disp-char) (CHAR-CODE sub-char)))))
     (setf (gethash string (readtable-dispatch-table readtable))
 	  new-function))
   t)
 
 (defun* get-macro-character (char &optional (readtable *readtable*))
   (values
-   (aref (readtable-macro-table readtable) (char-code char))
+   (aref (readtable-macro-table readtable) (CHAR-CODE char))
    (eq (char-syntx char readtable) :non-terminating-macro)))
 
 (defun* set-macro-character (char new-function
 			    &optional non-terminating-p
 			              (readtable *readtable*))
-  (setf (aref (readtable-macro-table readtable) (char-code char)) new-function)
-  (setf (aref (readtable-syntax-type readtable) (char-code char))
+  (setf (aref (readtable-macro-table readtable) (CHAR-CODE char)) new-function)
+  (setf (aref (readtable-syntax-type readtable) (CHAR-CODE char))
 	(if non-terminating-p
 	    :non-terminating-macro
 	    :terminating-macro))
@@ -42,12 +42,12 @@
 (defun* set-syntax-from-char (to-char from-char
 			      &optional (to-readtable *readtable*)
 			                (from-readtable *standard-readtable*))
-  (setf (aref (readtable-syntax-type to-readtable) (char-code to-char))
+  (setf (aref (readtable-syntax-type to-readtable) (CHAR-CODE to-char))
 	(char-syntx from-char from-readtable))
   t)
 
 (defun* char-syntx (char &optional (readtable *readtable*))
-  (aref (readtable-syntax-type readtable) (char-code char)))
+  (aref (readtable-syntax-type readtable) (CHAR-CODE char)))
 
 (defvar *standard-readtable*
   (let ((readtable (make-readtable)))
@@ -57,24 +57,24 @@
     (setf (aref (readtable-syntax-type readtable) 32) :whitespace)
     (setf (aref (readtable-syntax-type readtable) 92) :single-escape)
     (setf (aref (readtable-syntax-type readtable) 124) :multiple-escape)
-    (set-syntax-from-char (code-char 9) (code-char 32) readtable readtable)
-    (set-syntax-from-char (code-char 10) (code-char 32) readtable readtable)
-    (set-syntax-from-char (code-char 12) (code-char 32) readtable readtable)
-    (set-syntax-from-char (code-char 13) (code-char 32) readtable readtable)
+    (set-syntax-from-char (CODE-CHAR 9) (CODE-CHAR 32) readtable readtable)
+    (set-syntax-from-char (CODE-CHAR 10) (CODE-CHAR 32) readtable readtable)
+    (set-syntax-from-char (CODE-CHAR 12) (CODE-CHAR 32) readtable readtable)
+    (set-syntax-from-char (CODE-CHAR 13) (CODE-CHAR 32) readtable readtable)
 
     (setf (readtable-macro-table readtable) (make-vector 256 nil))
-    (set-macro-character (code-char 34) #'double-quote-reader nil readtable)
-    (set-macro-character (code-char 35) #'sharp-reader t readtable)
-    (set-macro-character (code-char 39) #'quote-reader nil readtable)
-    (set-macro-character (code-char 40) #'left-paren-reader nil readtable)
-    (set-macro-character (code-char 41) #'right-paren-reader nil readtable)
-    (set-macro-character (code-char 44) #'comma-reader nil readtable)
-    (set-macro-character (code-char 59) #'semicolon-reader nil readtable)
-    (set-macro-character (code-char 96) #'backquote-reader nil readtable)
+    (set-macro-character (CODE-CHAR 34) #'double-quote-reader nil readtable)
+    (set-macro-character (CODE-CHAR 35) #'sharp-reader t readtable)
+    (set-macro-character (CODE-CHAR 39) #'quote-reader nil readtable)
+    (set-macro-character (CODE-CHAR 40) #'left-paren-reader nil readtable)
+    (set-macro-character (CODE-CHAR 41) #'right-paren-reader nil readtable)
+    (set-macro-character (CODE-CHAR 44) #'comma-reader nil readtable)
+    (set-macro-character (CODE-CHAR 59) #'semicolon-reader nil readtable)
+    (set-macro-character (CODE-CHAR 96) #'backquote-reader nil readtable)
 
     (setf (readtable-dispatch-table readtable) (make-hash-table :test #'equal))
     (macrolet ((sharp-macro (n fn)
-		 `(set-dispatch-macro-character (code-char 35) (code-char ,n)
+		 `(set-dispatch-macro-character (CODE-CHAR 35) (CODE-CHAR ,n)
 		                                ,fn readtable)))
       (sharp-macro 92 #'sharp-backslash-reader)
       (sharp-macro 39 #'sharp-quote-reader)
@@ -122,7 +122,7 @@
        (values string))
     (setq string
 	  (concat string
-		  (list (char-code
+		  (list (CHAR-CODE
 			 (if (eq (char-syntx char) :single-escape)
 			     (READ-CHAR stream t nil t)
 			     char)))))))
@@ -140,7 +140,7 @@
 (defun left-paren-reader (stream char)
   (do ((list nil)
        (char #1=(PEEK-CHAR t stream) #1#))
-      ((eql char (code-char 41))
+      ((eql char (CODE-CHAR 41))
        (values (nreverse list)))
     (push (cl:read stream t nil t) list)))
 
@@ -153,9 +153,9 @@
   (let ((next-char (READ-CHAR stream t nil t)))
     (let ((*backquote-level* (1- *backquote-level*)))
       (cond
-	((eql next-char (code-char 64))
+	((eql next-char (CODE-CHAR 64))
 	 (values (list 'COMMA-AT (cl:read stream t nil t))))
-	((eql next-char (code-char 46))
+	((eql next-char (CODE-CHAR 46))
 	 (values (list 'COMMA-DOT (cl:read stream t nil t))))
 	(t
 	 (UNREAD-CHAR next-char stream)
@@ -163,7 +163,7 @@
 
 (defun semicolon-reader (stream ch)
   (do ()
-      ((char= (READ-CHAR stream nil (code-char 10) t) (code-char 10))
+      ((char= (READ-CHAR stream nil (CODE-CHAR 10) t) (CODE-CHAR 10))
        (values))))
 
 (defun backquote-reader (stream char)
@@ -179,13 +179,13 @@
        (values (if (= (length string) 1)
 		   (aref string 0)
 		   (name-char string))))
-    (setq string (concat string (list (char-code char))))))
+    (setq string (concat string (list (CHAR-CODE char))))))
 
 (defun sharp-quote-reader (stream char n)
   (values (list 'FUNCTION (cl:read stream t nil t))))
 
 (defun sharp-left-paren-reader (stream char n)
-  (values (CONCATENATE 'VECTOR (read-delimited-list (code-char 41) stream))))
+  (values (CONCATENATE 'VECTOR (read-delimited-list (CODE-CHAR 41) stream))))
 
 (defun sharp-asterisk-reader (stream char n) nil)
 
@@ -195,7 +195,7 @@
       ((not (constituentp char))
        (UNREAD-CHAR char stream)
        (values (make-symbol string)))
-    (setq string (concat string (list (char-code char))))))
+    (setq string (concat string (list (CHAR-CODE char))))))
 
 (defvar *read-eval* t)
 
@@ -230,9 +230,9 @@
       ((= level 0)
        (UNREAD-CHAR char stream)
        (values))
-    (when (and (eql last (code-char 35)) (eql char (code-char 124)))
+    (when (and (eql last (CODE-CHAR 35)) (eql char (CODE-CHAR 124)))
       (incf level))
-    (when (and (eql last (code-char 124)) (eql char (code-char 35)))
+    (when (and (eql last (CODE-CHAR 124)) (eql char (CODE-CHAR 35)))
       (decf level))
     (setq last char)))
 
@@ -293,7 +293,7 @@
 	(:single-escape
 	 (setq escape t)
 	 (setq char (READ-CHAR stream t nil t))
-	 (setq token (concat token (list (char-code char))))
+	 (setq token (concat token (list (CHAR-CODE char))))
 	 (go STEP-8))
 	(:multiple-escape
 	 (go STEP-9))
@@ -302,7 +302,7 @@
 
       STEP-8a
       (cond
-	((char= char (code-char 58))
+	((char= char (CODE-CHAR 58))
 	 (incf colons)
 	 (when (or (and package (not (zerop (length token))))
 		   (> colons 2))
@@ -311,7 +311,7 @@
 	     (setq package token))
 	 (setq token nil))
 	(t
-	 (setq token (concat token (list (char-code char))))))
+	 (setq token (concat token (list (CHAR-CODE char))))))
       STEP-8
       (setq char (READ-CHAR stream nil nil t))
       (when (null char)
@@ -323,7 +323,7 @@
 	(:single-escape
 	 (setq escape t)
 	 (setq char (READ-CHAR stream t nil t))
-	 (setq token (concat token (list (char-code char))))
+	 (setq token (concat token (list (CHAR-CODE char))))
 	 (go STEP-8))
 	(:multiple-escape
 	 (go STEP-9))
@@ -342,11 +342,11 @@
 	(error "end of file"))
       (case (char-syntx char)
 	((:constituent :non-terminating-macro :terminating-macro :whitespace)
-	 (setq token (concat token (list (char-code char))))
+	 (setq token (concat token (list (CHAR-CODE char))))
 	 (go STEP-9))
 	(:single-escape
 	 (setq char (READ-CHAR stream t nil t))
-	 (setq token (concat token (list (char-code char))))
+	 (setq token (concat token (list (CHAR-CODE char))))
 	 (go STEP-9))
 	(:multiple-escape
 	 (when (null token)
@@ -387,7 +387,7 @@
 	  string)
    (or (some #'digit-char-p string)
        (and (some (lambda (char) (digit-char-p char *read-base*)) string)
-	    (not (find (code-char 46) string))))
+	    (not (find (CODE-CHAR 46) string))))
    (let ((char (aref string 0)))
      (or (digit-char-p char *read-base*)
 	 (find char "+-.^_")))
@@ -400,7 +400,7 @@
       (when (and integer (= end (length string)))
 	(return-from parse-number integer))
       (when (and integer
-		 (char= (char string end) (code-char 47)))
+		 (char= (char string end) (CODE-CHAR 47)))
 	(multiple-value-bind (denumerator end2)
 	    (PARSE-INTEGER string :radix *read-base* :start (1+ end)
 			   :junk-allowed t)
