@@ -232,7 +232,29 @@
 
 (fset 'NULL (symbol-function 'null))
 
+(fset 'NCONC (symbol-function 'nconc))
+
 (fset 'APPEND (symbol-function 'append))
+
+(defun REVAPPEND (list tail)
+  (nconc (reverse list) tail))
+
+(defun NRECONC (list tail)
+  (nconc (nreverse list) tail))
+
+(defun* BUTLAST (list &optional (n 1))
+  (NBUTLAST (COPY-LIST list) n))
+
+(defun* NBUTLAST (list &optional (n 1))
+  (setcdr (LAST list (1+ n)) nil)
+  list)
+
+(defun* LAST (list &optional (n 1))
+  (do ((l list (CDR l))
+       (r list)
+       (i 0 (+ i 1)))
+      ((ATOM l) r)
+    (if (>= i n) (POP r))))
 
 (defun MAPCAR (fn &rest seqs)
   (if (null (cdr seqs))
