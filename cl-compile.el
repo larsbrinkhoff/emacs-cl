@@ -7,13 +7,19 @@
 
 (defvar *registers* (list (gensym)))
 (defvar *next-register* nil)
-(defvar *bound* nil)
+
+(defvar *bound* nil
+  "A list of variables bound in the function being compiled.")
+(defvar *free* nil
+  "An alist of free variables in the top-level form being compiled.")
+
 (defvar *unbound* nil)
 (defvar *closure-slot* nil)
 
 (defmacro* with-fresh-context (&body body)
-  `(let ((*next-register* *registers*))
-    ,@body))
+  `(let ((*next-register* *registers*)
+	 (*free* nil))
+     ,@body))
 
 (defun symbol-register (sym)
   (gethash sym *variables*))
@@ -44,6 +50,18 @@
 (defun symbol-lexical-p (sym)
   (not (symbol-special-p sym)))
 
+(defun subst-free (fn)
+  (cond
+    ((symbolp fn)
+     (let ((var (assq fn *free*)))
+       (if var
+	   (cdr var)
+	   fn)))
+    ((consp fn)
+     (cons (subst-free (car fn)) (subst-free (cdr fn))))
+    (t
+     fn)))
+
 (defun COMPILE (name &optional definition)
   (when (null definition)
     (if (fboundp name)
@@ -54,11 +72,14 @@
 	   (function (byte-compile compiled)))
       (when name
 	(setf (fdefinition name) function))
-      (VALUES compiled nil nil))))
+      (VALUES (subst-free compiled) nil nil))))
 
 (defun lambda-expr-p (form)
   (and (consp form)
        (eq (car form) 'LAMBDA)))
+
+(defun compile-args (args env)
+  (mapcar (lambda (arg) (compile-form arg env)) args))
 
 (defun* compile-form (form &optional env &key (values 1))
   (when (and (consp form)
@@ -71,20 +92,24 @@
   (cond
     ((SYMBOLP form)
      (unless (eq values 0)
-       (if (CONSTANTP form env)
-	   (symbol-value form)
-	   (compile-variable form env))))
+       (let ((val (compile-variable form env)))
+	 (if (eq values t)
+	     `(progn (setq nvals 1 mvals nil) ,val)
+	     val))))
     ((ATOM form)
      (unless (eq values 0)
-       (compile-literal form)))
+       (let ((val (compile-literal form)))
+	 (if (eq values t)
+	     `(progn (setq nvals 1 mvals nil) ,val)
+	     val))))
     ((lambda-expr-p (first form))
-     (compile-form `(FUNCALL ,(compile-lambda form env) ,@(rest form))))
+     `(,(compile-lambda form env) ,@(compile-args (rest form) env)))
     ((symbolp (first form))
      (let* ((name (first form))
 	    (fn (gethash name *form-compilers*)))
        (if fn
 	   (apply fn env (rest form))
-	   (compile-form `(FUNCALL ,@form)))))
+	   (compile-form `(FUNCALL (QUOTE ,name) ,@(rest form)) env))))
     (t
      (ERROR "Syntax error: ~S" form))))
 
@@ -92,9 +117,11 @@
   (multiple-value-bind (type localp decls) (variable-information var env)
     (ecase type
       ((:special nil)	var)
-      (:lexical		(or ;(symbol-register var)
-			    (lexical-value var env)
-			    (ERROR "Undefined variable: ~S" sym)))
+      (:lexical		(unless (memq var *bound*)
+			  (push (cons (lexical-value var env)
+				      `(lexical-value ',var ,env))
+				*free*))
+			(lexical-value var env))
       (:constant	(symbol-value var)))))
 
 ;   (if (and (not (find sym *bound*))
@@ -147,15 +174,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(define-compiler APPLY (fn &rest args) env
+  (let ((fn (compile-form fn env))
+	(args (compile-args args env)))
+    (cond
+      ((subrp fn)
+       `(apply #',(intern (function-name fn)) ,@args))
+      ((byte-code-function-p fn)
+       `(apply ,fn ,@args))
+      (t
+       `(APPLY ,fn ,@args)))))
+
 (define-compiler BLOCK (tag &rest body) env
   (let* ((block (gensym))
 	 (new-env (augment-environment env :block (cons tag block))))
-  `(catch ,block
-     ,@(compile-forms body env))))
+  `(catch ,block ,@(compile-forms body env))))
 
 (define-compiler CATCH (tag &rest body) env
-  `(catch ,(compile-form tag env)
-     ,@(compile-forms body env)))
+  `(catch ,(compile-form tag env) ,@(compile-forms body env)))
 
 (define-compiler COND (&rest clauses) env
   `(cond ,@(mapcar (lambda (clause)
@@ -180,27 +216,29 @@
     `(progn ,@(compile-forms body))))
 
 (define-compiler FUNCALL (fn &rest args) env
-  (let ((output nil))
-    (if (and (consp fn) (eq (first fn) 'QUOTE) (symbolp (second fn)))
-	(if (eq (second fn) 'FUNCALL)
-	    (compile-form `(FUNCALL ,@args) env)
-	    `(,(second fn) ,@(mapcar (lambda (arg) (compile-form arg env))
-				     args)))
-	(let ((fn (compile-form fn env))
-	      (args (mapcar (lambda (arg) (compile-form arg env)) args)))
-	  (cond
-	    ((FUNCTIONP fn)	`(FUNCALL ,fn ,@args))
-	    ((SYMBOLP fn)	`(,fn ,@args))
-	    (t			(ERROR 'PROGRAM-ERROR)))))))
+  (if (and (consp fn) (eq (first fn) 'QUOTE) (symbolp (second fn)))
+      (if (eq (second fn) 'FUNCALL)
+	  (compile-form `(FUNCALL ,@args) env)
+	  `(,(second fn) ,@(compile-args args env)))
+      (let ((fn (compile-form fn env))
+	    (args (compile-args args env)))
+	(cond
+	  ((subrp fn)
+	   `(,(intern (function-name fn)) ,@args))
+	  ((byte-code-function-p fn)
+	   `(funcall ,fn ,@args))
+	  (t
+	   `(FUNCALL ,fn ,@args))))))
 
 (define-compiler FUNCTION (name) env
   (if (lambda-expr-p name)
-      (compile-lambda name env)
+      (let ((*bound* nil))
+	(compile-lambda name env))
       (multiple-value-bind (type localp decl) (function-information name env)
 	(cond
 	  (localp		(lexical-function name env))
-	  ((symbolp name)	`(symbol-function ',name))
-	  ((setf-name-p name)	`(FDEFINITION ',name))
+	  ((symbolp name)	(symbol-function name))
+	  ((setf-name-p name)	(FDEFINITION name))
 	  (t			(ERROR "Syntax error: (FUNCTION ~S)" name))))))
 
 (define-compiler GO (tag) env
@@ -242,11 +280,11 @@
   (MULTIPLE-VALUE-BIND (body decls) (cddr form)
     (let* ((vars (second form))
 	   (new-env (if vars (augment-environment env :variable vars) env))
-	   (*bound* nil))
+	   (compiled-vars nil))
       (dolist (var (lambda-list-parameters vars))
 	(setf (lexical-value var new-env) (new-register))
 	(push var *bound*))
-      (expand-lambda vars (compile-forms body new-env)))))
+      (expand-lambda vars (compile-forms body new-env) new-env))))
 
 ;   (let ((vars (second form))
 ; 	(body (cddr form))
@@ -328,20 +366,52 @@
     ;; TODO: bind macros, process decls
     (compile-forms body env)))
 
-;;; TODO: compile-multiple-value-bind
+(define-compiler MULTIPLE-VALUE-BIND (vars form &body forms) env
+  (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
+    (let ((new-env (if vars (augment-environment env :variable vars) env)))
+      (dolist (var vars)
+	(setf (lexical-value var new-env) (new-register))
+	(push var *bound*))
+      (if (null vars)
+	  `(progn
+	     ,(compile-form form :values 0)
+	     ,@(compile-forms body env))
+	  `(let* ((,(first vars) ,(compile-form form env :values t))
+		  ,@(mapcar (lambda (var) `(,var (pop mvals))) (rest vars)))
+	     ,@(compile-forms body env))))))
 
-;;; TODO: compile-multiple-value-call
+(define-compiler MULTIPLE-VALUE-CALL (fn &rest forms) env
+  (if (null forms)
+      (compile-form `(FUNCALL ,fn) env)
+      `(APPLY ,(compile-form fn env)
+	      (append ,@(mapcar (lambda (form)
+				  `(MULTIPLE-VALUE-LIST
+				    ,(compile-form form env :values t)))
+				forms)))))
 
-;;; TODO: compile-multiple-value-prog1
+(define-compiler MULTIPLE-VALUE-LIST (form) env
+  (let ((val (new-register)))
+    `(let* ((,val ,(compile-form form env :values t)))
 
-(defun compile-forms (forms env)
+(define-compiler MULTIPLE-VALUE-PROG1 (form &rest forms) env
+  (let ((val (new-register))
+	(ntemp (new-register))
+	(mtemp (new-register)))
+    `(let* ((,val ,(compile-form form env :values t))
+	    (,ntemp nvals)
+	    (,mtemp mvals))
+       ,@(compile-forms forms env :values 0)
+       (setq nvals ,ntemp mvals ,mtemp)
+       ,val)))
+
+(defun* compile-forms (forms env &key (values t))
   (if (null forms)
       nil
       (do* ((forms forms (cdr forms))
 	    (form #1=(car forms) #1#)
 	    (result nil))
 	   ((null (cdr forms))
-	    (push (compile-form form env :values t) result)
+	    (push (compile-form form env :values values) result)
 	    (nreverse result))
 	(let ((comp (compile-form form env :values 0)))
 	  (when comp
