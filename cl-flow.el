@@ -6,7 +6,15 @@
 (defvar *setf-definitions* (make-hash-table))
 
 (defun APPLY (fn &rest args)
-  (apply #'apply fn args))
+  (cond
+    ((INTERPRETED-FUNCTION-P fn)
+     (eval-with-env (append (cons (aref fn 1) (butlast args))
+			    (car (last args)))
+		    (aref fn 2)))
+    ((FUNCTIONP fn)
+     (apply #'apply fn args))
+    (t
+     (apply #'apply (FDEFINITION fn) args))))
 
 (defmacro* DEFUN (name lambda-list &body body)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
@@ -45,16 +53,12 @@
 
 (defun FUNCALL (fn &rest args)
   (cond
-    ((symbolp fn)
-     (apply fn args))
-    ((and (consp fn) (eq (first fn) 'setf) (null (cddr fn)))
-     (apply (FDEFINITION fn) args))
     ((INTERPRETED-FUNCTION-P fn)
      (eval-with-env (cons (aref fn 1) args) (aref fn 2)))
     ((FUNCTIONP fn)
      (apply fn args))
     (t
-     (error "type error"))))
+     (apply (FDEFINITION fn) args)))
 
 ;;; TODO: function
 
