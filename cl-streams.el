@@ -85,6 +85,9 @@
 	    eof-value)
 	(CODE-CHAR ch))))
 
+(cl:defun read-char-exclusive-ignoring-arg (arg)
+  (read-char-exclusive))
+
 (cl:defun READ-CHAR-NO-HANG (&optional stream-designator (eof-error-p T)
 				       eof-value recursive-p)
   (let ((stream (input-stream stream-designator)))
@@ -94,22 +97,22 @@
 	  (READ-CHAR stream stream eof-error-p eof-value recursive-p))
 	(READ-CHAR stream stream eof-error-p eof-value recursive-p))))
 
-(defun TERPRI (&optional stream-designator)
+(cl:defun TERPRI (&optional stream-designator)
   (let ((stream (output-stream stream-designator)))
     (WRITE-CHAR (ch 10) stream))
   nil)
 
-(defun FRESH-LINE (&optional stream-designator)
+(cl:defun FRESH-LINE (&optional stream-designator)
   (let ((stream (output-stream stream-designator)))
     (unless (STREAM-fresh-line-p stream)
       (TERPRI stream))))
 
-(defun UNREAD-CHAR (char &optional stream-designator)
+(cl:defun UNREAD-CHAR (char &optional stream-designator)
   (let ((stream (input-stream stream-designator)))
     (when (> (STREAM-index stream) 0)
       (decf (STREAM-index stream)))))
 
-(defun WRITE-CHAR (char &optional stream-designator)
+(cl:defun WRITE-CHAR (char &optional stream-designator)
   (let* ((stream (output-stream stream-designator))
 	 (fn (STREAM-write-fn stream)))
     (unless fn
@@ -118,8 +121,8 @@
     (setf (STREAM-fresh-line-p stream) (ch= char 10))
     char))
 
-(defun* READ-LINE (&optional stream-designator (eof-error-p T)
-			     eof-value recursive-p)
+(cl:defun READ-LINE (&optional stream-designator (eof-error-p T)
+			       eof-value recursive-p)
   (let ((stream (input-stream stream-designator))
 	(line ""))
     (loop
@@ -321,9 +324,6 @@
 			       (insert char)
 			       (when (eq char 10)
 				 (sit-for 0)))))
-
-(cl:defun read-char-exclusive-ignoring-arg (arg)
-  (read-char-exclusive))
 
 (defun make-read-char-exclusive-input-stream ()
   (MAKE-STREAM (kw content) nil
