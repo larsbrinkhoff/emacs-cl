@@ -30,4 +30,5 @@
 	     (princ (format "%s + %s /= %s\n" x y z)))))
 
 (defun test-cl ()
-  (bignum-test))
+  (bignum-test)
+  (princ "All tests completed.\n\n"))

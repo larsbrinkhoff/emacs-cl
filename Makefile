@@ -12,9 +12,9 @@ all:
 #install:
 
 check:
-	for e in $(EMACSEN); do						\
-		echo === CHECKING $$e ===;				\
-		$$e -batch -l load-cl.el -l tests.el -f test-cl;	\
+	for e in $(EMACSEN); do						     \
+		echo CHECKING $$e;					     \
+		$$e -batch -l load-cl.el -l tests.el -f test-cl 2>/dev/null; \
 	done
 
 clean:
