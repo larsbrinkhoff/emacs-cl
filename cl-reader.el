@@ -400,7 +400,7 @@
     (VALUES (list 'FUNCTION object))))
 
 (defun sharp-left-paren-reader (stream char n)
-  (unless-read-suppress-let (list (READ-DELIMITED-LIST (ch 41) stream))
+  (unless-read-suppress-let (list (READ-DELIMITED-LIST (ch 41) stream t))
     (VALUES (if (and n (plusp n))
 		(MAP-INTO (MAKE-ARRAY n (kw INITIAL-ELEMENT) (car (last list)))
 			  #'IDENTITY list)
