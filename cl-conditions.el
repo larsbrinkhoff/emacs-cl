@@ -68,7 +68,7 @@
 (defun BREAK (&optional format &rest args)
   (debug))
 
-(defvar *DEBUGGER-HOOK* 
+(defvar *DEBUGGER-HOOK* nil)
 
 (defvar *BREAK-ON-SIGNALS* nil)
 
