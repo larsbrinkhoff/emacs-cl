@@ -357,18 +357,8 @@
     (setf (ELT seq1 i) (ELT seq2 j)))
   seq1)
 
-(cl:defun SUBSTITUTE (new old seq &rest keys)
-  (apply (cl:function NSUBSTITUTE) new old (COPY-SEQ seq) keys))
-
-(cl:defun SUBSTITUTE-IF (obj predicate seq &rest keys)
-  (apply (cl:function NSUBSTITUTE-IF) obj predicate (COPY-SEQ seq) keys))
-
-(cl:defun SUBSTITUTE-IF-NOT (obj predicate seq &rest keys)
-  (apply (cl:function NSUBSTITUTE-IF)
-	 obj (COMPLEMENT predicate) (COPY-SEQ seq) keys))
-
-(cl:defun NSUBSTITUTE (new old seq &key (from-end test test-not (start 0) end
-					count (key (cl:function IDENTITY))))
+(cl:defun NSUBSTITUTE (new old seq &key from-end test test-not (start 0) end
+					count (key (cl:function IDENTITY)))
   (when (and test test-not)
     (error))
   (when test-not
@@ -398,6 +388,16 @@
 
 (cl:defun NSUBSTITUTE-IF-NOT (predicate &rest args)
   (apply (cl:function NSUBSTITUTE-IF) (COMPLEMENT predicate) args))
+
+(cl:defun SUBSTITUTE (new old seq &rest keys)
+  (apply (cl:function NSUBSTITUTE) new old (COPY-SEQ seq) keys))
+
+(cl:defun SUBSTITUTE-IF (obj predicate seq &rest keys)
+  (apply (cl:function NSUBSTITUTE-IF) obj predicate (COPY-SEQ seq) keys))
+
+(cl:defun SUBSTITUTE-IF-NOT (obj predicate seq &rest keys)
+  (apply (cl:function NSUBSTITUTE-IF)
+	 obj (COMPLEMENT predicate) (COPY-SEQ seq) keys))
 
 (defun CONCATENATE (type &rest sequences)
   (ecase type
