@@ -49,20 +49,22 @@
 (defvar *print-circle-counter* 0)
 
 (defun check-circles (object)
-  (let ((n (gethash object *print-circle-table*)))
-    (cond
-      ((null n)
-       (setf (gethash object *print-circle-table*) t)
-       (cond
-	 ((consp object)
-	  (check-circles (car object))
-	  (check-circles (cdr object)))
-	 ((arrayp object)
-	  (dotimes (i (length object))
-	    (check-circles (aref object i))))))
-      ((eq n 0))
-      (t
-       (setf (gethash object *print-circle-table*) 0)))))
+  (unless (or (INTEGERP object)
+	      (symbolp object))
+    (let ((n (gethash object *print-circle-table*)))
+      (cond
+	((null n)
+	 (setf (gethash object *print-circle-table*) t)
+	 (cond
+	   ((consp object)
+	    (check-circles (car object))
+	    (check-circles (cdr object)))
+	   ((arrayp object)
+	    (dotimes (i (length object))
+	      (check-circles (aref object i))))))
+	((eq n 0))
+	(t
+	 (setf (gethash object *print-circle-table*) 0))))))
 
 (defun write-object (object stream)
   (if *PRINT-CIRCLE*
@@ -87,6 +89,9 @@
 	    (check-circles object)
 	    (write-object object stream)))
       (PRINT-OBJECT object stream)))
+
+(defun integer-and-plus-p (object)
+  (and (integerp object) (plusp object)))
 
 ;;; TODO: PRINT-OBJECT should be a generic function
 (defun PRINT-OBJECT (object stream)
@@ -123,7 +128,7 @@
      (WRITE-STRING "(" stream)
      (write-object (car object) stream)
      (while (consp (cdr object))
-       (if (gethash (cdr object) *print-circle-table*)
+       (if (integer-and-plus-p (gethash (cdr object) *print-circle-table*))
 	   (progn
 	     (WRITE-STRING " . " stream)
 	     (write-object (cdr object) stream)
