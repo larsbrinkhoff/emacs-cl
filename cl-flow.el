@@ -61,6 +61,11 @@
         '(&allow-other-keys &aux &body &environment &key &optional
 	  &rest &whole))
 
+(defmacro* DEFCONSTANT (name initial-value &optional documentation)
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+    (defvar ,name ,initial-value)
+    (pushnew ',name *constants*)))
+
 (defun expand-tagbody-forms (body start end)
   (do ((clauses nil)
        (clause (list (list start)))

@@ -9,6 +9,8 @@
 
 (defvar *symbol-macro-functions* (make-hash-table))
 
+(defvar *constants* '(NIL T PI))
+
 (defun COMPILER-MACRO-FUNCTION (name &optional env)
   (gethash name *compiler-macro-functions*))
 
@@ -79,3 +81,12 @@
 	    LOAD-TIME-VALUE LOCALLY MACROLET MULTIPLE-VALUE-CALL
 	    MULTIPLE-VALUE-PROG1 PROGN PROGV QUOTE RETURN-FROM SETQ
 	    SYMBOL-MACROLET TAGBODY THE THROW UNWIND-PROTECT)))
+
+(defun CONSTANTP (form)
+  (cond
+    ((atom form)
+     (cond
+       ((KEYWORDP form)		t)
+       ((symbolp form)		(member form *constants*))
+       (t			t)))
+    (t				(eq (first form) 'QUOTE))))
