@@ -409,13 +409,11 @@
 (defun set-bit (array index bit)
   (cond
     ((SIMPLE-BIT-VECTOR-P array)
-     (setf (SBIT array) bit))
+     (setf (SBIT array index) bit))
     ((BIT-VECTOR-P array)
-     (setf (SBIT (array-storage array)) bit))
+     (setf (SBIT (array-storage array) index) bit))
     ((vector-and-typep array 'bit-array)
-     (setf (SBIT (array-storage array)
-		 (apply #'ARRAY-ROW-MAJOR-INDEX subscripts))
-	   bit))
+     (setf (SBIT (array-storage array) index) bit))
     (t
      (error))))
 
@@ -442,8 +440,7 @@
 				    (vector 'bit-array
 					    (ARRAY-DIMENSIONS array)
 					    (make-bit-vector
-					     (ARRAY-TOTAL-SIZE array 0))
-					    0)))))
+					     (ARRAY-TOTAL-SIZE array) 0))))))
 
 (defun BIT-AND (array1 array2 &optional result)
   (let ((result (default-result array1 result))
