@@ -45,7 +45,7 @@
 
 ;;; TODO: Function PPRINT-TAB
 
-;;; TODO: Standard Generic Function PRINT-OBJECT
+;;; TODO: PRINT-OBJECT should be a generic function
 (defun PRINT-OBJECT (object stream)
   (cond
     ((INTEGERP object)
@@ -53,7 +53,7 @@
     ((floatp object)
      (print-float object stream))
     ((symbolp object)
-     (let ((name (symbol-name object)))
+     (let ((name (SYMBOL-NAME object)))
        (if (printer-escaping-p)
 	   (progn
 	     (print-symbol-prefix object stream)
@@ -217,7 +217,7 @@
   (cond
     ((eq (SYMBOL-PACKAGE symbol) *keyword-package*)
      (WRITE-STRING ":" stream))
-    ((eq (NTH-VALUE 0 (FIND-SYMBOL (symbol-name symbol) *PACKAGE*)) symbol))
+    ((eq (NTH-VALUE 0 (FIND-SYMBOL (SYMBOL-NAME symbol) *PACKAGE*)) symbol))
     ((null (SYMBOL-PACKAGE symbol))
      (when *PRINT-GENSYM*
        (WRITE-STRING "#:" stream)))
@@ -228,7 +228,7 @@
 (defun print-symbol-name (name stream)
   (let* ((read-sym (READ-FROM-STRING name))
 	 (escape (if (and (symbolp read-sym)
-			  (string= name (symbol-name read-sym)))
+			  (string= name (SYMBOL-NAME read-sym)))
 		     "" "|")))
     (WRITE-STRING escape stream)
     (WRITE-STRING name stream)
@@ -402,12 +402,12 @@
 
 (defvar *initial-pprint-dispatch*
   (let ((table (make-hash-table :test #'equal)))
-    (SET-PPRINT-DISPATCH '(CONS (EQL QUOTE) (CONS * NULL))
+    (SET-PPRINT-DISPATCH `(CONS (EQL QUOTE) (CONS ,star NULL))
 			 (lambda (stream object)
 			   (WRITE-CHAR (ch 39) stream)
 			   (PRINT-OBJECT (second object) stream))
 			 100 table)
-    (SET-PPRINT-DISPATCH '(CONS (EQL FUNCTION) (COND * NULL))
+    (SET-PPRINT-DISPATCH `(CONS (EQL FUNCTION) (CONS ,star NULL))
 			 (lambda (stream object)
 			   (WRITE-STRING "#'" stream)
 			   (PRINT-OBJECT (second object) stream))
