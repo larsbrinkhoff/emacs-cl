@@ -21,15 +21,17 @@
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     (setf (COMPILER-MACRO-FUNCTION ',name)
           (function* (lambda (form env)
-	               (destructuring-bind ,lambda-list form
-			 ,@body))))))
+	               (destructuring-bind ,lambda-list (cdr form)
+			 ,@body))))
+    ',name))
 
 (defmacro* DEFMACRO (name lambda-list &body body)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     (setf (MACRO-FUNCTION ',name)
           (function* (lambda (form env)
-	               (destructuring-bind ,lambda-list form
-			 ,@body))))))
+	               (destructuring-bind ,lambda-list (cdr form)
+			 ,@body))))
+    ',name))
 
 (defun MACRO-FUNCTION (name &optional env)
   (gethash name *macro-functions*))
@@ -39,23 +41,30 @@
 
 (defun MACROEXPAND-1 (form &optional env)
   (cond
-    ((CONSP form)
-     (let ((fn (MACRO-FUNCTION (CAR form))))
+    ((consp form)
+     (let ((fn (MACRO-FUNCTION (car form))))
        (if fn
-	   (let ((new (funcall *macroexpand-hook* fn form env)))
-	     (values form (not (eq form new))))
+	   (let ((new (funcall *MACROEXPAND-HOOK* fn form env)))
+	     (values new (not (eq form new))))
 	   (values form nil))))
     ((symbolp form)
      (let ((fn (gethash form *symbol-macro-functions*)))
        (if fn
-	   (values (funcall *macroexpand-hook* fn form env) t)
+	   (values (funcall *MACROEXPAND-HOOK* fn form env) t)
 	   (values form nil))))
     (t
      (values form nil))))
 
 (defun* MACROEXPAND (form &optional env)
-  (let ((form form) expandedp)
+  (let ((form form) (expanded-p nil) exp)
     (loop
-     (multiple-value-setq (form expandedp) (MACROEXPAND-1 form env))
-     (unless expandedp
-       (return-from MACROEXPAND form)))))
+     (multiple-value-setq (form exp) (MACROEXPAND-1 form env))
+     (if exp
+	 (setq expanded-p t)
+	 (return-from MACROEXPAND (values form expanded-p))))))
+
+(defmacro* DEFINE-SYMBOL-MACRO (symbol expansion)
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+    (setf (gethash ',symbol *symbol-macro-functions*)
+          (function* (lambda (form env) ',expansion)))
+    ',symbol))
