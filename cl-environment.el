@@ -36,6 +36,73 @@
 
 ;;; (defun GET-INTERNAL-RUN-TIME ())
 
+(defun DISASSEMBLE (fn)
+  (when (or (symbolp fn) (setf-name-p fn))
+    (setq fn (FDEFINITION fn)))
+  (when (INTERPRETED-FUNCTION-P fn)
+    nil)
+  (disassemble fn)
+  nil)
+
+(defun* ROOM (&optional (x :default))
+  (let* ((info (garbage-collect))
+         (foo `("conses" "symbols" "misc" "string chars"
+                "vector slots" "floats" "intervals" "strings"))
+         (cons-info (first info))
+         (sym-info (second info))
+         (misc-info (third info))
+         (used-string-chars (fourth info))
+         (used-vector-slots (fifth info))
+         (float-info (sixth info))
+         (interval-info (seventh info))
+         (string-info (eighth info)))
+    (case x
+      ((nil) nil)
+      ((:default)
+       (do ((i info (cdr i))
+            (j foo (cdr j)))
+           ((null i) nil)
+         (PRINC (format "Used %s: " (car j)))
+         (cond
+           ((null (car i)))
+           ((atom (car i))
+            (PRINC (format "%d.\n" (car i))))
+           (t
+            (PRINC (format "%d, free %s: %d\n"
+                           (caar i) (car j) (cdar i)))))))
+      ((t)
+       (ROOM)
+       (PRINC "Consed so far:\n")
+       (PRINC (format "%d conses,\n" cons-cells-consed))
+       (PRINC (format "%d floats,\n" floats-consed))
+       (PRINC (format "%d vector cells,\n" vector-cells-consed))
+       (PRINC (format "%d symbols,\n" symbols-consed))
+       (PRINC (format "%d string chars,\n" string-chars-consed))
+       (PRINC (format "%d misc objects,\n" misc-objects-consed))
+       (PRINC (format "%d intervals,\n" intervals-consed))
+       (PRINC (format "%d strings\n" strings-consed))))))
+
+(defun SHORT-SITE-NAME ()
+  nil)
+
+(defun LONG-SITE-NAME ()
+  nil)
+
+(defun MACHINE-INSTANCE ()
+  (system-name))
+
+(defun MACHINE-TYPE ()
+  (subseq system-configuration 0 (position ?- system-configuration)))
+
+(defun MACHINE-VERSION ()
+  nil)
+
+(defun SOFTWARE-TYPE ()
+  (STRING system-type))
+
+(defun SOFTWARE-VERSION ()
+  nil)
+
 (defvar cl:* nil)
 (defvar ** nil)
 (defvar ***)
