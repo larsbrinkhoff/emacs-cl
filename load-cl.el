@@ -49,8 +49,7 @@
   (interactive)
   (let ((load-path (cons "~/src/emacs-cl" load-path))
 	(debug-on-error t)
-	(byte-compile-warnings nil)
-	(byte-compile-verbose nil))
+	(byte-compile-warnings nil))
     (mapc #'load *cl-files*)
     (populate-packages)
     (garbage-collect)
@@ -58,8 +57,7 @@
 
 (defun compile-cl ()
   (interactive)
-  (let ((byte-compile-verbose t)
-	(byte-compile-warnings t))
+  (let ((byte-compile-warnings t))
     (dolist (file *cl-files*)
       (byte-compile-file (concat file ".el")))))
 

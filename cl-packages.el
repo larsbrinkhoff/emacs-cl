@@ -11,6 +11,7 @@
 ;;; searched with intern-soft, and all symbols are exported.
 
 (defconst kw:EXTERNAL (keyword "EXTERNAL"))
+(defconst kw:INHERITED (keyword "INHERITED"))
 
 ;;; The PACKAGE system class is built in.
 
@@ -45,7 +46,7 @@
     (do-list-designator (sym symbols (VALUES T))
       (MULTIPLE-VALUE-BIND (s status) (FIND-SYMBOL (SYMBOL-NAME sym) package)
 	(cond
-	  ((eq status (kw INHERITED))
+	  ((eq status kw:INHERITED)
 	   (IMPORT sym package))
 	  ((null status)
 	   (ERROR 'PACKAGE-ERROR (kw PACKAGE) package))))
@@ -115,7 +116,7 @@
 			    (or (eq p *emacs-lisp-package*)
 				(member symbol (package-exported p))))
 		   (return-from FIND-SYMBOL
-		     (VALUES symbol (kw INHERITED))))))))))))
+		     (VALUES symbol kw:INHERITED)))))))))))
 
 (defun FIND-ALL-SYMBOLS (name)
   (let ((string (STRING name))
@@ -150,7 +151,7 @@
   (let ((package (FIND-PACKAGE package-designator)))
     (do-list-designator (name symbol-names (VALUES T))
       (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL name package)
-	(when (or (null status) (eq status (kw INHERITED)))
+	(when (or (null status) (eq status kw:INHERITED))
 	  (setq sym (nth-value 0 (INTERN name package))))
 	(pushnew sym (aref package 3))))))
 

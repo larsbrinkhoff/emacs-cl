@@ -81,7 +81,8 @@
        (PRINC (format "\n%d misc objects," misc-objects-consed))
        (PRINC (format "\n%d intervals" intervals-consed))
        (if (boundp 'strings-consed)
-	   (PRINC (format "\n%d strings." strings-consed))
+	   ;; Use symbol-value to shut up compiler warnings.
+	   (PRINC (format "\n%d strings." (symbol-value 'strings-consed)))
 	   (PRINC ".")))
       (t
        (ERROR 'TYPE-ERROR)))))

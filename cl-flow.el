@@ -310,8 +310,8 @@
 	((and (NUMBERP x) (NUMBERP y))
 	 (cl:= x y))
 	((and (consp x) (consp y))
-	 (and (EQUAL (car x)) (EQUAL (car y))
-	      (EQUAL (cdr x)) (EQUAL (cdr y))))
+	 (and (EQUAL (car x) (car y))
+	      (EQUAL (cdr x) (cdr y))))
 	((and (ARRAYP x) (ARRAYP y))
 	 (and (equal (ARRAY-DIMENSIONS x) (ARRAY-DIMENSIONS y))
 	      ;; TODO
