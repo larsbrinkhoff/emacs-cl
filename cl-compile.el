@@ -804,7 +804,7 @@
 	  ((atom form)
 	   (unless nofirst
 	     (setq clause (append clause `((throw ',tagbody ',form))))
-	     (setq first nil))
+	     (setq nofirst nil))
 	   (when clause
 	     (setq clauses (append clauses `(,clause))))
 	   (setq clause `((,form))))
