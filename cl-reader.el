@@ -427,10 +427,31 @@
 	(VALUES (eval object))
 	(ERROR 'READER-ERROR))))
 
-(defun sharp-b-reader (stream char n) nil)
-(defun sharp-o-reader (stream char n) nil)
-(defun sharp-x-reader (stream char n) nil)
-(defun sharp-r-reader (stream char n) nil)
+(defun read-in-base (stream base)
+  (let* ((*READ-BASE* base)
+	 (num (READ stream T nil T)))
+    (unless *READ-SUPPRESS*
+      (if (RATIONALP num)
+	  (VALUES num)
+	  (ERROR 'READER-ERROR)))))
+
+(defun sharp-b-reader (stream char n)
+  (no-param (ch 66) n)
+  (read-in-base stream 2))
+
+(defun sharp-o-reader (stream char n)
+  (no-param (ch 66) n)
+  (read-in-base stream 8))
+
+(defun sharp-x-reader (stream char n)
+  (no-param (ch 66) n)
+  (read-in-base stream 16))
+
+(defun sharp-r-reader (stream char n)
+  (when (or (null n)
+	    (not (cl:<= 2 n 36)))
+    (ERROR 'READER-ERROR))
+  (read-in-base stream n))
 
 (defun sharp-c-reader (stream char n)
   (no-param (ch 67) n)
@@ -440,7 +461,9 @@
 	  (VALUES (COMPLEX (first list) (second list)))
 	  (error "syntax error")))))
 
+;;; TODO:
 (defun sharp-a-reader (stream char n) nil)
+;;; TODO:
 (defun sharp-s-reader (stream char n) nil)
 
 (defun sharp-p-reader (stream char n)
@@ -450,7 +473,9 @@
       (ERROR 'READER-ERROR))
     (PARSE-NAMESTRING string)))
 
+;;; TODO:
 (defun sharp-equal-reader (stream char n) nil)
+;;; TODO:
 (defun sharp-sharp-reader (stream char n) nil)
 
 (defun eval-feature-test (expr)
