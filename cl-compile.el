@@ -37,7 +37,35 @@
 	(cl:values name nil nil))
       (cl:values definition nil nil)))
 
+(cl:defun COMPILE-FILE (input-file
+			&REST keys
+			&KEY OUTPUT-FILE
+			     (VERBOSE *COMPILE-VERBOSE*)
+			     (PRINT *COMPILE-PRINT*)
+			     EXTERNAL-FORMAT)
+  (let* ((*PACKAGE* *PACKAGE*)
+	 (*READTABLE* *READTABLE*)
+	 (*COMPILE-FILE-PATHNAME* (MERGE-PATHNAMES input-file))
+	 (*COMPILE-FILE-TRUENAME* (TRUENAME *COMPILE-FILE-PATHNAME*))
+	 (output (apply #'COMPILE-FILE-PATHNAME input-file keys))
+	 (warnings-p nil)
+	 (failure-p nil)
+	 (*compile-file-mode* :not-compile-time))
+    (WITH-COMPILATION-UNIT ()
+      (WITH-OPEN-FILE (stream *COMPILE-FILE-PATHNAME*)
+	(let ((eof (gensym)))
+;	  (do ((form #1=(READ stream nil eof) #1#))
+	  (do ((form (READ stream nil eof) (READ stream nil eof)))
+	      ((eq form eof))
+	    (FORMAT T "~%; Compile ~S" form)
+	    (FORMAT T "~%; -> ~S" (compile2 form))))))
+    (cl:values (TRUENAME output) warnings-p failure-p)))
+
 
+
+(defvar *compile-file-mode* nil
+  "Indicates whether file compilation is in effect, and if so, which
+   mode: :compile-time-too or :not-compile-time.")
 
 (defvar *genreg-counter* 0)
 
@@ -108,13 +136,17 @@
      (unless (eq values 0)
        (let ((val (compile-variable form env)))
 	 (if (eq values t)
-	     `(progn (setq nvals 1 mvals nil) ,val)
+	     (if (null val)
+		 `(setq nvals 1 mvals nil)
+		 `(progn (setq nvals 1 mvals nil) ,val))
 	     val))))
     ((atom form)
      (unless (eq values 0)
        (let ((val (compile-literal form)))
 	 (if (eq values t)
-	     `(progn (setq nvals 1 mvals nil) ,val)
+	     (if (null val)
+		 `(setq nvals 1 mvals nil)
+		 `(progn (setq nvals 1 mvals nil) ,val))
 	     val))))
     ((lambda-expr-p (first form))
      (let* ((lexp (first form))
@@ -137,7 +169,8 @@
   (if (null forms)
       nil
       (do* ((forms forms (cdr forms))
-	    (form #1=(car forms) #1#)
+;	    (form #1=(car forms) #1#)
+	    (form (car forms) (car forms))
 	    (result nil))
 	   ((null (cdr forms))
 	    (push (compile-form form env :values values) result)
@@ -227,9 +260,32 @@
 				 clause)))
 		   clauses)))
 
-;;; TODO: eval-when
 (define-compiler EVAL-WHEN (situations &rest body) env
-  (body-form (compile-body body env)))
+  (let ((execute (or (memq (kw EXECUTE) situations)
+		     (memq 'EVAL situations)))
+	(compile-toplevel (or (memq (kw COMPILE-TOPLEVEL) situations)
+			      (memq 'COMPILE) situations))
+	(load-toplevel (or (memq (kw LOAD-TOPLEVEL) situations)
+			   (memq 'LOAD) situations)))
+    (cond
+      ((or (and compile-toplevel
+		(not load-toplevel)
+		*compile-file-mode*)
+	   (and (not compile-toplevel)
+		(not load-toplevel)
+		execute
+		(eq *compile-file-mode* :compile-time-too)))
+       (eval-with-env `(PROGN ,@body) env))
+      (*compile-file-mode*
+       (let ((*compile-file-mode*
+	      (cond
+		(compile-toplevel
+		 (when load-toplevel :compile-time-too))
+		(load-toplevel
+		 (if execute *compile-file-mode* :not-compile-time)))))
+	 (body-form (compile-body body env))))
+      (execute
+       (body-form (compile-body body env))))))
 
 (define-compiler FLET (fns &rest forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
@@ -634,13 +690,27 @@
 	  `(throw ',block-tag ,(compile-form form env)))
 	(ERROR "No block for (RETURN-FROM ~S)" form))))
 
-(define-compiler SETQ (var val &rest more) env
-  (multiple-value-bind (type localp) (variable-information var env)
-    (ecase type
-      ((:lexical :special nil)
-       `(setf ,(compile-variable var env) ,(compile-form val env)
-	      ,@(when more
-		  (rest (compile-form `(SETQ ,@more) env))))))))
+(define-compiler SETQ (&rest forms) env
+  (when (oddp (length forms))
+    (ERROR "Odd number of forms in SETQ"))
+  (body-form
+   (mapcar2
+    (lambda (var val)
+      (unless (symbolp var)
+	(ERROR "Setting non-symbol ~S" var))
+      (multiple-value-bind (type localp) (variable-information var env)
+	(ecase type
+	  (:lexical
+	   `(setf ,(compile-variable var env) ,(compile-form val env)))
+	  ((:special nil)
+	   (when (null type)
+	     (WARN "Setting undefined variable ~S" var))
+	   `(setq ,var ,(compile-form val env)))
+	  (:symbol-macro
+	   (compile-form `(SETF ,var ,val) env))
+	  (:constant
+	   (ERROR "Setting constant ~S" var)))))
+    forms)))
 
 (define-compiler SYMBOL-MACROLET (macros &rest forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
