@@ -58,7 +58,23 @@
 (defun OUTPUT-STREAM-P (stream)
   (not (null (STREAM-read-fn stream))))
 
-;;; TODO: INTERACTIVE-STREAM-P
+(defun INTERACTIVE-STREAM-P (stream)
+  (ecase (TYPE-OF stream)
+    (STREAM			T)
+    (BROADCAST-STREAM		nil)
+    (CONCATENATED-STREAM	nil)
+    (ECHO-STREAM		(INTERACTIVE-STREAM-P
+				 (ECHO-STREAM-INPUT-STREAM stream)))
+    (FILE-STREAM		nil)
+    (STRING-STREAM		nil)
+    (SYNONYM-STREAM		(INTERACTIVE-STREAM-P
+				 (symbol-value
+				  (SYNONYM-STREAM-SYMBOL stream))))
+    (TWO-WAY-STREAM		(and
+				 (INTERACTIVE-STREAM-P
+				  (TWO-WAY-STREAM-INPUT-STREAM stream))
+				 (INTERACTIVE-STREAM-P
+				  (TWO-WAY-STREAM-OUTPUT-STREAM stream))))))
 
 (defun OPEN-STREAM-P (stream)
   (STREAM-openp stream))
