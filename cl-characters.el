@@ -31,26 +31,26 @@
 (defun CHAR>= (&rest chars)
   (apply #'cl:>= (mapcar #'CHAR-CODE chars)))
 
-(defun char-downcase-code (char)
-  (CHAR-CODE (CHAR-DOWNCASE char)))
+(defun char-upcase-code (char)
+  (CHAR-CODE (CHAR-UPCASE char)))
 
 (defun CHAR-EQUAL (&rest chars)
-  (apply #'cl:= (mapcar #'char-downcase-code chars)))
+  (apply #'cl:= (mapcar #'char-upcase-code chars)))
 
 (defun CHAR-NOT-EQUAL (&rest chars)
-  (apply #'cl:/= (mapcar #'char-downcase-code chars)))
+  (apply #'cl:/= (mapcar #'char-upcase-code chars)))
 
 (defun CHAR-LESSP (&rest chars)
-  (apply #'cl:< (mapcar #'char-downcase-code chars)))
+  (apply #'cl:< (mapcar #'char-upcase-code chars)))
 
 (defun CHAR-GREATERP (&rest chars)
-  (apply #'cl:> (mapcar #'char-downcase-code chars)))
+  (apply #'cl:> (mapcar #'char-upcase-code chars)))
 
 (defun CHAR-NOT-GREATERP (&rest chars)
-  (apply #'cl:<= (mapcar #'char-downcase-code chars)))
+  (apply #'cl:<= (mapcar #'char-upcase-code chars)))
 
 (defun CHAR-NOT-LESSP (&rest chars)
-  (apply #'cl:>= (mapcar #'char-downcase-code chars)))
+  (apply #'cl:>= (mapcar #'char-upcase-code chars)))
 
 (defun CHARACTER (x)
   (cond
