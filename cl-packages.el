@@ -21,10 +21,24 @@
 (defun package-table (package)
   (aref package 6))
 
+(defun package-exported (package)
+  (aref package 7))
+
 (defun PACKAGEP (package)
   (vector-and-typep package 'PACKAGE))
 
 (defvar *all-packages* nil)
+
+(defun* EXPORT (symbols &optional (package-designator *PACKAGE*))
+  (let ((package (FIND-PACKAGE package-designator)))
+    (unless (listp symbols)
+      (setq symbols (list symbols)))
+    (dolist (sym symbols 'T)
+      (multiple-value-bind (sym status)
+	  (FIND-SYMBOL (SYMBOL-NAME sym) package)
+	(when (eq status *:inherited*)
+	  (IMPORT sym package)))
+      (pushnew sym (aref package 7)))))
 
 (defun FIND-PACKAGE (name)
   (if (PACKAGEP name)
@@ -37,15 +51,16 @@
 	 *all-packages*))))
 
 (defun* MAKE-PACKAGE (name &key nicknames use)
-  (let ((package (make-vector 7 'PACKAGE))
+  (let ((package (make-vector 8 'PACKAGE))
 	(use-packages (mapcar #'FIND-PACKAGE use)))
     (aset package 1 (STRING name))
-    (aset package 2 nicknames)
+    (aset package 2 (mapcar #'STRING nicknames))
     (aset package 3 nil)
     (aset package 4 use-packages)
     (aset package 6 (make-hash-table :test 'equal))
+    (aset package 7 nil)
     (dolist (p use-packages)
-      (aset p 5 (cons package (aref p 5))))
+      (push package (aref p 5)))
     (push package *all-packages*)
     package))
 
@@ -72,7 +87,10 @@
        (let* ((table (package-table package))
 	      (symbol (gethash string table not-found)))
 	 (if (not (eq symbol not-found))
-	     (values symbol *:external*)
+	     (values symbol
+		     (if (member symbol (package-exported package))
+			 *:external*
+			 *:internal*))
 	     (dolist (p (PACKAGE-USE-LIST package) (values nil nil))
 	       (multiple-value-bind (symbol found) (FIND-SYMBOL string p)
 		 (when found
@@ -87,14 +105,32 @@
 	(if (or (eq status :internal) (eq status *:external*))
 	    (push sym syms))))))
 
-;;; import
+(defun* IMPORT (symbols &optional (package-designator *PACKAGE*))
+  (let ((package (FIND-PACKAGE package-designator)))
+    (unless (listp symbols)
+      (setq symbols (list symbols)))
+    (dolist (symbol symbols 'T)
+      (multiple-value-bind (sym found)
+	  (FIND-SYMBOL (SYMBOL-NAME symbol) package)
+	(when (and found (not (eq sym symbol)))
+	  (error "package error"))
+	(setf (gethash (SYMBOL-NAME symbol) (package-table package)) symbol)
+	(when (null (SYMBOL-PACKAGE symbol))
+	  (setf (SYMBOL-PACKAGE symbol) package))))))
 
 (defun LIST-ALL-PACKAGES ()
   (copy-list *all-packages*))
 
-;;; rename-package
+(defun RENAME-PACKAGE (package-designator name &optional new-nicknames)
+  (let ((package (FIND-PACKAGE package-designator)))
+    (aset package 1 (if (PACKAGEP name)
+			(PACKAGE-NAME name)
+			(STRING name)))
+    (aset package 2 (mapcar #'STRING new-nicknames))))
 
-;;; shadow
+(defun* SHADOW (symbol-names &optional (package-designator *PACKAGE))
+  
+  'T)
 
 ;;; shadowing-import
 
@@ -168,6 +204,8 @@
 
 ; (DEFMACRO DO-SYMBOLS ((var &optional (package *PACKAGE*) result)
 ; 		      &body body)
+;   42)
+
 ;   (let ((ignore (gensym)))
 ;     `(progn
 ;       (maphash (lambda (,ignore ,var) ,@body) (package-table ,package))
@@ -191,16 +229,12 @@
 	    (unless (eq package *emacs-lisp-package*)
 	      (setf (gethash name (package-table package)) symbol))
 	    (when (eq package *keyword-package*)
-	      (set symbol symbol)
-	      (push symbol *constants*))
+	      (set symbol symbol))
 	    (values symbol nil))))))
 
 (defconst *:internal* (nth-value 0 (INTERN "INTERNAL" *keyword-package*)))
 (defconst *:external* (nth-value 0 (INTERN "EXTERNAL" *keyword-package*)))
 (defconst *:inherited* (nth-value 0 (INTERN "INHERITED" *keyword-package*)))
-
-(setf (gethash "NIL" (package-table *common-lisp-package*)) nil)
-(setf (SYMBOL-PACKAGE nil) *common-lisp-package*)
 
 (defvar *PACKAGE* (FIND-PACKAGE "CL-USER"))
 
@@ -208,81 +242,96 @@
 
 ;;; package-error-package
 
-(let ((cl-table (package-table *common-lisp-package*)))
-  (dolist (sym
-	    '(** *** *GENSYM-COUNTER* *MACROEXPAND-HOOK* *READ-BASE*
-	      *READTABLE* *PACKAGE* ABS ADJUST-ARRAY ADJUSTABLE-ARRAY-P
-	      ALPHA-CHAR-P
-	    ALPHANUMERICP AND AREF ARRAY ARRAY-DIMENSION ARRAY-DIMENSIONS
-	    ARRAY-ELEMENT-TYPE ARRAY-HAS-FILL-POINTER-P ARRAYP ASH ATAN ATOM
-	    BACKQUOTE BASE-CHAR BASE-STRING BIGNUM BIT BIT-VECTOR BIT-VECTOR-P
-	    BLOCK BOOLEAN BOUNDP BYTE BYTE-POSITION BYTE-SIZE CAR CAAAAR
-	    CAAADR CAAAR CAADAR CAADDR CAADR CAAR CADAAR CADADR CADAR CADDAR
-	    CADDDR CADDR CADR CATCH CHAR CDAAAR CDAADR CDAAR CDADAR CDADDR
-	    CDADR CDAR CDDAAR CDDADR CDDAR CDDDAR CDDDDR CDDDR CDDR CDR
-	    CHAR-CODE CHAR-CODE-LIMIT CHAR-DOWNCASE CHAR-NAME CHAR-UPCASE
-	    CHAR= CHARACTER CHARACTERP CHECK-TYPE CLOSE CODE-CHAR COMMA
-	    COMMA-AT COMMA-DOT COMPILED-FUNCTION COMPILED-FUNCTION-P
-	    COMPILER-MACRO-FUNCTION COMPLEX COMPLEXP CONCATENATE CONJUGATE
-	    CONS CONSP COPY-READTABLE COPY-SEQ COPY-STRUCTURE COPY-SYMBOL
-	    COPY-TREE DEFCONSTANT DEFINE-COMPILER-MACRO DEFINE-SETF-EXPANDER
-	    DEFINE-SYMBOL-MACRO DEFMACRO DEFPACKAGE DEFSETF DEFSTRUCT DEFUN
-	    DELETE-PACKAGE DENOMINATOR DEPOSIT-FIELD DIGIT-CHAR-P DO-SYMBOLS
-	    DOUBLE-FLOAT DPB ELT EQ EQL EQUAL EVAL-WHEN EXTENDED-CHAR
-	    FDEFINITION FILE-POSITION FIND-ALL-SYMBOLS FIND-PACKAGE FIND-SYMBOL
-	    FIXNUM FLET FLOAT FUNCTION FUNCTIONP GENSYM GENTEMP GET
-	    GET-DISPATCH-MACRO-CHARACTER GET-MACRO-CHARACTER GET-SETF-EXPANSION
-	    GET-OUTPUT-STREAM-STRING GO HASH-TABLE IF IMAGPART IN-PACKAGE
-	    INTEGER INTEGER-LENGTH INTEGERP INTERN KEYWORD KEYWORDP LABELS LDB
-	    LDB-TEST LENGTH LET LET* LIST LIST-ALL-PACKAGES LOAD-TIME-VALUE
-	    LOCALLY LOGAND LOGANDC1 LOGANDC2 LOGBITP LOGCOUNT LOGEQV LOGIOR
-	    LOGNAND LOGNOR LOGNOT LOGORC1 LOGORC2 LOGTEST LOGXOR LONG-FLOAT
-	    LOWER-CASE-P MACRO-FUNCTION MACROEXPAND MACROEXPAND-1 MACROLET
-	    MAKE-ARRAY MAKE-LIST MAKE-PACKAGE MAKE-SYMBOL MAKE-STRING
-	    MAKE-STRING-INPUT-STREAM MAKE-STRING-OUTPUT-STREAM MAKUNBOUND
-	    MAPCAN MAPCAR MASK-FIELD MAX MEMBER MIN MINUSP MOD
-	    MOST-NEGATIVE-FIXNUM MOST-POSITIVE-FIXNUM MULTIPLE-VALUE-CALL
-	    MULTIPLE-VALUE-PROG1 NAME-CHAR
-	    ;; NIL
-	    NOT NULL NUMBER NUMBERP
-	    NUMERATOR OPEN OR PACKAGE PACKAGE-NAME PACKAGE-NICKNAMES
-	    PACKAGE-SHADOWING-SYMBOLS PACKAGE-USE-LIST PACKAGE-USED-BY-LIST
-	    PACKAGEP PARSE-INTEGER PEEK-CHAR PHASE PRINT PROGN PROGV QUOTE
-	    RANDOM RATIO RATIONAL RATIONALP READ-CHAR READ-DELIMITED-LIST
-	    READ-FROM-STRING READ-LINE READ-PRESERVING-WHITESPACE READTABLE
-	    READTABLE-CASE READTABLEP REAL REALP REALPART REMPROP RETURN-FROM
-	    RPLACA RPLACD SCHAR SET SET-DISPATCH-MACRO-CHARACTER
-	    SET-MACRO-CHARACTER SET-SYNTAX-FROM-CHAR SETF SETQ SHORT-FLOAT
-	    SIMPLE-BIT-VECTOR SIMPLE-BIT-VECTOR-P SIMPLE-STRING SIMPLE-STRING-P
-	    SIMPLE-VECTOR SIMPLE-VECTOR-P SINGLE-FLOAT SIGNED-BYTE
-	    SPECIAL-OPERATOR-P STANDARD-CHAR STRING STRINGP SUBTYPEP SYMBOL
-	    SYMBOL-FUNCTION SYMBOL-MACROLET SYMBOL-NAME SYMBOL-PACKAGE
-	    SYMBOL-PLIST SYMBOL-VALUE SYMBOLP T TAGBODY THE THROW TYPE-OF TYPEP
-	    UNREAD-CHAR UNSIGNED-BYTE UNUSE-PACKAGE UNWIND-PROTECT
-	    UPGRADED-ARRAY-ELEMENT-TYPE UPGRADED-COMPLEX-PART-TYPE UPPER-CASE-P
-	    USE-PACKAGE UNINTERN VALUES VECTORP WITH-INPUT-FROM-STRING
-	    WITH-OPEN-FILE WITH-OPEN-STREAM WRITE-CHAR WRITE-LINE WRITE-STRING
-	    ZEROP))
-    (setf (gethash (SYMBOL-NAME sym) cl-table) sym)
-    (setf (SYMBOL-PACKAGE sym) *common-lisp-package*))
+(defun populate-packages ()
+  (let ((cl-table (make-hash-table :test 'equal)))
+    (aset *common-lisp-package* 3 nil)		;shadowing symbols
+    (aset *common-lisp-package* 6 cl-table)	;hash table
+    (aset *common-lisp-package* 7 nil)		;exported symbols
 
-  (dolist (name '("=" "/=" "<" ">" "<=" ">=" "*" "+" "-" "/" "1+" "1-"))
-    (let ((to (make-symbol name))
-	  (from (intern (concat "cl:" name))))
-      (setf (gethash name cl-table) to)
-      (setf (SYMBOL-PACKAGE to) *common-lisp-package*)
-      (if (boundp from)
-	  (set to (symbol-value from)))
-      (fset to (symbol-function from))))
+    (dolist (sym '(&ALLOW-OTHER-KEYS &AUX &BODY &ENVIRONMENT &KEY
+&OPTIONAL &REST &WHOLE ** *** *FEATURES* *GENSYM-COUNTER*
+*MACROEXPAND-HOOK* *READ-BASE* *READTABLE* *PACKAGE* ABS ADJUST-ARRAY
+ADJUSTABLE-ARRAY-P ALPHA-CHAR-P ALPHANUMERICP AND AREF ARRAY
+ARRAY-DIMENSION ARRAY-DIMENSIONS ARRAY-ELEMENT-TYPE
+ARRAY-HAS-FILL-POINTER-P ARRAYP ASH ATAN ATOM BASE-CHAR BASE-STRING
+BIGNUM BIT BIT-VECTOR BIT-VECTOR-P BLOCK BOOLEAN BOUNDP BYTE
+BYTE-POSITION BYTE-SIZE CAR CAAAAR CAAADR CAAAR CAADAR CAADDR CAADR
+CAAR CADAAR CADADR CADAR CADDAR CADDDR CADDR CADR CATCH CHAR CDAAAR
+CDAADR CDAAR CDADAR CDADDR CDADR CDAR CDDAAR CDDADR CDDAR CDDDAR
+CDDDDR CDDDR CDDR CDR CHAR-CODE CHAR-CODE-LIMIT CHAR-DOWNCASE
+CHAR-NAME CHAR-UPCASE CHAR= CHARACTER CHARACTERP CHECK-TYPE CLOSE
+CODE-CHAR COMPILED-FUNCTION COMPILED-FUNCTION-P
+COMPILER-MACRO-FUNCTION COMPLEX COMPLEXP CONCATENATE CONJUGATE CONS
+CONSP COPY-LIST COPY-READTABLE COPY-SEQ COPY-STRUCTURE COPY-SYMBOL
+COPY-TREE DEFCONSTANT DEFINE-COMPILER-MACRO DEFINE-SETF-EXPANDER
+DEFINE-SYMBOL-MACRO DEFMACRO DEFPACKAGE DEFSETF DEFSTRUCT DEFUN
+DELETE-PACKAGE DENOMINATOR DEPOSIT-FIELD DIGIT-CHAR-P DO-SYMBOLS
+DOUBLE-FLOAT DPB ELT EQ EQL EQUAL EVAL-WHEN EXTENDED-CHAR EXPORT
+FDEFINITION FILE-POSITION FIND-ALL-SYMBOLS FIND-PACKAGE FIND-SYMBOL
+FIXNUM FLET FLOAT FUNCTION FUNCTIONP GENSYM GENTEMP GET
+GET-DISPATCH-MACRO-CHARACTER GET-MACRO-CHARACTER GET-SETF-EXPANSION
+GET-OUTPUT-STREAM-STRING GO HASH-TABLE IF IMAGPART IMPORT IN-PACKAGE
+INTEGER INTEGER-LENGTH INTEGERP INTERN KEYWORD KEYWORDP LABELS LDB
+LDB-TEST LENGTH LET LET* LISP-IMPLEMENTATION-TYPE
+LISP-IMPLEMENTATION-VERSION LIST LIST* LIST-ALL-PACKAGES
+LOAD-TIME-VALUE LOCALLY LOGAND LOGANDC1 LOGANDC2 LOGBITP LOGCOUNT
+LOGEQV LOGIOR LOGNAND LOGNOR LOGNOT LOGORC1 LOGORC2 LOGTEST LOGXOR
+LONG-FLOAT LOWER-CASE-P MACRO-FUNCTION MACROEXPAND MACROEXPAND-1
+MACROLET MAKE-ARRAY MAKE-LIST MAKE-PACKAGE MAKE-SYMBOL MAKE-STRING
+MAKE-STRING-INPUT-STREAM MAKE-STRING-OUTPUT-STREAM MAKUNBOUND MAPCAN
+MAPCAR MASK-FIELD MAX MEMBER MIN MINUSP MOD MOST-NEGATIVE-FIXNUM
+MOST-POSITIVE-FIXNUM MULTIPLE-VALUE-CALL MULTIPLE-VALUE-PROG1
+NAME-CHAR
+;; NIL
+NOT NULL NUMBER NUMBERP NUMERATOR OPEN OR PACKAGE PACKAGE-NAME
+PACKAGE-NICKNAMES PACKAGE-SHADOWING-SYMBOLS PACKAGE-USE-LIST
+PACKAGE-USED-BY-LIST PACKAGEP PARSE-INTEGER PEEK-CHAR PHASE PRINT
+PROGN PROGV QUOTE RANDOM RATIO RATIONAL RATIONALP READ-CHAR
+READ-DELIMITED-LIST READ-FROM-STRING READ-LINE
+READ-PRESERVING-WHITESPACE READTABLE READTABLE-CASE READTABLEP REAL
+REALP REALPART REMPROP RETURN-FROM RPLACA RPLACD SCHAR SET
+SET-DISPATCH-MACRO-CHARACTER SET-MACRO-CHARACTER SET-SYNTAX-FROM-CHAR
+SETF SETQ SHORT-FLOAT SIMPLE-BIT-VECTOR SIMPLE-BIT-VECTOR-P
+SIMPLE-STRING SIMPLE-STRING-P SIMPLE-VECTOR SIMPLE-VECTOR-P
+SINGLE-FLOAT SIGNED-BYTE SPECIAL-OPERATOR-P STANDARD-CHAR STRING=
+STRING STRINGP SUBTYPEP SYMBOL SYMBOL-FUNCTION SYMBOL-MACROLET
+SYMBOL-NAME SYMBOL-PACKAGE SYMBOL-PLIST SYMBOL-VALUE SYMBOLP T TAGBODY
+THE THROW TYPE-OF TYPEP UNREAD-CHAR UNSIGNED-BYTE UNUSE-PACKAGE
+UNWIND-PROTECT UPGRADED-ARRAY-ELEMENT-TYPE UPGRADED-COMPLEX-PART-TYPE
+UPPER-CASE-P USE-PACKAGE UNINTERN VALUES VECTORP
+WITH-INPUT-FROM-STRING WITH-OPEN-FILE WITH-OPEN-STREAM WRITE-CHAR
+WRITE-LINE WRITE-STRING ZEROP))
+      (setf (gethash (SYMBOL-NAME sym) cl-table) sym)
+      (setf (SYMBOL-PACKAGE sym) *common-lisp-package*)
+      (push sym (aref *common-lisp-package* 7)))
 
-  (dolist (sym '(** *** ++ +++ // ///))
-    (setf (gethash (symbol-name sym) cl-table) sym)
-    (setf (SYMBOL-PACKAGE sym) *common-lisp-package*)
-    (set sym nil)))
+    ;; NIL is a special case, because its Emacs Lisp symbol-name isn't
+    ;; equal to its Common Lisp SYMBOL-NAME.
+    (setf (gethash "NIL" (package-table *common-lisp-package*)) nil)
+    (setf (SYMBOL-PACKAGE nil) *common-lisp-package*)
+    (push nil (aref *common-lisp-package* 7))
 
-; (let* ((el-table (package-table *emacs-lisp-package*)))
-;   (mapatoms
-;    (lambda (sym)
-;      (unless (SYMBOL-PACKAGE sym)
-;        (setf (gethash (symbol-name sym) el-table) sym)
-;        (setf (SYMBOL-PACKAGE sym) *emacs-lisp-package*)))))
+    ;; Internal CL symbols.
+    (dolist (sym '(BACKQUOTE COMMA COMMA-AT COMMA-DOT))
+      (setf (gethash (SYMBOL-NAME sym) cl-table) sym)
+      (setf (SYMBOL-PACKAGE sym) *common-lisp-package*))
+
+    ;; Symbols prefixed with "cl:" in Emacs Lisp.
+    (dolist (name '("=" "/=" "<" ">" "<=" ">=" "*" "+" "-" "/" "1+" "1-"))
+      (let ((to (make-symbol name))
+	    (from (intern (concat "cl:" name))))
+	(setf (gethash name cl-table) to)
+	(setf (SYMBOL-PACKAGE to) *common-lisp-package*)
+	(if (boundp from)
+	    (set to (symbol-value from)))
+	(fset to (symbol-function from))
+	(push to (aref *common-lisp-package* 7))))
+
+    (dolist (sym '(** *** ++ +++ // ///))
+      (setf (gethash (symbol-name sym) cl-table) sym)
+      (setf (SYMBOL-PACKAGE sym) *common-lisp-package*)
+      (set sym nil)
+      (push sym (aref *common-lisp-package* 7)))
+
+    (setq *global-environment*
+	  (vector 'environment nil nil nil nil nil))))
