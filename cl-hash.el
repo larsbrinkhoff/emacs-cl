@@ -47,7 +47,10 @@
   0)
 
 (defun* GETHASH (key hash &optional default)
-  (gethash key (htab hash) default))
+  (let ((object (gethash key (htab hash) not-found)))
+    (if (eq object not-found)
+	(VALUES default nil)
+	(VALUES object T))))
 
 (unless (fboundp 'puthash)
   (defun puthash (key value table)
