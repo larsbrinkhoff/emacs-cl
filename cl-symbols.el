@@ -8,8 +8,7 @@
 
 (defun KEYWORDP (sym)
   (and (SYMBOLP sym)
-       (SYMBOL-PACKAGE sym)
-       (equal (PACKAGE-NAME (SYMBOL-PACKAGE sym)) "KEYWORD")))
+       (eq (SYMBOL-PACKAGE sym) *keyword-package*)))
 
 (fset 'MAKE-SYMBOL (symbol-function 'make-symbol))
 
@@ -30,16 +29,16 @@
 	((STRINGP x)	(values x (1- (incf *GENSYM-COUNTER*))))
 	((INTEGERP x)	(values "G" x))
 	(t		(error "type error")))
-    (MAKE-SYMBOL (FORMAT nil "~S~D" prefix suffix))))
+    (MAKE-SYMBOL (FORMAT nil "~A~D" prefix suffix))))
 
 (defvar *GENSYM-COUNTER* 1)
 
 (defvar *gentemp-counter* 1)
 
-(defun* GENTEMP (&optional (prefix "T") (package-designator *PACKAGE*))
+(defun* GENTEMP (&optional (prefix "T") (package *PACKAGE*))
   (loop
    (multiple-value-bind (symbol found)
-       (INTERN (FORMAT nil "~S~D" prefix *gentemp-counter*) package)
+       (INTERN (FORMAT nil "~A~D" prefix *gentemp-counter*) package)
      (unless found
        (return-from GENTEMP symbol))
      (incf *gentemp-counter*))))

@@ -534,7 +534,7 @@
 
 (defun COMPLEX (realpart &optional imagpart)
   (CHECK-TYPE realpart 'REAL)
-  (if (or (null imagpart) (zerop imagpart))
+  (if (or (null imagpart) (ZEROP imagpart))
       realpart
       (progn
 	(CHECK-TYPE realpart 'REAL)
@@ -664,7 +664,7 @@
 	    (return-from PARSE-INTEGER (values nil i))
 	    (error))))
     (setq char (CHAR string i))
-    (when (find char "+-")
+    (when (find (CHAR-CODE char) "+-")
       (when (CHAR= char (CODE-CHAR 45))
 	(setq sign -1))
       (incf i)

@@ -4,16 +4,16 @@
 ;;;
 ;;; This file implements operators in chapter 25, Environment.
 
-(defvar * nil)
+(defvar cl:* nil)
 (defvar ** nil)
 (defvar ***)
-(defvar + nil)
+(defvar cl:+ nil)
 (defvar ++ nil)
 (defvar +++)
-(defvar / nil)
+(defvar cl:/ nil)
 (defvar // nil)
 (defvar ///)
-(defvar - nil)
+(defvar cl:- nil)
 
 (defun top-level-loop ()
   (loop

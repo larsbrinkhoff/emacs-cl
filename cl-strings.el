@@ -43,6 +43,8 @@
 
 ;;; TODO: string-trim, string-left-trim, string-right-trim
 
+(fset 'STRING= (symbol-function 'string=))
+
 ;;; TODO: string=, string/=, string<, string>, string<=, string>=,
 ;;; string-equal, string-not-equal, string-lessp, string-greaterp,
 ;;; string-not-greaterp, string-not-lessp

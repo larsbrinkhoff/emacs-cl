@@ -23,6 +23,12 @@
   (load "cl-subtypep")
 
   (load "cl-reader")
-  (load "cl-printer"))
+  (load "cl-printer")
+  (load "cl-evaluation")
+  (load "cl-environment")
+
+  (load "interaction"))
 
 (IN-PACKAGE "CL-USER")
+
+;(maphash (lambda (k v) (unintern k)) (package-table *common-lisp-package*))

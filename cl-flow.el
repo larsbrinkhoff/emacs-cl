@@ -11,6 +11,11 @@
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (SETF (FDEFINITION ,name) (function* (lambda ,lambda-list ,@body)))))
 
+; (DEFMACRO DEFUN (name lambda-list &body body)
+;   `(EVAL-WHEN (:COMPILE-TOPLEVEL :LOAD-TOPLEVEL :EXECUTE)
+;      (SETF (FDEFINITION ,name) (FUNCTION (LAMBDA ,lambda-list ,@body)))
+;      ',name))
+
 (defun FDEFINITION (name)
   (cond
     ((symbop name)

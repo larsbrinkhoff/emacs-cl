@@ -30,13 +30,30 @@
 
 (unless emacs-cl-mode-map
   (setq emacs-cl-mode-map (make-keymap))
-  (substitute-key-definition 'newline 'emacs-cl-enter-input
+  (substitute-key-definition 'newline 'emacs-cl-newline
 			     emacs-cl-mode-map global-map))
 
-(defun emacs-cl-enter-input ()
+(defun emacs-cl-newline ()
   (interactive)
-  (insert "\n")
-  (PRINT (EVAL (READ-FROM-STRING (buffer-substring emacs-cl-prompt-position
-						   (point)))))
-  (insert "\nEmacs CL> ")
-  (setq emacs-cl-prompt-position (point)))
+  (when (>= (point) emacs-cl-prompt-position)
+    (goto-char (point-max))
+    (when (> (point) emacs-cl-prompt-position)
+      (insert "\n")
+      (setq +++ ++
+	    ++ cl:+
+	    cl:+ cl:-
+	    cl:- (READ-FROM-STRING
+		  (buffer-substring emacs-cl-prompt-position (point))))
+      (setq /// // // cl:/)
+      (if debug-on-error
+	  (setq cl:/ (list (EVAL cl:-)))
+	  (condition-case condition
+	      (setq cl:/ (list (EVAL cl:-)))
+	    (error (insert (format "Error: %s" condition)))))
+      (setq *** ** ** cl:* cl:* (first cl:/))
+      (PRINT cl:*)
+      (dolist (x (rest cl:/))
+	(princ "\n")
+	(PRINT x)))
+    (insert "\nEmacs CL> ")
+    (setq emacs-cl-prompt-position (point))))

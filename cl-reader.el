@@ -142,6 +142,7 @@
   (do ((list nil)
        (char #1=(PEEK-CHAR T stream) #1#))
       ((EQL char (CODE-CHAR 41))
+       (READ-CHAR stream)
        (values (nreverse list)))
     (push (READ stream T nil T) list)))
 
@@ -178,8 +179,8 @@
       ((not (constituentp char))
        (UNREAD-CHAR char stream)
        (values (if (= (length string) 1)
-		   (aref string 0)
-		   (name-char string))))
+		   (CODE-CHAR (aref string 0))
+		   (NAME-CHAR string))))
     (setq string (concat string (list (CHAR-CODE char))))))
 
 (defun sharp-quote-reader (stream char n)
@@ -370,12 +371,15 @@
   (when (null token)
     (error "token terminated by colon"))
   (multiple-value-bind (sym status) (FIND-SYMBOL token package)
-    (case status
-      (:external
+    (cond
+      ((or (eq status *:external*)
+	   (eq status *:inherited*))
        (return-from READ sym))
-      ((:internal :inherited)
-       (error))
-      ((nil)
+      ((eq status *:internal*)
+       (if (< colons 2)
+	   (error "internal symbol")
+	   sym))
+      ((null status)
        (return-from READ (nth-value 0 (INTERN token package)))))))
 
 (defvar *READ-BASE* 10)
@@ -386,7 +390,8 @@
 	    (or (DIGIT-CHAR-P (CODE-CHAR char) *READ-BASE*)
 		(find char "+-/.^_DEFLSdefls")))
 	  string)
-   (or (some (lambda (char) (DIGIT-CHAR-P (CODE-CHAR char)))
+   (or (some ;;(lambda (char) (DIGIT-CHAR-P (CODE-CHAR char)))
+	     (compose DIGIT-CHAR-P CODE-CHAR)
 	     string)
        (and (some (lambda (char)
 		    (DIGIT-CHAR-P (CODE-CHAR char) *READ-BASE*))

@@ -131,7 +131,7 @@
 			 (list (first slot) unbound t nil))
 			(t
 			 (list (first slot) (second slot)
-			       (getf (cddr slot) :type t)
+			       (getf (cddr slot) :type T)
 			       (getf (cddr slot) :read-only)))))
 		    slots))
       (when include

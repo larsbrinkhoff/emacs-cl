@@ -26,7 +26,7 @@
 	(return-from PEEK-CHAR eof-value))
        ((or (eq peek-type nil)
 	    (and (eq peek-type T) (not (whitespacep char)))
-	    (CHAR= char peek-type))
+	    (and (not (eq peek-type T)) (CHAR= char peek-type)))
 	(UNREAD-CHAR char stream)
 	(return-from PEEK-CHAR char))))))
 
@@ -59,7 +59,7 @@
 
 (defun WRITE-CHAR (char &optional stream-designator)
   (let ((stream (resolve-output-stream-designator stream-designator)))
-    (funcall (STREAM-write-fn stream) char stream)
+    (funcall (STREAM-write-fn stream) (CHAR-CODE char) stream)
     char))
 
 (defun* READ-LINE (&optional stream-designator (eof-error-p T)
@@ -198,7 +198,7 @@
 	         (lambda (char stream)
 		   (setf (STREAM-content stream)
 			 (concat (STREAM-content stream)
-				 (list (CHAR-CODE char)))))))
+				 (list char))))))
 
 (defun make-buffer-output-stream (buffer)
   (MAKE-STREAM :content buffer
@@ -206,7 +206,7 @@
 	       :read-fn (lambda (s) (error "read from output stream"))
 	       :write-fn
 	         (lambda (char stream)
-		   (insert (string char)))))
+		   (insert char))))
 
 (defmacro* WITH-INPUT-FROM-STRING ((var string &key index (start 0) end)
 				   &body body)

@@ -19,7 +19,7 @@
 	 ;; This is supposed to be an exhaustive enumeration of all
 	 ;; possible return values for Emacs Lisp type-of.
 	 (bool-vector	`(SIMPLE-BIT-VECTOR ,(length object)))
-	 (compiled-function
+	 ((compiled-function subr)
 			'COMPILED-FUNCTION)
 	 (cons		'CONS)
 	 (float		'SINGLE-FLOAT)
