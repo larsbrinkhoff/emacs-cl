@@ -97,7 +97,7 @@
 	  (dolist (,var ,seq ,result) ,@body)
 	  (dovector (,var ,seq ,result) ,@body)))))
 
-(defun cl:concatenate (type &rest sequences)
+(defun CONCATENATE (type &rest sequences)
   (unless (eq type 'vector)
     (error "TODO"))
   (let ((vector (make-vector (1+ (reduce #'+ (mapcar #'LENGTH sequences)))

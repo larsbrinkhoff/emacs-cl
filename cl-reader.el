@@ -185,8 +185,7 @@
   (values (list 'FUNCTION (cl:read stream t nil t))))
 
 (defun sharp-left-paren-reader (stream char n)
-  (values (cl:concatenate 'vector
-			  (read-delimited-list (code-char 41) stream))))
+  (values (CONCATENATE 'vector (read-delimited-list (code-char 41) stream))))
 
 (defun sharp-asterisk-reader (stream char n) nil)
 
