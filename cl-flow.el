@@ -359,11 +359,12 @@
 ;;; Special Operator: IF
 
 (cl:defmacro OR (&rest forms)
-  (if (null forms)
-      nil
-      (with-gensyms (x)
-	`(LET ((,x ,(first forms)))
-	   (IF ,x ,x (OR ,@(rest forms)))))))
+  (cond
+    ((null forms)		nil)
+    ((null (rest forms))	(first forms))
+    (t				(with-gensyms (x)
+				  `(LET ((,x ,(first forms)))
+				    (IF ,x ,x (OR ,@(rest forms))))))))
 
 (cl:defmacro WHEN (condition &body body)
   `(IF ,condition (PROGN ,@body)))
