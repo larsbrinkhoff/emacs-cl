@@ -402,10 +402,10 @@
     (setq string (concat string (list (CHAR-CODE char))))))
 
 (defun sharp-dot-reader (stream char n)
-  (unless *READ-SUPPRESS*
+  (unless-read-suppress-let (object (READ stream T nil T))
     (if *READ-EVAL*
-	(VALUES (eval (READ stream T nil T)))
-	(error "reader error: #. disabled"))))
+	(VALUES (eval object))
+	(ERROR 'READER-ERROR))))
 
 (defun sharp-b-reader (stream char n) nil)
 (defun sharp-o-reader (stream char n) nil)
