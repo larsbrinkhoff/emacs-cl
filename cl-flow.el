@@ -262,7 +262,7 @@
 	(let ((fn ',(first args))
 	      (var (gensym))
 	      (temps (mapcar (lambda (x) (gensym)) args2)))
-	  (values temps
+	  (VALUES temps
 		  args2
 		  (list var)
 		  `(,fn ,@temps ,var)
@@ -271,7 +271,7 @@
 
 (defmacro* long-form-defsetf (access-fn lambda-list variables &body body)
   `(DEFINE-SETF-EXPANDER ,access-fn ,lambda-list
-    (values ()
+    (VALUES ()
             ()
             ',variables
             ,(cons 'progn body))))
@@ -285,28 +285,44 @@
      (setf (gethash ',access-fn *setf-expanders*)
            (lambda ,lambda-list ,@body))))
 
+(cl:defmacro DEFINE-SETF-EXPANDER (access-fn lambda-list &body body)
+  (setq lambda-list (copy-list lambda-list))
+  (remf lambda-list '&environment)
+  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
+	       ,(keyword "LOAD-TOPLEVEL")
+	       ,(keyword "EXECUTE"))
+     (SETF (GETHASH ',access-fn *setf-expanders*)
+           (LAMBDA ,lambda-list ,@body))))
+
 (defun GET-SETF-EXPANSION (place &optional env)
-  (let ((fn (gethash (first place) *setf-expanders*)))
-    (if fn
-	(apply fn (rest place))
-	(let ((temps (mapcar (lambda (x) (gensym)) (rest place)))
-	      (var (gensym)))
-	  (VALUES temps
-		  (rest place)
-		  (list var)
-		  `(FUNCALL '(SETF ,(first place)) ,var ,@temps)
-		  ())))))
+  (cond
+   ((consp place)
+    (let ((fn (gethash (first place) *setf-expanders*)))
+      (if fn
+	  (apply fn (rest place))
+	  (let ((temps (mapcar (lambda (x) (gensym)) (rest place)))
+		(var (gensym)))
+	    (VALUES temps
+		    (rest place)
+		    (list var)
+		    `(FUNCALL '(SETF ,(first place)) ,var ,@temps)
+		    place)))))
+   ((symbolp place)
+    (let ((var (gensym)))
+      (VALUES nil nil (list var) `(SETQ ,place ,var) place)))
+   (t
+    (error))))
 
 (defmacro* SETF (place value &environment env)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
-      (GET-SETF-EXPANSION place env)
+      (GET-SETF-EXPANSION (MACROEXPAND place) env)
     `(let* ,(MAPCAR #'list temps values)
        (let ((,(first variables) ,value))
 	 ,setter))))
 
-(cl:defmacro SETF (place value &environment env)
+(cl:defmacro SETF (place value)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
-      (GET-SETF-EXPANSION place env)
+      (GET-SETF-EXPANSION (MACROEXPAND place) env)
     `(LET* ,(MAPCAR #'list temps values)
        (LET ((,(first variables) ,value))
 	 ,setter))))
