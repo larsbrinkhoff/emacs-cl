@@ -269,7 +269,7 @@
   (when (or (symbolp fn) (setf-name-p fn))
     (setq fn (FDEFINITION fn)))
   (when (INTERPRETED-FUNCTION-P fn)
-    nil)
+    (setq fn (COMPILE nil fn)))
   (disassemble fn)
   nil)
 
