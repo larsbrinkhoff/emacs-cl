@@ -6,58 +6,138 @@
 
 ;;; TODO: defstruct
 
+(defun strcat (&rest string-designators)
+  (apply #'CONCATENATE 'STRING (mapcar #'STRING string-designators)))
+
+(defun symcat (&rest string-designators)
+  (nth-value 0 (INTERN (apply #'strcat string-designators))))
+
 (defmacro* DEFSTRUCT (name &rest slots)
-  (let ((options nil))
-    (when (consp name)
-      (setq options (rest name))
-      (setq name (first name)))
-    (let ((conc-name (CONCATENATE 'STRING (STRING name) "-"))
-	  (constructors nil)
-	  (copier nil)
-	  (include nil)
-	  (initial-offset nil)
-	  (named nil)
-	  (predicate (INTERN (CONCATENATE 'STRING (STRING name) "-P")))
-	  (print-object nil)
-	  (print-function nil)
-	  (type nil))
+  (multiple-value-bind (name options) (if (consp name)
+					  (values (first name) (rest name))
+					  (values name nil))
+    (let ((conc-name		(strcat name "-"))
+	  (constructors		nil)
+	  (no-constructor	nil)
+	  (copier		(symcat "COPY-" name))
+	  (include		nil)
+	  (initial-offset	nil)
+	  (named		nil)
+	  (predicate		(symcat name "-P"))
+	  (print-object		nil)
+	  (print-function	nil)
+	  (type			nil)
+	  (struct-size		nil))
+
+      ;; Process structure options.
       (dolist (option options)
-	(multiple-value-bind (opt-name opt-args)
-	    (if (atom option)
-		(values option nil)
-		(values (first option) (rest option)))
-	  (ecase opt-name
-	    (:conc-name		(setq conc-name (first opt-args)))
-	    (:constructor	(push opt-args constructors))
-	    (:copier		(setq copier (first opt-args)))
-	    (:include		(setq include (rest opt-args))
-	    (:initial-offset	(setq initial-offset (first opt-args))
+	(multiple-value-bind (name args) (if (atom option)
+					     (values option nil)
+					     (values (first option)
+						     (rest option)))
+	  (ecase name
+	    (:conc-name		(setq conc-name (or (first args) "")))
+	    (:constructor	(ecase (length args)
+				  (0)
+				  (1	(if (null (first args))
+					    (setq no-constructor t)
+					    (push (first args)
+						  constructors)))
+				  (2	(push args constructors))))
+	    (:copier		(setq copier (first args)))
+	    (:include		(setq include (rest args)))
+	    (:initial-offset	(setq initial-offset (first args)))
 	    (:named		(setq named t))
-	    (:predicate		(setq predicate (first opt-args)))
-	    (:print-object)
-	    (:print-function)
-	    (:type))))))
-      (when (null constructors)
-	(setq constructors
-	      (INTERN (CONCATENATE 'STRING "MAKE-" (STRING name)))))
+	    (:predicate		(setq predicate (first args)))
+	    (:print-object	(setq print-object (first args)))
+	    (:print-function	(setq print-function (first args)))
+	    (:type		(setq type (first args))))))
+
+      ;; Some option post-processing.
+      (when (and (null constructors) (not no-constructor))
+	(setq constructors (list (symcat "MAKE-" name))))
+      (when (and initial-offset (not type))
+	(error ":initial-offset used without :type"))
+      (unless initial-offset
+	(setq initial-offset 0))
+      (setq struct-size (+ initial-offset (length slots)))
+      (unless (and type (not named))
+	(incf struct-size))
+
+      ;; Macro expansion.
       `(eval-when (:compile-toplevel :load-toplevel :execute)
-	(defun ,(first constructors) ()
-	  (let ((object (make-vector ,(1+ (length slots)) nil)))
-	    (aset object 0 ',name)
-	    object))
+
+	;; Constructors.
+	,@(mapcar
+	   (lambda (constructor)
+	     `(defun* ,@(if (consp constructor)
+			    `(,(first constructor) ,(second constructor))
+			    `(,constructor (&key ,@slots)))
+	       ,(ecase type
+		  ((nil)
+		   `(let ((object (make-vector ,struct-size ',name)))
+		     ,@(let ((index initial-offset))
+		         (mapcar (lambda (slot)
+				   `(aset object ,(incf index) ,slot))
+				 slots))
+		      object))
+		  (vector
+		   `(let ((object (MAKE-ARRAY ,struct-size)))
+		     ,@(let ((index (1- initial-offset)))
+		         `(,@(when named
+			       `((setf (AREF object ,(incf index) ',name))))
+			   ,@(mapcar (lambda (slot)
+				       `(setf (AREF object ,(incf index))
+					      ,slot))
+				     slots)))))
+		  (list
+		   `(list ,@(make-list initial-offset nil)
+		          ,@(when named (list (list 'quote name)))
+		          ,@slots)))))
+	   constructors)
+
+	;; Copier.
+	,@(when copier
+	   `((defun ,copier (object)
+	       (copy-sequence object))))
+
+	;; Predicate.
+	,@(when predicate
+	   `((defun ,predicate (object)
+	       (and (vectorp object) (eq (aref object 0) ',name)))))
+
+	;; TYPEP.
 	(define-typep (object ,name env)
-	  (or (and (vectorp object) (eq (aref object 0) ',name))
-	      ,@(when include `((TYPEP object ',include)))))
-	,@(let ((index 0))
+	  (and (vectorp object) (eq (aref object 0) ',name)))
+
+	;; Accessors.
+	,@(let ((index initial-offset))
+	    (when (or named (not type))
+	      (incf index))
 	    (mapcan (lambda (slot)
-		      (let ((name (nth-value 0 (INTERN (CONCATENATE
-							'STRING conc-name
-							(STRING slot))))))
-			`((defun ,name (struct)
-			    (aref struct ,(incf index)))
-			  (defsetf ,name (struct) (new)
-			    (list 'aset struct ,index new)))))
+		      (let ((name (symcat conc-name slot)))
+			(prog1
+			  (ecase type
+			    ((nil)
+			     `((defun ,name (object)
+				 (aref object ,index))
+			       (defsetf ,name (object) (new)
+				 (list 'aset object ,index new))))
+			    (vector
+			     `((defun ,name (object)
+				 (AREF object ,index))
+			       (defsetf ,name (object) (new)
+				 (list 'setf (list 'AREF object ,index)
+				       new))))
+			    (list
+			     `((defun ,name (object)
+				 (nth ,index object))
+			       (defsetf ,name (object) (new)
+				 (list 'setf (list 'nth ,index object)
+				       new)))))
+			(incf index))))
 		    slots))
 	',name))))
 
-;;; TODO: copy-structure
+(defun COPY-STRUCTURE (object)
+  (copy-sequence object))
