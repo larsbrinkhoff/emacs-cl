@@ -13,9 +13,11 @@
   (switch-to-buffer (generate-new-buffer "*Emacs CL*"))
   (emacs-cl-mode)
   (setq *STANDARD-OUTPUT* (make-buffer-output-stream (current-buffer))
-	*ERROR-OUTPUT* *STANDARD-OUTPUT*)
+	*ERROR-OUTPUT* *STANDARD-OUTPUT*
+	*TRACE-OUTPUT* *STANDARD-OUTPUT*)
   (setq *STANDARD-INPUT* (make-read-char-exclusive-input-stream))
-  (setq *TERMINAL-IO* (MAKE-TWO-WAY-STREAM *STANDARD-INPUT* *STANDARD-OUTPUT*))
+  (setq *TERMINAL-IO* (MAKE-TWO-WAY-STREAM *STANDARD-INPUT* *STANDARD-OUTPUT*)
+	*QUERY-IO* *TERMINAL-IO*)
   (insert "Emacs CL> ")
   (setq emacs-cl-prompt-marker (point-marker)))
 
