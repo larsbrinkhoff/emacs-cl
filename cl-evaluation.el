@@ -113,18 +113,24 @@
 
 (defvar *MACROEXPAND-HOOK* 'FUNCALL)
 
-(defvar *declarations* '(IGNORE IGNORABLE DYNAMIC-EXTENT TYPE INLINE
-			 NOTINLINE FTYPE DECLARATION OPTIMIZE SPECIAL))
+(defvar *declarations*
+  '(IGNORE IGNORABLE DYNAMIC-EXTENT TYPE INLINE
+    NOTINLINE FTYPE DECLARATION OPTIMIZE SPECIAL
+    ;; Emacs Common Lisp extensions:
+    INTERACTIVE)
+  "A list of valid declaration identifiers.")
 
 (defun PROCLAIM (declaration)
   (unless (and (consp declaration)
 	       (memq (car declaration) *declarations*))
     (type-error declaration `(CONS (MEMBER ,@*declarations*) LIST)))
-  (case (car declaration)
+  (case (first declaration)
     (SPECIAL)
+    (INLINE)
+    (NOTINLINE)
     (DECLARATION
-     (dolist (d (rest declaration))
-       (pushnew d *declarations*))))
+     (dolist (name (rest declaration))
+       (pushnew name *declarations*))))
   nil)
 
 (cl:defmacro DECLAIM (&rest declarations)

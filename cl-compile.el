@@ -522,12 +522,8 @@
 	   (new-env (env-with-vars env vars decls))
 	   (compiled-body (compile-body body new-env)))
       (dolist (decl decls)
-	(cond
-	  ((eq (second decl) 'INTERACTIVE)
-	   (push '(interactive) compiled-body))
-	  ((and (consp (second decl))
-		(eq (first (second decl)) 'INTERACTIVE))
-	   (push `(interactive ,(second (second decl))) compiled-body))))
+	(when (eq (first decl) 'INTERACTIVE)
+	  (push `(interactive ,@(rest decl)) compiled-body)))
       (when doc
 	(push doc compiled-body))
       (cond

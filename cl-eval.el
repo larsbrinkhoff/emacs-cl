@@ -408,21 +408,21 @@
 
 
 (defun* parse-body (body &optional doc-allowed)
-  (let ((decl nil)
-	(doc nil))
+  (do ((decl nil)
+       (doc nil)
+       (body body (rest body)))
+      ((null body))
     (flet ((done () (return-from parse-body (cl:values body decl doc))))
-      (while body
-	(let ((form (first body)))
-	  (cond
-	    ((STRINGP form)
-	     (if (and doc-allowed (not doc))
-		 (setq doc form)
-		 (done)))
-	    ((and (consp form) (eq (first form) 'DECLARE))
-	     (push form decl))
-	    (t
-	     (done))))
-	(setq body (rest body))))))
+      (let ((form (first body)))
+	(cond
+	  ((STRINGP form)
+	   (if (and doc-allowed (not doc))
+	       (setq doc form)
+	       (done)))
+	  ((and (consp form) (eq (first form) 'DECLARE))
+	   (push (rest form) decl))
+	  (t
+	   (done)))))))
 
 (defun set-local-macro (name fn env)
   (augment-environment env :macro (list name))
@@ -436,16 +436,16 @@
 				 (list var)))
 			     (cadar form))))
 	(lastval nil)
-	(args (rest form))
-	(body (cddar form)))
-    (dolist (var (cadar form))
-      (unless (member var LAMBDA-LIST-KEYWORDS)
-	(setf (lexical-value var new-env)
-	      (if eval-args
-		  (eval-with-env (pop args) env)
-		  (pop args)))))
-    (dolist (form body lastval)
-      (setq lastval (eval-with-env form new-env)))))
+	(args (rest form)))
+    (MULTIPLE-VALUE-BIND (body decls doc) (parse-body (cddar form) t)
+      (dolist (var (cadar form))
+	(unless (member var LAMBDA-LIST-KEYWORDS)
+	  (setf (lexical-value var new-env)
+		(if eval-args
+		    (eval-with-env (pop args) env)
+		    (pop args)))))
+      (dolist (form body lastval)
+	(setq lastval (eval-with-env form new-env))))))
 
 (defun eval-with-env (form env)
   (unless env
