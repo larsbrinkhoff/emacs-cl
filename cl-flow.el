@@ -178,16 +178,30 @@
     (setf (lexical-value 'fn env) fn)
     (enclose '(LAMBDA (x) (NOT (FUNCALL fn x))) env)))
 
-(defmacro AND (&rest forms)
-  `(and ,@forms))
+(cl:defmacro AND (&rest forms)
+  (if (null forms)
+      T
+      `(IF ,(first forms) (AND ,@(rest forms)))))
 
-;;; TODO: cond
+(cl:defmacro COND (&rest clauses)
+  (if (null clauses)
+      nil
+      (let ((clause (first clauses)))
+	(case (length clause)
+	  (0	`(COND ,@(rest clauses)))
+	  (1	`(OR ,(first clause) (COND ,@(rest clauses))))
+	  (t	`(IF ,(first clause) (PROGN ,@(rest clause))
+				     (COND ,@(rest clauses))))))))
 
 (defmacro IF (condition then &optional else)
   `(if ,condition ,then ,else))
 
-(defmacro OR (&rest forms)
-  `(or ,@forms))
+(cl:defmacro OR (&rest forms)
+  (if (null forms)
+      nil
+      (with-gensyms (x)
+	`(LET ((,x ,(first forms)))
+	   (IF ,x ,x (OR ,@(rest forms)))))))
 
 (defmacro* WHEN (condition &body body)
   `(if ,condition (progn ,@body)))
