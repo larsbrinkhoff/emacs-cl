@@ -51,7 +51,7 @@
 	 (ch (funcall (STREAM-read-fn stream) stream)))
     (if (eq ch :eof)
 	(if eof-error-p
-	    (error "end of file")
+	    (ERROR 'END-OF-FILE (kw STREAM) stream)
 	    eof-value)
 	(CODE-CHAR ch))))
 
@@ -263,7 +263,8 @@
 	 ,@body
 	 (GET-OUTPUT-STREAM-STRING ,var))))
 
-;;; STREAM-ERROR-STREAM defined by defstruct.
+;;; STREAM-ERROR, STREAM-ERROR-STREAM, and END-OF-FILE defined by
+;;; cl-conditions.el.
 
 
 (defun make-buffer-output-stream (buffer)

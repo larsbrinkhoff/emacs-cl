@@ -30,7 +30,10 @@
 	  hash))
   to)
 
-;;; TODO: MAKE-DISPATCH-MACRO-CHARACTER
+(cl:defun MAKE-DISPATCH-MACRO-CHARACTER (char &optional non-terminating-p
+					      (readtable *READTABLE*))
+  (SET-MACRO-CHARACTER char #'dispatch-reader non-terminating-p readtable)
+  T)
 
 (defun* READ (&optional stream (eof-error-p T) eof-value recursive-p)
   (let (char
@@ -224,14 +227,12 @@
     (setf (aref (READTABLE-SYNTAX-TYPE readtable) 32) :whitespace)
     (setf (aref (READTABLE-SYNTAX-TYPE readtable) 92) :single-escape)
     (setf (aref (READTABLE-SYNTAX-TYPE readtable) 124) :multiple-escape)
-    (SET-SYNTAX-FROM-CHAR (CODE-CHAR 9) (CODE-CHAR 32) readtable readtable)
-    (SET-SYNTAX-FROM-CHAR (CODE-CHAR 10) (CODE-CHAR 32) readtable readtable)
-    (SET-SYNTAX-FROM-CHAR (CODE-CHAR 12) (CODE-CHAR 32) readtable readtable)
-    (SET-SYNTAX-FROM-CHAR (CODE-CHAR 13) (CODE-CHAR 32) readtable readtable)
+    (dolist (char (mapcar #'CODE-CHAR '(9 10 12 13)))
+      (SET-SYNTAX-FROM-CHAR char (CODE-CHAR 32) readtable readtable))
 
     (setf (READTABLE-MACRO-TABLE readtable) (make-vector 256 nil))
     (SET-MACRO-CHARACTER (CODE-CHAR 34) #'double-quote-reader nil readtable)
-    (SET-MACRO-CHARACTER (CODE-CHAR 35) #'sharp-reader T readtable)
+    (MAKE-DISPATCH-MACRO-CHARACTER (CODE-CHAR 35) T readtable)
     (SET-MACRO-CHARACTER (CODE-CHAR 39) #'quote-reader nil readtable)
     (SET-MACRO-CHARACTER (CODE-CHAR 40) #'left-paren-reader nil readtable)
     (SET-MACRO-CHARACTER (CODE-CHAR 41) #'right-paren-reader nil readtable)
@@ -298,11 +299,11 @@
     (unless *READ-SUPPRESS*
       (setq string (concat string (list (CHAR-CODE char)))))))
 
-(defun sharp-reader (stream char1)
+(defun dispatch-reader (stream char1)
   (let* ((char2 (READ-CHAR stream T nil T))
 	 (fn (GET-DISPATCH-MACRO-CHARACTER char1 char2)))
     (if (null fn)
-	(error "invalid dispatching macro: %s" (STRING char1))
+	(ERROR 'READER-ERROR)
 	(funcall fn stream char2 nil))))
 
 (defun quote-reader (stream ch)
