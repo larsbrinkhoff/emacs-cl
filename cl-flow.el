@@ -295,6 +295,7 @@
            (LAMBDA ,lambda-list ,@body))))
 
 (defun GET-SETF-EXPANSION (place &optional env)
+  (setq place (MACROEXPAND place))
   (cond
    ((consp place)
     (let ((fn (gethash (first place) *setf-expanders*)))
@@ -315,14 +316,14 @@
 
 (defmacro* SETF (place value &environment env)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
-      (GET-SETF-EXPANSION (MACROEXPAND place) env)
+      (GET-SETF-EXPANSION place env)
     `(let* (,@(MAPCAR #'list temps values)
 	    (,(first variables) ,value))
        ,setter)))
 
 (cl:defmacro SETF (place value)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
-      (GET-SETF-EXPANSION (MACROEXPAND place) env)
+      (GET-SETF-EXPANSION place env)
     `(LET* (,@(MAPCAR #'list temps values)
 	    (,(first variables) ,value))
        ,setter)))
