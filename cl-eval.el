@@ -84,7 +84,7 @@
       (dolist (form body lastval)
 	(setq lastval (eval-with-env form new-env))))))
 
-(defun lexical-binding-variables (bindings)
+(defun lexical-binding-variables (bindings env)
   (mappend (lambda (binding)
 	     (let ((var (if (symbolp binding)
 			    binding
@@ -98,7 +98,7 @@
 ;;; succeeding bindings exist.
 (defun eval-let (bindings forms env old-env)
   (MULTIPLE-VALUE-BIND (body declarations) (parse-body forms)
-    (let* ((vars (lexical-binding-variables bindings))
+    (let* ((vars (lexical-binding-variables bindings env))
 	   (new-env (if vars (augment-environment env :variable vars) env))
 	   (lastval nil)
 	   (oldvals nil))
