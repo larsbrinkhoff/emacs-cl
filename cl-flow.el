@@ -62,7 +62,7 @@
   `(cond
     ((symbolp ,name)
      (fset ,name ,fn))
-    ((setf-name-p name)
+    ((setf-name-p ,name)
      (puthash (second ,name) ,fn *setf-definitions*))
     (t
      (not-function-name-error ,name))))
@@ -641,11 +641,11 @@
 (DEFSETF FDEFINITION (name) (fn)
   `(COND
     ((SYMBOLP ,name)
-     (SETF (SYMBOL-FUNCTION ,name) ,fn))
+     (fset ,name ,fn))
     ((setf-name-p ,name)
      (puthash (SECOND ,name) ,fn *setf-definitions*))
     (T
-     (error "type error"))))
+     (not-function-name-error ,name))))
 
 (DEFINE-SETF-EXPANDER THE (type form)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
