@@ -36,6 +36,9 @@
   "interaction"
   "cl-eval"
 
+  "cl-loop"
+  "cl-format"
+
   "populate"))
 
 (defun load-cl ()
