@@ -158,3 +158,8 @@
 		  (case ,pc
 		    ,@(expand-tagbody-forms body start end))))))
       nil)))
+
+(defun mapcar2 (fn list)
+  (when list
+    (cons (funcall fn (first list) (second list))
+	  (mapcar2 fn (cddr list)))))
