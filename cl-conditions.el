@@ -92,7 +92,8 @@
   (let ((condition (condition datum args 'SIMPLE-CONDITION)))
     (when (TYPEP condition *BREAK-ON-SIGNALS*)
       (INVOKE-DEBUGGER condition))
-    (let ((handler (ASSOC condition *condition-handler-alist* :test #'TYPEP)))
+    (let ((handler (ASSOC condition *condition-handler-alist*
+			  (kw TEST) #'TYPEP)))
       (when handler
 	(FUNCALL (cdr handler) condition)))
     nil))
@@ -200,7 +201,7 @@
   (cond
     ((restartp restart)		restart)
     ((null restart)		(error "TODO"))
-    ((symbolp restart)		(let ((cons (assoc restart *restart-alist*)))
+    ((symbolp restart)		(let ((cons (assq restart *restart-alist*)))
 				  (when cons
 				    (make-restart restart (cdr cons)))))
     (t				(type-error restart '(OR RESTART SYMBOL)))))
