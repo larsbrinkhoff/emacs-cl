@@ -122,6 +122,32 @@
     (pushnew ',name *constants*)
     ',name))
 
+(cl:defmacro DEFCONSTANT (name initial-value &optional documentation)
+  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
+	       ,(keyword "LOAD-TOPLEVEL")
+	       ,(keyword "EXECUTE"))
+     (DEFVAR ,name ,initial-value)
+     (PUSHNEW (QUOTE ,name) *constants*)
+     (QUOTE ,name)))
+
+(cl:defmacro DEFVAR (name &optional (initial-value nil valuep) documentation)
+  (with-gensyms (val)
+    `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
+		 ,(keyword "LOAD-TOPLEVEL")
+		 ,(keyword "EXECUTE"))
+       ,@(when valuep
+	   `((LET ((,val ,initial-value))
+	       (UNLESS (BOUNDP (QUOTE ,name))
+		 (SETQ ,name ,val)))))
+       (QUOTE ,name))))
+
+(cl:defmacro DEFPARAMETER (name initial-value &optional documentation)
+  `(EVAL-WHEN (,(keyword "COMPILE-TOPLEVEL")
+	       ,(keyword "LOAD-TOPLEVEL")
+	       ,(keyword "EXECUTE"))
+     (SETQ ,name ,initial-value)
+     (QUOTE ,name)))
+
 (defun expand-tagbody-forms (body start end)
   (do ((clauses nil)
        (clause (list (list start)))
