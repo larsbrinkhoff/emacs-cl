@@ -12,9 +12,8 @@
   '(complex number null boolean keyword symbol cons list))
 
 (defvar *objects*
-  (list (complex 0 1) 0 nil t (make-symbol "")
-	(make-symbol "" 
-	(cons nil nil)))
+  (list (complex 0 1) 0 nil t (cl:intern "reallyunlikelysymbolname" "KEYWORD")
+	(make-symbol "") (cons nil nil)))
 
 (defvar *type-val* (make-hash-table :test 'equal))
 
