@@ -318,4 +318,26 @@
     (when (and pair (not (FUNCALL predicate (FUNCALL key (cdr pair)))))
       (return-from ASSOC-IF pair))))
 
-;;; TODO: GET-PROPERTIES plist indicator-list => indicator, value, tail
+(defun* GET-PROPERTIES (plist indicators)
+  (do ((plist plist (cddr plist)))
+      ((null plist)
+       (values nil nil nil))
+    (when (memq (car plist) indicators)
+      (return-from GET-PROPERTIES
+	(values (car plist) (cadr plist) plist)))))
+
+(defun* GETF (plist indicator &optional default)
+  (do ((plist plist (cddr plist)))
+      ((null plist)
+       default)
+    (when (eq (car plist) indicator)
+      (return-from GETF (cadr plist)))))
+
+(defsetf GETF (plist indicator &optional default) (value)
+  `(multiple-value-bind (ind val tail)
+       (GET-PROPERTIES ,plist '(,indicator))
+     (if (NULL tail)
+	 (progn (setf ,plist (LIST* ,indicator ,value ,plist) ,value))
+	 (setf (SECOND tail) ,value))))
+
+;;; TODO: REMF
