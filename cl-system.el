@@ -76,9 +76,9 @@
 	 (FUNCALL fn))
        (setq *deferred-compilation-actions* nil))))
 
-(defvar *FEATURES* (list (kw COMMON-LISP)
-; not yet	         (kw ANSI-CL)
-			 (kw EMACS-CL)))
+(defvar *FEATURES* (list ;; TODO: (kw ANSI-CL)
+			 ;; TODO: (kw <name>)
+		         (kw COMMON-LISP)))
 
 (defvar *COMPILE-FILE-PATHNAME* nil)
 (defvar *COMPILE-FILE-TRUENAME* nil)

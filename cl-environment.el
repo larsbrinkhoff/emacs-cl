@@ -345,10 +345,11 @@
 (defvar /// nil)
 
 (defun LISP-IMPLEMENTATION-TYPE ()
-  "Emacs CL")
+  ;; TODO: name
+  "<Common Lisp written in Emacs Lisp>")
 
 (defun LISP-IMPLEMENTATION-VERSION ()
-  "0.1")
+  "0.5")
 
 (defun SHORT-SITE-NAME ()
   nil)

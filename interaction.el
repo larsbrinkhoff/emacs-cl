@@ -1,16 +1,16 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
 ;;; Copyright (C) 2003 Lars Brinkhoff.
-;;; A major mode implementing a Lisp listener for Emacs CL.
+;;; A major mode implementing a Common Lisp listener.
 
 (defvar emacs-cl-prompt-marker nil
   "Position of last prompt.")
 
 (defun emacs-cl ()
-  "Starts an Emacs CL listener."
+  "Starts a Common Lisp listener."
   (interactive)
   (make-variable-buffer-local 'emacs-cl-prompt-marker)
-  (switch-to-buffer (generate-new-buffer "*Emacs CL*"))
+  (switch-to-buffer (generate-new-buffer "*Common Lisp Listener*"))
   (emacs-cl-mode)
   (setq *STANDARD-OUTPUT* (make-buffer-output-stream (current-buffer))
 	*ERROR-OUTPUT* *STANDARD-OUTPUT*
@@ -20,20 +20,20 @@
 			  *STANDARD-OUTPUT*))
   (setq *TERMINAL-IO* (MAKE-TWO-WAY-STREAM *STANDARD-INPUT* *STANDARD-OUTPUT*)
 	*QUERY-IO* *TERMINAL-IO*)
-  (insert "Emacs CL> ")
+  (insert (PACKAGE-NAME *PACKAGE*) "> ")
   (setq emacs-cl-prompt-marker (point-marker)))
 
 (defun emacs-cl-mode ()
-  "Starts an Emacs CL listener."
+  "Major mode for a Common Lisp listener."
   (interactive)
   (kill-all-local-variables)
   (setq major-mode 'emacs-cl-mode)
-  (setq mode-name "Emacs CL")
+  (setq mode-name "Common Lisp")
   (use-local-map emacs-cl-mode-map)
   (run-hooks 'emacs-cl-mode-hooks))
 
 (defvar emacs-cl-mode-map nil
-  "Local keymap for Emacs CL listener buffers.")
+  "Local keymap for Common Lisp listener buffers.")
 
 (unless emacs-cl-mode-map
   (setq emacs-cl-mode-map (make-keymap))
@@ -69,5 +69,5 @@
 	    (condition-case condition
 		(emacs-cl-eval-print (SYMBOL-VALUE --sym))
 	      (error (insert (format "\nError: %s" condition)))))))
-    (insert "\nEmacs CL> ")
+    (insert "\n" (PACKAGE-NAME *PACKAGE*) "> ")
     (setq emacs-cl-prompt-marker (point-marker))))

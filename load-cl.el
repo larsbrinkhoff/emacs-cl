@@ -55,8 +55,7 @@
 	(byte-compile-warnings nil))
     (mapc #'load *cl-files*)
     (populate-packages)
-    (garbage-collect)
-    (message "Emacs CL is loaded")))
+    (garbage-collect)))
 
 (defun compile-cl ()
   (interactive)
