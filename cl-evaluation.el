@@ -75,7 +75,7 @@
 
 (defun SPECIAL-OPERATOR-P (symbol)
   (member symbol
-	  '(block catch eval-when flet function go if labels let let*
-	    load-time-value locally macrolet multiple-value-call
-	    multiple-value-prog1 progn progv quote return-from setq
-	    symbol-macrolet tagbody the throw unwind-protect)))
+	  '(BLOCK CATCH EVAL-WHEN FLET FUNCTION GO IF LABELS LET LET*
+	    LOAD-TIME-VALUE LOCALLY MACROLET MULTIPLE-VALUE-CALL
+	    MULTIPLE-VALUE-PROG1 PROGN PROGV QUOTE RETURN-FROM SETQ
+	    SYMBOL-MACROLET TAGBODY THE THROW UNWIND-PROTECT)))
