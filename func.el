@@ -4,7 +4,11 @@
 ;;; This file provides cl:lambda, cl:function, and cl:defun.
 
 (defmacro cl:function (name)
-  (FDEFINITION name))
+  (let ((fn (FDEFINITION name)))
+    (if (subrp fn)
+	;; Have to return symbol since #<subr ...> in .elc isn't readable.
+	`',name
+	fn)))
 
 (defmacro cl:defun (name lambda-list &rest body)
   (when byte-compile-warnings
@@ -146,7 +150,12 @@
 	(defaults (lambda-list-keyword-defaults lambda-list)))
     (when keys
       `((while ,rest-sym
-	  (let ((,temp (position (pop ,rest-sym) ',keys)))
+	  (let ((,temp (position (pop ,rest-sym) ; ',keys)))
+				 ;; TODO: have to do run-time computation
+				 ;; since compiler doesn't preserve object
+				 ;; identities.
+				 (mapcar #'keyword
+					 ',(mapcar #'symbol-name keys)))))
 	    ,@(unless allow-other-keys
 	       `((unless ,temp (error "unknown keyword"))))
 	    (set (nth ,temp ',vars) (pop ,rest-sym))))

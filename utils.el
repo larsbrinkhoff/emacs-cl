@@ -78,7 +78,10 @@
 	  sym))))
 
 (defmacro kw (name)
-  (keyword (symbol-name name)))
+  ;; TODO: Have to do run-time computation since the byte compiler
+  ;; doesn't preserve object identity.
+  ;(keyword (symbol-name name)))
+  `(keyword ,(symbol-name name)))
 
 (defun type-error (datum type)
   (ERROR 'TYPE-ERROR (kw DATUM) datum (kw EXPECTED-TYPE) type))

@@ -4,8 +4,10 @@
 (setq max-lisp-eval-depth 10000)
 (setq max-specpdl-size 5000)
 
-;;; Fake an IN-PACKAGE macro.
+;;; Fake IN-PACKAGE and FIND-PACKAGE until they are defined properly
+;;; in cl-packages.el.
 (defmacro IN-PACKAGE (name) nil)
+(defun FIND-PACKAGE (name) nil)
 
 (defvar *cl-files*
 '("utils"
