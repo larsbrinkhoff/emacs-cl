@@ -59,3 +59,8 @@
   `(PROGN
     (MAPC (LAMBDA (,var) ,@body) ,list)
     ,result))
+
+(cl:defmacro LOOP (&rest forms)
+  (if (every #'consp forms)
+      `(DO () (nil) (PROGN ,@forms))
+      (error "TODO")))
