@@ -177,10 +177,52 @@
 
 (fset 'LIST* (symbol-function 'list*))
 
-;;; TODO: LIST-LENGTH
+(fset 'LIST-LENGTH (symbol-function 'list-length))
+
+(fset 'LISTP (symbol-function 'listp))
 
 (defun* MAKE-LIST (size &key initial-element)
   (make-list size initial-element))
+
+;;; TODO: PUSH
+
+;;; TODO: POP
+
+(fset 'FIRST (symbol-function 'car-safe))
+
+(defsetf FIRST (list) (new)
+  `(progn
+    (RPLACA ,list ,new)
+    ,new))
+
+(defun SECOND (list)
+  (CAR (CAR list)))
+
+(defun THIRD (list)
+  (CAR (CAR (CAR list))))
+
+(defun FOURTH (list)
+  (CAR (CAR (CAR (CAR list))))
+
+(defun FIFTH (list)
+  (CAR (CAR (CAR (CAR (CAR list))))))
+
+(defun SIXTH (list)
+  (CAR (CAR (CAR (CAR (CAR (CAR list)))))))
+
+(defun SEVENTH (list)
+  (CAR (CAR (CAR (CAR (CAR (CAR (CAR list))))))))
+
+(defun EIGHTH (list)
+  (CAR (CAR (CAR (CAR (CAR (CAR (CAR (CAR list)))))))))
+
+(defun NINTH (list)
+  (CAR (CAR (CAR (CAR (CAR (CAR (CAR (CAR (CAR list))))))))))
+
+(defun TENTH (list)
+  (CAR (CAR (CAR (CAR (CAR (CAR (CAR (CAR (CAR (CAR list)))))))))))
+
+(fset 'NTH (symbol-function 'nth))
 
 (defun ENDP (object)
   (cond
