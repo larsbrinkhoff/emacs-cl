@@ -5,6 +5,7 @@
 ;;;; This file implements operators in chapter 21, Streams.
 
 (defstruct (stream (:predicate streamp) (:copier nil))
+  filename
   content
   index
   read-fn
@@ -65,12 +66,15 @@
 (defun file-position (stream)
   (stream-index stream))
 
-(defun* open (filespec &key direction element-type if-exists
-		            if-does-not-exist external-format)
-  (make-stream :content (let ((buffer (create-file-buffer filespec)))
-			  (save-current-buffer
-			    (set-buffer buffer)
-			    (insert-file-contents-literally filespec))
+(defun* open (filespec &key (direction :input) (element-type 'character)
+		            if-exists if-does-not-exist
+			    (external-format :default))
+  (make-stream :filename (when (eq direction :output) filespec)
+	       :content (let ((buffer (create-file-buffer filespec)))
+			  (when (eq direction :input)
+			    (save-current-buffer
+			      (set-buffer buffer)
+			      (insert-file-contents-literally filespec)))
 			  buffer)
 	       :index 0
 	       :read-fn (lambda (stream)
@@ -79,14 +83,24 @@
 			    (if (= (stream-index stream) (buffer-size))
 				:eof
 				(char-after (incf (stream-index stream))))))
-	       :write-fn nil))
+	       :write-fn (lambda (char stream)
+			   (save-current-buffer
+			     (set-buffer (stream-content stream))
+			     (goto-char (incf (stream-index stream)))
+			     (insert char)))))
 
 (defmacro* with-open-file ((stream filespec &rest options) &body body)
   `(with-open-stream (,stream (open ,filespec ,@options))
      ,@body))
 
 (defun* close (stream &key abort)
-  (kill-buffer (stream-content stream)))
+  (when (stream-filename stream)
+    (save-current-buffer
+      (set-buffer (stream-content stream))
+      (write-region 1 (1+ (buffer-size)) (stream-filename stream))))
+  (when (bufferp (stream-content stream))
+    (kill-buffer (stream-content stream)))
+  t)
 
 (defmacro* with-open-stream ((var stream) &body body)
   `(let ((,var ,stream))
