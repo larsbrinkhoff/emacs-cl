@@ -588,7 +588,7 @@
 (fset 'NSET-EXCLUSIVE-OR (symbol-function 'SET-EXCLUSIVE-OR))
 
 (cl:defun SUBSETP (list1 list2 &rest keys)
-  (EVERY (lambda (x) (apply #'MEMBER x list2 keys)
+  (EVERY (lambda (x) (apply #'MEMBER x list2 keys))
 	 list1))
 
 (cl:defun UNION (list1 list2 &rest keys)
