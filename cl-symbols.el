@@ -1,8 +1,10 @@
 ;;;; -*- emacs-lisp -*-
-;;;;
-;;;; Copyright (C) 2003 Lars Brinkhoff.
-;;;;
-;;;; This file implements operators in chapter 10, Symbols.
+;;;
+;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; This file implements operators in chapter 10, Symbols.
+
+;;; Note that the Emacs Lisp symbol nil doubles as the Common Lisp
+;;; symbol NIL.  This requires special attention in SYMBOL-NAME.
 
 (fset 'SYMBOLP (symbol-function 'symbolp))
 

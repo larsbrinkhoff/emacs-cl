@@ -3,6 +3,11 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file implements operators in chapter 11, Packages.
 
+;;; A note about the EMACS-LISP package: This package isn't
+;;; implemented the same way all other packages are.  It doesn't have
+;;; a hash table or a list of exported symbols.  Instead, symbols are
+;;; searched with intern-soft, and all symbols are exported.
+
 (defun PACKAGE-NAME (package)
   (aref package 1))
 
@@ -73,6 +78,8 @@
     (cond
       ((null package)
        (error (format "package \"%s\" not found" package-designator)))
+      ;; Special EMACS-LISP magic: EMACS-LISP doesn't have a separate
+      ;; table, use intern-soft to find symbols instead.
       ((eq package *emacs-lisp-package*)
        (let ((symbol (intern-soft string)))
 	 (if symbol
@@ -92,6 +99,8 @@
 	     (dolist (p (PACKAGE-USE-LIST package) (values nil nil))
 	       (multiple-value-bind (symbol found) (FIND-SYMBOL string p)
 		 (when (and found
+			    ;; Special EMACS-LISP magic: EMACS-LISP doesn't
+			    ;; have a list of exported symbols.
 			    (or (eq p *emacs-lisp-package*)
 				(member symbol (package-exported p))))
 		   (return-from FIND-SYMBOL
