@@ -5,49 +5,13 @@
 
 (IN-PACKAGE "EMACS-CL")
 
-(defun CHARACTER (x)
-  (cond
-    ((CHARACTERP x)			x)
-    ((and (STRINGP x) (= (LENGTH x) 1))	(AREF x 0))
-    ((SYMBOLP x)			(CHARACTER (SYMBOL-NAME x)))
-    (t
-     (error "invalid character designator"))))
+;;; System Class CHARACTER
 
-(defun CHARACTERP (char)
-  (vector-and-typep char 'CHARACTER))
+;;; Type BASE-CHAR
 
-(defun ALPHA-CHAR-P (char)
-  (or (cl:<= 65 (CHAR-CODE char) 90)
-      (cl:<= 97 (CHAR-CODE char) 122)))
+;;; Type STANDARD-CHAR
 
-(defun ALPHANUMERICP (char)
-  (or (DIGIT-CHAR-P char) (ALPHA-CHAR-P char)))
-
-(defun* DIGIT-CHAR (weight &optional (radix 10))
-  (when (cl:< weight radix)
-    (CODE-CHAR (if (< weight 10)
-		   (+ 48 weight)
-		   (+ 65 weight -10)))))
-
-(defun* DIGIT-CHAR-P (char &optional (radix 10))
-  (let* ((code (CHAR-CODE char))
-	 (n (cond
-	      ((cl:<= 48 code 57) (- code 48))
-	      ((cl:<= 65 code 90) (- code 65 -10))
-	      ((cl:<= 95 code 122) (- code 95 -10))
-	      (t 99))))
-    (if (< n radix) n nil)))
-
-(DEFCONSTANT CHAR-CODE-LIMIT 256)
-
-(defun CODE-CHAR (code)
-  (if (and (integerp code) (< code CHAR-CODE-LIMIT))
-      (vector 'CHARACTER code)
-      nil))
-
-(defun CHAR-CODE (char)
-  ;;(CHECK-TYPE char 'CHARACTER)
-  (aref char 1))
+;;; Type EXTENDED-CHAR
 
 (defun CHAR= (&rest chars)
   (apply #'cl:= (mapcar #'CHAR-CODE chars)))
@@ -88,6 +52,47 @@
 (defun CHAR-NOT-LESSP (&rest chars)
   (apply #'cl:>= (mapcar #'char-downcase-code chars)))
 
+(defun CHARACTER (x)
+  (cond
+    ((CHARACTERP x)			x)
+    ((and (STRINGP x) (= (LENGTH x) 1))	(AREF x 0))
+    ((SYMBOLP x)			(CHARACTER (SYMBOL-NAME x)))
+    (t
+     (error "invalid character designator"))))
+
+(defun CHARACTERP (char)
+  (vector-and-typep char 'CHARACTER))
+
+(defun ALPHA-CHAR-P (char)
+  (or (cl:<= 65 (CHAR-CODE char) 90)
+      (cl:<= 97 (CHAR-CODE char) 122)))
+
+(defun ALPHANUMERICP (char)
+  (or (DIGIT-CHAR-P char) (ALPHA-CHAR-P char)))
+
+(defun* DIGIT-CHAR (weight &optional (radix 10))
+  (when (cl:< weight radix)
+    (CODE-CHAR (if (< weight 10)
+		   (+ 48 weight)
+		   (+ 65 weight -10)))))
+
+(defun* DIGIT-CHAR-P (char &optional (radix 10))
+  (let* ((code (CHAR-CODE char))
+	 (n (cond
+	      ((cl:<= 48 code 57) (- code 48))
+	      ((cl:<= 65 code 90) (- code 65 -10))
+	      ((cl:<= 95 code 122) (- code 95 -10))
+	      (t 99))))
+    (if (< n radix) n nil)))
+
+(defun GRAPHIC-CHAR-P (char)
+  (let ((code (CHAR-CODE char)))
+    (and (>= code 32) (<= code 126))))
+
+(defun STANDARD-CHAR-P (char)
+  (find (CHAR-CODE char)
+	"\n abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$\"'(),_-./:;?+<=>#%&*@[\\]{|}`^~"))
+
 (defun CHAR-UPCASE (char)
   (if (LOWER-CASE-P char)
       (CODE-CHAR (- (CHAR-CODE char) 32))
@@ -98,13 +103,27 @@
       (CODE-CHAR (+ (CHAR-CODE char) 32))
       char))
 
+(defun UPPER-CASE-P (char)
+  (cl:<= 65 (CHAR-CODE char) 90))
+
 (defun LOWER-CASE-P (char)
-  ;;(CHECK-TYPE char 'CHARACTER)
   (cl:<= 97 (CHAR-CODE char) 122))
 
-(defun UPPER-CASE-P (char)
+(defun BOTH-CASE-P (char)
+  (or (UPPER-CASE-P char) (LOWER-CASE-P char)))
+
+(defun CHAR-CODE (char)
   ;;(CHECK-TYPE char 'CHARACTER)
-  (cl:<= 65 (CHAR-CODE char) 90))
+  (aref char 1))
+
+(fset 'CHAR-INT (symbol-function 'CHAR-CODE))
+
+(defun CODE-CHAR (code)
+  (if (and (integerp code) (< code CHAR-CODE-LIMIT))
+      (vector 'CHARACTER code)
+      nil))
+
+(DEFCONSTANT CHAR-CODE-LIMIT 256)
 
 (defun NAME-CHAR (name)
   (let ((string (STRING name)))
