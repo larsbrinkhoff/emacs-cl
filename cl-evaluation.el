@@ -125,7 +125,9 @@
 	       (memq (car declaration) *declarations*))
     (type-error declaration `(CONS (MEMBER ,@*declarations*) LIST)))
   (case (first declaration)
-    (SPECIAL)
+    (SPECIAL
+     (dolist (var (rest declaraction))
+       (pushnew var *specials*)))
     (INLINE)
     (NOTINLINE)
     (DECLARATION

@@ -283,12 +283,11 @@
     (setq env *global-environment*))
   (values
     (let ((info (assoc var (aref env 1))))
-      (if info
-	  (cdr info)
-	  (when (boundp var)
-	    (if (CONSTANTP var env)
-		:constant
-		:special))))
+      (cond
+	(info			(cdr info))
+	((boundp var)		(if (CONSTANTP var env) :constant :special))
+	((memq var *constants*)	:constant)
+	((memq var *specials*)	:special)))
     (member var (aref env 2))
     nil))
 

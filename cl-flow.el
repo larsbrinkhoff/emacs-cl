@@ -153,8 +153,11 @@
 
 (DEFCONSTANT LAMBDA-PARAMETERS-LIMIT 50)
 
+(defvar *specials* nil)
+
 (cl:defmacro DEFVAR (name &optional (initial-value nil valuep) documentation)
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
+     (DECLAIM (SPECIAL ,name))
      ,@(when valuep
 	 `((UNLESS (BOUNDP (QUOTE ,name))
 	     (SETQ ,name ,initial-value))))
