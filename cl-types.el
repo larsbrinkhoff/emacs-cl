@@ -5,6 +5,18 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+;;; TODO: GENERIC-FUNCTION
+;;; TODO: STANDARD-GENERIC-FUNCTION
+;;; TODO: CLASS
+;;; TODO: BUILT-IN-CLASS
+;;; TODO: STRUCTURE-CLASS
+;;; TODO: STANDARD-CLASS
+;;; TODO: METHOD
+;;; TODO: STANDARD-METHOD
+;;; TODO: STRUCTURE-OBJECT
+;;; TODO: STANDARD-OBJECT
+;;; TODO: METHOD-COMBINATION
+
 (defun COERCE (object type)
   (cond
     ((TYPEP object type)
@@ -79,3 +91,8 @@
        ((buffer char-table frame marker overlay process
 	 subr window window-configuration)
 			(error "Unknown type: %s" (type-of object)))))))
+
+;;; TYPEP defined in cl-typep.el.
+
+;;; TYPE-ERROR, TYPE-ERROR-DATUM, TYPE-ERROR-EXPECTED-TYPE, and
+;;; SIMPLE-TYPE-ERROR defined in cl-conditions.el.
