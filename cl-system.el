@@ -27,7 +27,8 @@
     (cond
       ((STREAMP file)
        (let ((eof (gensym)))
-	 (do ((form #1=(READ file nil eof) #1#))
+;	 (do ((form #1=(READ file nil eof) #1#))
+	 (do ((form (READ file nil eof) (READ file nil eof)))
 	     ((eq form eof)
 	      T)
 	   (let ((val (EVAL form)))

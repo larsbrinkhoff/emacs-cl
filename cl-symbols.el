@@ -66,7 +66,7 @@
   (unless (fboundp symbol)
     (ERROR 'UNDEFINED-FUNCTION (kw NAME) symbol))
   (let ((fn (symbol-function symbol)))
-    (if (consp fn)
+    (if (and (consp fn) (consp (third fn)))
 	(let ((ifn (second (third fn))))
 	  (if (INTERPRETED-FUNCTION-P ifn) ifn fn))
 	fn)))

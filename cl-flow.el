@@ -9,6 +9,13 @@
 
 (defvar *setf-definitions* (make-hash-table))
 
+(unless (fboundp 'functionp)
+  (defun functionp (object)
+    (or (subrp object)
+	(byte-code-function-p object)
+	(and (consp object)
+	     (eq (car object) 'lambda)))))
+
 (defun APPLY (fn &rest args)
   (cond
     ((COMPILED-FUNCTION-P fn)

@@ -64,5 +64,22 @@
     (dolist (file *cl-files*)
       (byte-compile-file (concat file ".el")))))
 
+(when (string-match "^19" emacs-version)
+  (dolist (x '(:required :optional-rest :weakness :type :read-only
+	       :constituent :whitespace :single-escape
+	       :multiple-escape :terminating-macro
+	       :non-terminating-macro :eof :special-operator
+	       :lexical :special :macro :symbol-macro))
+    (set x x)))
+
+(setq *global-environment*
+      (vector 'environment
+	      ;; Variable information
+	      nil nil nil
+	      ;; Function information
+	      nil nil nil
+	      ;; Block and tagbody information
+	      nil nil))
+
 (load-cl)
 (IN-PACKAGE "CL-USER")

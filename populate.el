@@ -199,15 +199,6 @@ WRITE-STRING WRITE-TO-STRING Y-OR-N-P YES-OR-NO-P ZEROP))
       (setf (gethash (SYMBOL-NAME sym) emacs-cl-table) sym)
       (setf (SYMBOL-PACKAGE sym) *emacs-cl-package*))
 
-    (setq *global-environment*
-	  (vector 'environment
-		  ;; Variable information
-		  nil nil nil
-		  ;; Function information
-		  nil nil nil
-		  ;; Block and tagbody information
-		  nil nil))
-
     (dolist (sym '(&ALLOW-OTHER-KEYS &AUX &BODY &ENVIRONMENT &KEY &OPTIONAL
 &REST &WHOLE * ** *** *BREAK-ON-SIGNALS* *COMPILE-FILE-PATHNAME*
 *COMPILE-FILE-TRUENAME* *COMPILE-PRINT* *COMPILE-VERBOSE* *DEBUG-IO*
