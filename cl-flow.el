@@ -10,7 +10,7 @@
 
 (defmacro* (DEFUN name lambda-list &body body)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (SETF (fdefinition ,name) (function* (lambda ,lambda-list ,@body)))))
+     (SETF (FDEFINITION ,name) (function* (lambda ,lambda-list ,@body)))))
 
 (defun FDEFINITION (name)
   (cond
