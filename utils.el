@@ -79,3 +79,6 @@
 
 (defmacro kw (name)
   (keyword (symbol-name name)))
+
+(defun type-error (datum type)
+  (ERROR 'TYPE-ERROR (kw DATUM) datum (kw EXPECTED-TYPE) type))

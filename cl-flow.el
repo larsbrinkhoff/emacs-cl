@@ -34,9 +34,7 @@
        (null (cddr name))))
 
 (defun not-function-name-error (name)
-  (ERROR 'TYPE-ERROR (kw DATUM) name
-	 (kw EXPECTED-TYPE) '(OR SYMBOL
-			      (CONS (EQL SETF) (CONS SYMBOL NULL)))))
+  (type-error name '(OR SYMBOL (CONS (EQL SETF) (CONS SYMBOL NULL)))))
 
 (defun FDEFINITION (name)
   (cond

@@ -305,8 +305,7 @@
   (cond
     ((null object)	'T)
     ((consp object)	nil)
-    (t			(ERROR 'TYPE-ERROR (kw DATUM) object
-			       (kw EXPECTED-TYPE) 'LIST))))
+    (t			(type-error object 'LIST))))
 
 (fset 'NULL (symbol-function 'null))
 
@@ -336,7 +335,7 @@
 
 (defun LDIFF (list object)
   (unless (listp list)
-    (ERROR 'TYPE-ERROR (kw DATUM) list (kw EXPECTED-TYPE) 'LIST))
+    (type-error list 'LIST))
   (let ((result nil))
     (catch 'TAILP
       (while (consp list)
@@ -348,7 +347,7 @@
 
 (defun TAILP (object list)
   (unless (listp list)
-    (ERROR 'TYPE-ERROR (kw DATUM) list (kw EXPECTED-TYPE) 'LIST))
+    (type-error list 'LIST))
   (catch 'TAILP
     (while (consp list)
       (when (EQL object list)

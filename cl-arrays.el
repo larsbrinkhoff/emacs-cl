@@ -81,7 +81,7 @@
     ((vector-and-typep array 'ARRAY)
      (aref (aref array 2) (apply #'ARRAY-ROW-MAJOR-INDEX subscripts)))
     (t
-     (ERROR 'TYPE-ERROR (kw DATUM) array (kw EXPECTED-TYPE) 'ARRAY))))
+     (type-error array 'ARRAY))))
 
 (defsetf AREF (array &rest subscripts) (obj)
   `(cond
@@ -111,8 +111,7 @@
      ((vector-and-typep ,array (QUOTE ARRAY))
       (aset (aref ,array 2) (ARRAY-ROW-MAJOR-INDEX ,@subscripts) ,obj))
      (T
-      (ERROR (QUOTE TYPE-ERROR) ,(kw DATUM) ,array
-             ,(kw EXPECTED-TYPE) (QUOTE ARRAY)))))
+      (type-error ,array 'ARRAY))))
 
 (defun ARRAY-DIMENSION (array axis)
   (cond
@@ -139,7 +138,7 @@
 
 (defun ARRAY-HAS-FILL-POINTER-P (array)
   (unless (ARRAYP array)
-    (ERROR 'TYPE-ERROR))
+    (type-error array 'ARRAY))
   (and (VECTORP array)
        (not (SIMPLE-VECTOR-P array))))
 

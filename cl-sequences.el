@@ -123,7 +123,7 @@
 	   (aset new i (aref storage j)))
 	 new)))
     (t
-     (ERROR 'TYPE-ERROR (kw DATUM) seq (kw EXPECTED-TYPE) 'SEQUENCE))))
+     (type-error seq 'SEQUENCE))))
 
 ;;; TODO: SETF SUBSEQ
 

@@ -44,7 +44,7 @@
   (disassemble fn)
   nil)
 
-(cl:defun ROOM (&optional (x (kw default)))
+(cl:defun ROOM (&optional (x (kw DEFAULT)))
   (let* ((info (garbage-collect))
          (foo '("conses" "symbols" "misc" "string chars"
                 "vector slots" "floats" "intervals" "strings"))
@@ -58,7 +58,7 @@
          (string-info (eighth info)))
     (cond
       ((eq x nil))
-      ((eq x (kw default))
+      ((eq x (kw DEFAULT))
        (do ((i info (cdr i))
             (j foo (cdr j)))
            ((null i) nil)
@@ -85,7 +85,7 @@
 	   (PRINC (format "\n%d strings." (symbol-value 'strings-consed)))
 	   (PRINC ".")))
       (t
-       (ERROR 'TYPE-ERROR)))))
+       (type-error x `(OR BOOLEAN (EQL ,(kw DEFAULT))))))))
 
 (defun SHORT-SITE-NAME ()
   nil)

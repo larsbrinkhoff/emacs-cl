@@ -51,7 +51,7 @@
 
 (defun SYMBOL-FUNCTION (symbol)
   (unless (symbolp symbol)
-    (ERROR 'TYPE-ERROR (kw DATUM) symbol (kw EXPECTED-TYPE) 'SYMBOL))
+    (type-error symbol 'SYMBOL))
   (unless (fboundp symbol)
     (ERROR 'UNDEFINED-FUNCTION (kw NAME) symbol))
   (symbol-function symbol))

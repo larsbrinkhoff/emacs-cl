@@ -75,7 +75,7 @@
 (cl:defmacro CHECK-TYPE (place type &optional string)
   `(UNLESS (TYPEP ,place ',type)
      ;; TODO...
-     (ERROR 'TYPE-ERROR)))
+     (type-error ,place ',type)))
 
 ;; TODO: inherit from SIMPLE-CONDITION
 (DEFINE-CONDITION SIMPLE-ERROR (ERROR) (format args))
@@ -195,7 +195,7 @@
     ((symbolp restart)		(let ((cons (assoc restart *restart-alist*)))
 				  (when cons
 				    (make-restart restart (cdr cons)))))
-    (t				(ERROR 'TYPE-ERROR))))
+    (t				(type-error restart '(OR RESTART SYMBOL)))))
 
 (defun INVOKE-RESTART (restart-designator &rest args)
   (let ((restart (FIND-RESTART restart-designator)))
