@@ -5,6 +5,14 @@
 
 (IN-PACKAGE "EMACS-CL")
 
+(defvar *object-identities* (make-hash-table :test #'eq :weakness t))
+
+(defvar *identity-counter* 12345)
+
+(defun object-identity (object)
+  (or (gethash object *object-identities*)
+      (setf (gethash object *object-identities*) (incf *identity-counter*))))
+
 (defmacro* PRINT-UNREADABLE-OBJECT ((object stream &key identity) &body body)
   `(progn
     (WRITE-STRING "#<" stream)
@@ -14,7 +22,9 @@
     ,@(when (and body identity)
 	`((WRITE-STRING " " stream)))
     ,@(when identity
-        `((WRITE-STRING "identity" stream)))
+        `((WRITE-STRING "{" stream)
+	  (PRIN1 (object-identity object))
+	  (WRITE-STRING "}" stream)))
     (WRITE-STRING ">" stream)))
 
 (defun external-symbol-p (symbol)
@@ -117,14 +127,18 @@
 	    (WRITE-STRING (string 34) stream)
 	    (WRITE-STRING (STREAM-content object) stream)
 	    (WRITE-STRING (string 34) stream)))))
-      ((TYPEP object 'SIMPLE-ERROR)
-       (PRINT-UNREADABLE-OBJECT (object stream)
-         (PRINC (apply #'FORMAT nil (SIMPLE-ERROR-FORMAT-CONTROL object)
-		       (SIMPLE-ERROR-FORMAT-ARGUMENTS object)))))
+      ((or (TYPEP object 'SIMPLE-CONDITION)
+	   ;; TODO: these two won't be necessary later
+	   (TYPEP object 'SIMPLE-ERROR)
+	   (TYPEP object 'SIMPLE-WARNING))
+       (PRINT-UNREADABLE-OBJECT (object stream :identity t)
+         (PRINC (apply #'FORMAT nil
+		       (SIMPLE-CONDITION-FORMAT-CONTROL object)
+		       (SIMPLE-CONDITION-FORMAT-ARGUMENTS object)))))
       ((TYPEP object 'CONDITION)
-       (PRINT-UNREADABLE-OBJECT (object stream)))
+       (PRINT-UNREADABLE-OBJECT (object stream :identity t)))
       ((restartp object)
-       (PRINT-UNREADABLE-OBJECT (object stream)
+       (PRINT-UNREADABLE-OBJECT (object stream :identity t)
          (PRIN1 (RESTART-name object) stream)
 	 (when (RESTART-condition object)
 	   (WRITE-STRING " " stream)
