@@ -1,4 +1,6 @@
 (require 'cl)
+(require 'byte-compile "bytecomp")
+
 (setq max-lisp-eval-depth 10000)
 (setq max-specpdl-size 5000)
 
@@ -13,13 +15,13 @@
   "cl-flow"
   "cl-numbers"
   "cl-conses"
+  "cl-strings"
   "cl-arrays"
   "cl-sequences"
   "cl-structures"
   "cl-iteration"
 
   "cl-characters"
-  "cl-strings"
   "cl-symbols"
   "cl-packages"
 
@@ -46,7 +48,9 @@
 (defun load-cl ()
   (interactive)
   (let ((load-path (cons "~/src/emacs-cl" load-path))
-	(debug-on-error t))
+	(debug-on-error t)
+	(byte-compile-warnings nil)
+	(byte-compile-verbose nil))
     (mapc #'load *cl-files*)
     (populate-packages)
     (garbage-collect)
@@ -54,8 +58,10 @@
 
 (defun compile-cl ()
   (interactive)
-  (dolist (file *cl-files*)
-    (byte-compile-file (concat file ".el"))))
+  (let ((byte-compile-verbose t)
+	(byte-compile-warnings t))
+    (dolist (file *cl-files*)
+      (byte-compile-file (concat file ".el")))))
 
 (load-cl)
 (IN-PACKAGE "CL-USER")
