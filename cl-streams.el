@@ -54,8 +54,8 @@
 
 ;;; TODO: READ-CHAR-NO-HANG
 
-(defun TERPRI ()
-  (princ "\n")
+(defun TERPRI (&optional stream)
+  (WRITE-CHAR (CODE-CHAR 10) stream)
   nil)
 
 ;;; TODO: FRESH-LINE
