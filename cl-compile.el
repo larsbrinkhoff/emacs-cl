@@ -607,7 +607,10 @@
 (define-compiler PROGN (&rest body) env
   `(progn ,@(compile-body body env)))
 
-;;; TODO: progv
+(define-compiler PROGV (symbols values &body body) env
+  `(do-progv ,(compile-form symbols env)
+             ,(compile-form values env)
+	     ,(compile-lambda () body env)))
 
 (define-compiler QUOTE (form) env
   (compile-literal form))

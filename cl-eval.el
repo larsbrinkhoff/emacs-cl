@@ -171,7 +171,32 @@
     (dolist (form forms lastval)
       (setq lastval (eval-with-env form env)))))
 
-;;; TODO: PROGV
+(defmacro defun-do-progv ()
+  (with-gensyms (sym syms vals fn temp state)
+  `(defun do-progv (,syms ,vals ,fn)
+    (let ((,state nil))
+      (unwind-protect
+	   (progn
+	     (dolist (,sym ,syms)
+	       (let ((,temp (boundp ,sym)))
+		 (when ,temp
+		   (push (symbol-value ,sym) ,state))
+		 (push ,temp ,state))
+	       (if (null ,vals)
+		   (makunbound ,sym)
+		   (set ,sym (pop ,vals))))
+	     (FUNCALL ,fn))
+	(dolist (,sym ,syms)
+	  (if (pop ,state)
+	      (set ,sym (pop ,state))
+	      (makunbound ,sym))))))))
+
+(defun-do-progv)
+
+(define-special-operator PROGV (symbols values &rest forms) env
+  (do-progv (eval-with-env symbols env)
+            (eval-with-env values env)
+	    (enclose `(LAMBDA () ,@forms) env)))
 
 (define-special-operator QUOTE (form) env
   (cl:values form))
