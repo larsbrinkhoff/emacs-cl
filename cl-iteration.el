@@ -26,13 +26,13 @@
 			,start
 			,@(when test `((WHEN ,test (RETURN (PROGN ,@result)))))
 			,@(if decls
-			      `((locally ,@decls ,@body))
+			      `((LOCALLY ,@decls ,@body))
 			      body)
 			,@(when vars `((,setq ,@(var-steps vars))))
 			(GO ,start)))))
 	(cond
 	  (vars		`(,let ,(var-inits vars) ,@decls ,block))
-	  (decls	`(locally ,@decls ,block))
+	  (decls	`(LOCALLY ,@decls ,block))
 	  (t		block))))))
 
 (cl:defmacro DO (vars (test &rest result) &body body)
@@ -50,8 +50,12 @@
        ,@body)))
 
 (cl:defmacro DOLIST ((var list &optional result) &body body)
-  `(PROGN
-     (MAPC (LAMBDA (,var) ,@body) ,list)
-     ,result))
+  (with-gensyms (glist)
+    `(DO (,var
+	  (,glist ,list (CDR ,glist)))
+	 ((NULL ,glist)
+	  ,result)
+      (SETQ ,var (CAR ,glist))
+      ,@body)))
 
 ;;; LOOP and LOOP-FINISH are implemented in cl-loop.el.
