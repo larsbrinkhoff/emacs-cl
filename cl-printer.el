@@ -387,5 +387,3 @@
 
 ;;; PRINT-NOT-READABLE and PRINT-NOT-READABLE-OBJECT defined in
 ;;; cl-conditions.el.
-
-;;; TODO: Function FORMAT
