@@ -3,8 +3,11 @@
 ;;; Copyright (C) 2003 Lars Brinkhoff.
 ;;; This file provides various small utilities.
 
+(defun map-to-gensyms (list)
+  (mapcar (lambda (x) (gensym)) list))
+
 (defmacro* with-gensyms (syms &body body)
-  `(let ,(mapcar (lambda (sym) `(,sym ',(gensym))) syms)
+  `(let ,(mapcar #'list syms (map-to-gensyms syms))
      ,@body))
 
 (defun strcat (&rest string-designators)
@@ -57,6 +60,3 @@
 
 (defun el-keyword (symbol)
   (intern (concat ":" (symbol-name symbol))))
-
-(defun map-to-gensyms (list)
-  (mapcar (lambda (x) (gensym)) list))
