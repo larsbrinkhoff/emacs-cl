@@ -87,7 +87,7 @@
       (dolist (form body lastval)
 	(setq lastval (eval-with-env form new-env))))))
 
-(eval-let (bindings forms env old-env)
+(defun eval-let (bindings forms env old-env)
   (let* ((vars (mappend (lambda (binding)
 			  (let ((var (if (symbolp binding)
 					 binding
@@ -125,10 +125,10 @@
 
 
 (define-special-operator LET (bindings &rest forms) env
-  (eval-let bindings forms env))
+  (eval-let bindings forms env env))
 
 (define-special-operator LET* (bindings &rest forms) env
-  (eval-let bindings forms nil))
+  (eval-let bindings forms env nil))
 
 ;;; TODO: LOAD-TIME-VALUE
 
