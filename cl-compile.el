@@ -345,9 +345,10 @@
 	new-env)
       env))
 
-(defun create-environment-p (env)
-  (every (lambda (var) (not (variable-bound-p var env)))
-	 (mapcar #'car *free*)))
+(defun create-environment-p (env new-env)
+  (let ((vars (mapcar #'car *free*)))
+    (and  (every (lambda (var) (not (variable-bound-p var env))) vars)
+	  (some (lambda (var) (variable-bound-p var new-env)) vars))))
 
 (defun initial-environment (env)
   (mapcar (lambda (var)
@@ -356,37 +357,53 @@
 	  *free*))
 
 (defun compile-environment (body env)
-  (let ((i -1))
-    (dolist (var *free*)
-      (setq body (NSUBST `(aref env ,(incf i)) (cdr var) body))))
-  `((let ((env (vector ,@(initial-environment env))))
-      ,@body)))
+  (let ((inits (initial-environment env))
+	(nfree (length *free*))
+	make-env)
+    (cond
+      ((<= n 2)
+       (setq make-env (if (eq n 1) `(cons ,@inits nil) `(cons ,@inits)))
+       (MAPC (lambda (var accessor)
+	       (setq body (NSUBST `(,accessor env) (cdr var) body)))
+	     *free* '(car cdr)))
+      (t
+       (setq make-env `(vector ,@inits))
+       (let ((i -1))
+	 (dolist (var *free*)
+	   (setq body (NSUBST `(aref env ,(incf i)) (cdr var) body))))))
+    (prog1 `((let ((env ,make-env)) ,@body))
+      (setq *free* nil))))
 
-(defun compile-trampoline (body env)
+(defun compile-env-inits (body vars env)
   (let ((inits nil))
     (dolist (var *free*)
       (when (and (memq (car var) vars)
 		 (eq (compile-variable (car var) env) (cdr var)))
 	(let ((reg (new-register)))
-	  (setf (lexical-value (car var) env) reg)
-	  (setq inits `(,(cdr var) ,reg ,@inits)))))
-    (when inits
-      (setq body `((setf ,@inits) ,@body))))
-  `(trampoline ,(expand-lambda vars body env) env))
+	  (setq inits `(,reg ,(cdr var) ,@inits))
+	  (setq body (NSUBST reg (cdr var) body))
+	  (setf (cdr var) reg))))
+    (if inits
+	`((setf ,@inits) ,@body)
+	body)))
+
+(defun compile-trampoline (body vars env)
+  `(trampoline ,(expand-lambda vars (compile-env-inits body vars env) env)
+               env))
 
 (defun compile-lambda (form env)
-  (MULTIPLE-VALUE-BIND (body decls) (cddr form)
+  (MULTIPLE-VALUE-BIND (body decls) (parse-body (cddr form))
     (let* ((vars (second form))
 	   (new-env (env-with-vars env vars decls))
 	   (compiled-body (compile-body body new-env)))
       (cond
 	((null *free*)
 	 (expand-lambda vars compiled-body new-env))
-	((create-environment-p env)
+	((create-environment-p env new-env)
 	 (expand-lambda
 	  vars (compile-environment compiled-body new-env) new-env))
 	(t
-	 (compile-trampoline compiled-body new-env)))))))
+	 (compile-trampoline compiled-body vars new-env)))))))
 
 (defun partition-bindings (bindings env)
   (let ((local-bindings nil)
@@ -397,8 +414,8 @@
 		      (list binding nil)
 		      binding)))
 	(cond
-	  ((MEMBER (first list) *free* (kw KEY) #'car)
-	   (push list closure-bindings))
+;	  ((MEMBER (first list) *free* (kw KEY) #'car)
+;	   (push list closure-bindings))
 	  (t
 	   (push list local-bindings)))))
     (cl:values local-bindings closure-bindings special-bindings)))
@@ -413,49 +430,37 @@
 	   (compiled-body (compile-body body new-env)))
       (MULTIPLE-VALUE-BIND (local-bindings closure-bindings special-bindings)
 	  (partition-bindings bindings new-env)
-	(print (format "free: %s, bound: %s" *free* *bound*))
-	(let ((let-bindings
-	       (append
-		(mapcar (lambda (list)
-			  `(,(compile-variable (first list) new-env)
-			    ,(compile-form (second list) env)))
-			local-bindings)
-		(mapcar (lambda (list)
-			  `(,(first list)
-			    ,(compile-form (second list) env)))
-			special-bindings)))
-	      (body (cond
-		      ((null *free*)
-		       compiled-body)
-		      ((every (lambda (var)
-				(memq (car var) *bound*))
-			      *free*)
-		       `((setf
-			  ,@(mappend
-			     (lambda (list)
-			       `(,(compile-variable (first list) new-env)
-				 ,(compile-form (second list) env)))
-			     closure-bindings))
-			 ,@compiled-body)))))
+	(let* ((let-bindings
+		(append
+		 (mapcar (lambda (list)
+			   `(,(compile-variable (first list) new-env)
+			     ,(compile-form (second list) env)))
+			 local-bindings)
+		 (mapcar (lambda (list)
+			   `(,(first list)
+			     ,(compile-form (second list) env)))
+			 special-bindings)))
+	       (body (cond
+		       ((null *free*)
+			compiled-body)
+		       ((create-environment-p env new-env)
+			(compile-environment compiled-body new-env))
+		       (t
+			(compile-env-inits compiled-body
+					   (mapcar #'car local-bindings)
+					   new-env)))))
 	  (if let-bindings
 	      `(let ,let-bindings ,@body)
 	      `(progn ,@body)))))))
 
 (define-compiler LET* (bindings &rest forms) env
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
-    (let* ((vars (lexical-binding-variables bindings env))
-	   (new-env (env-with-vars env vars decls)))
-      `(let* ,(mapcar (lambda (binding)
-			(cond
-			  ((symbolp binding)
-			   `(binding nil))
-			  ((consp binding)
-			   `(,(compile-variable (first binding) new-env)
-			     ,(compile-form (second binding) new-env)))
-			  (t
-			   (ERROR 'PROGRAM-ERROR))))
-		      bindings)
-	 ,@(compile-body body new-env)))))
+    (compile-form (if (null bindings)
+		      `(LOCALLY ,@body)
+		      `(LET (,(first bindings))
+			(LET* ,(rest bindings)
+			  ,@body)))
+		  env)))
 
 ;;; TODO: load-time-value
 
@@ -473,6 +478,11 @@
   (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
     (let* ((new-env (env-with-vars env vars decls))
 	   (compiled-body (compile-body body new-env)))
+      (unless (null *free*)
+	(setq compiled-body
+	      (if (create-environment-p env new-env)
+		  (compile-environment compiled-body new-env)
+		  (compile-env-inits compile-env-inits vars new-env))))
       (case (length vars)
 	(0 `(progn
 	     ,(compile-form form env :values 0)
