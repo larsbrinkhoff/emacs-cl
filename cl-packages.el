@@ -309,10 +309,15 @@
 	   (dolist (i (rest option))
 	     (push (STRING i) intern-list)))
 	  ((eq keyword (kw SIZE))
-	   nil))))
+	   nil)
+	  (t
+	   (ERROR "Unknown DEFPACKAGE keyword: ~S" keyword)))))
     (with-gensyms (package)
       `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
-	(LET ((,package (MAKE-PACKAGE ,name ,(kw NICKNAMES) ,nicknames)))
+	(LET ((,package (MAKE-PACKAGE
+			 ,(STRING name)
+			 ,@(when nicknames
+			     `(,(kw NICKNAMES) (QUOTE ,nicknames))))))
 	  ,@(when shadow-list
 	      `((SHADOW (QUOTE ,shadow-list) ,package)))
 	  ,@(when shadowing-import
