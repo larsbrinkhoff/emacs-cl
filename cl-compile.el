@@ -751,11 +751,18 @@
 		   (cons tagbody (remove-if-not #'go-tag-p forms))))
 	 (pc (new-register))
 	 (start (if (go-tag-p (car forms)) (car forms) (gensym))))
-    `(let ((,pc ',start))
-      (while (setq ,pc (catch ',tagbody
-			 (case ,pc
-			   ,@(compile-tagbody-forms
-			      forms tagbody start new-env))))))))
+    (let ((last (last forms)))
+      (if (and (consp last)
+	       (setq last (car last))
+	       (eq (first last) 'GO)
+	       (eq (second last) start)
+	       (notany #'go-tag-p (rest forms)))
+	  `(while t ,@(compile-body (butlast (rest forms)) env :values 0))
+	  `(let ((,pc ',start))
+	    (while (setq ,pc (catch ',tagbody
+			       (case ,pc
+				 ,@(compile-tagbody-forms
+				    forms tagbody start new-env))))))))))
 
 (define-compiler THE (type form) env
   (compile-form form env))
