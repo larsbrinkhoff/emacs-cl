@@ -81,7 +81,7 @@
     ((vector-and-typep array 'ARRAY)
      (aref (aref array 2) (apply #'ARRAY-ROW-MAJOR-INDEX subscripts)))
     (t
-     (error))))
+     (ERROR 'TYPE-ERROR (kw DATUM) array (kw EXPECTED-TYPE) 'ARRAY))))
 
 (defsetf AREF (array &rest subscripts) (obj)
   `(cond
@@ -101,17 +101,18 @@
 (DEFSETF AREF (array &rest subscripts) (obj)
   `(COND
      ((BIT-VECTOR-P ,array)
-      (SETF (BIT ,array (first ',subscripts))) ,obj)
+      (SETF (BIT ,array (first (QUOTE ,subscripts)))) ,obj)
      ((STRINGP ,array)
-      (SETF (CHAR ,array (first ',subscripts))) ,obj)
-     ((vector-and-typep ,array 'SIMPLE-VECTOR)
+      (SETF (CHAR ,array (first (QUOTE ,subscripts)))) ,obj)
+     ((vector-and-typep ,array (QUOTE SIMPLE-VECTOR))
       (SETF (SVREF ,array ,(first subscripts)) ,obj))
-     ((vector-and-typep ,array 'VECTOR)
-      (ASET (aref ,array 2) (first ',subscripts) ,obj))
-     ((vector-and-typep ,array 'ARRAY)
+     ((vector-and-typep ,array (QUOTE VECTOR))
+      (aset (aref ,array 2) (first (QUOTE ,subscripts)) ,obj))
+     ((vector-and-typep ,array (QUOTE ARRAY))
       (aset (aref ,array 2) (ARRAY-ROW-MAJOR-INDEX ,@subscripts) ,obj))
-     (t
-      (error))))
+     (T
+      (ERROR (QUOTE TYPE-ERROR) ,(kw DATUM) ,array
+             ,(kw EXPECTED-TYPE) (QUOTE ARRAY)))))
 
 (defun ARRAY-DIMENSION (array axis)
   (cond
