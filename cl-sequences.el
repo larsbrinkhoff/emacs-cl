@@ -140,7 +140,10 @@
 	    (setq result (nreverse result))
 	    (ecase type
 	      (LIST	result)
-	      (VECTOR	(apply #'VECTOR result))))))
+	      (STRING	(if (null result)
+			    ""
+			    (apply #'string (mapcar #'CHAR-CODE result))))
+	      (VECTOR	(apply #'vector 'SIMPLE-VECTOR result))))))
       (push (APPLY fn (mapcar (lambda (seq) (ELT seq i)) sequences)) result)
       (incf i))))
 
@@ -401,6 +404,11 @@
 
 (defun CONCATENATE (type &rest sequences)
   (ecase type
+    (LIST
+     (let ((result nil))
+       (dolist (seq sequences (nreverse result))
+	 (dosequence (x seq)
+           (push x result)))))
     (VECTOR
      (let ((vector (make-vector (1+ (reduce #'+ (mapcar #'LENGTH sequences)))
 				'SIMPLE-VECTOR))
@@ -410,8 +418,7 @@
 	   (aset vector (incf i) x)))
        vector))
     (STRING
-     (let ((string
-	    (make-string (reduce #'+ (mapcar #'LENGTH sequences)) 0))
+     (let ((string (make-string (reduce #'+ (mapcar #'LENGTH sequences)) 0))
 	   (i -1))
        (dolist (seq sequences)
 	 (dosequence (x seq)
