@@ -6,10 +6,15 @@
 (defvar emacs-cl-prompt-marker nil
   "Position of last prompt.")
 
+(defvar emacs-cl-history '("")
+  "Common Lisp listener command history.")
+
+(defvar emacs-cl-history-index 0
+  "Common Lisp listener command history index.")
+
 (defun emacs-cl ()
   "Starts a Common Lisp listener."
   (interactive)
-  (make-variable-buffer-local 'emacs-cl-prompt-marker)
   (switch-to-buffer (generate-new-buffer "*Emacs Common Lisp*"))
   (emacs-cl-mode)
   (setq *STANDARD-OUTPUT* (make-buffer-output-stream (current-buffer))
@@ -30,6 +35,9 @@
   (setq major-mode 'emacs-cl-mode)
   (setq mode-name "Emacs Common Lisp")
   (use-local-map emacs-cl-mode-map)
+  (make-variable-buffer-local 'emacs-cl-prompt-marker)
+  (make-variable-buffer-local 'emacs-cl-history)
+  (make-variable-buffer-local 'emacs-cl-history-index)
   (run-hooks 'emacs-cl-mode-hooks))
 
 (defvar emacs-cl-mode-map nil
@@ -38,7 +46,9 @@
 (unless emacs-cl-mode-map
   (setq emacs-cl-mode-map (make-keymap))
   (substitute-key-definition 'newline 'emacs-cl-newline
-			     emacs-cl-mode-map global-map))
+			     emacs-cl-mode-map global-map)
+  (define-key emacs-cl-mode-map "\M-p" 'emacs-cl-history-previous)
+  (define-key emacs-cl-mode-map "\M-n" 'emacs-cl-history-next))
 
 (defun* emacs-cl-eval-print (form)
   (let ((*-sym (NTH-VALUE 0 (INTERN "*" "CL")))
@@ -59,7 +69,9 @@
     (goto-char (point-max))
     (when (> (point) emacs-cl-prompt-marker)
       (let ((+-sym (NTH-VALUE 0 (INTERN "+" "CL")))
-	    (--sym (NTH-VALUE 0 (INTERN "-" "CL"))))
+	    (--sym (NTH-VALUE 0 (INTERN "-" "CL")))
+	    (line (buffer-substring emacs-cl-prompt-marker (point))))
+	(setf (nth 0 emacs-cl-history) line)
 	(setq +++ ++ ++ (SYMBOL-VALUE +-sym))
 	(set +-sym (SYMBOL-VALUE --sym))
 	(catch 'error
@@ -68,12 +80,32 @@
 				       (insert "\nError: ")
 				       (PRIN1 c)
 				       (throw 'error nil))))
-		 (READ-FROM-STRING
-		  (buffer-substring emacs-cl-prompt-marker (point)))))
+		 (READ-FROM-STRING line))))
 	  (if debug-on-error
 	      (emacs-cl-eval-print (SYMBOL-VALUE --sym))
 	      (condition-case condition
 		  (emacs-cl-eval-print (SYMBOL-VALUE --sym))
 		(error (insert (format "\nError: %s" condition))))))))
     (insert "\n" (PACKAGE-NAME *PACKAGE*) "> ")
-    (setq emacs-cl-prompt-marker (point-marker))))
+    (setq emacs-cl-prompt-marker (point-marker))
+    (push "" emacs-cl-history)
+    (setq emacs-cl-history-index 0))
+
+(defun emacs-cl-history-previous ()
+  (interactive)
+  (when (and (>= (point) emacs-cl-prompt-marker)
+	     (< emacs-cl-history-index (1- (length emacs-cl-history))))
+    (when (zerop emacs-cl-history-index)
+      (setf (nth 0 emacs-cl-history)
+	    (buffer-substring emacs-cl-prompt-marker (point))))
+    (delete-region emacs-cl-prompt-marker (point))
+    (incf emacs-cl-history-index)
+    (insert (nth emacs-cl-history-index emacs-cl-history))))
+
+(defun emacs-cl-history-next ()
+  (interactive)
+  (when (and (>= (point) emacs-cl-prompt-marker)
+	     (plusp emacs-cl-history-index))
+    (delete-region emacs-cl-prompt-marker (point))
+    (decf emacs-cl-history-index)
+    (insert (nth emacs-cl-history-index emacs-cl-history))))
