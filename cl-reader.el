@@ -208,7 +208,7 @@
        (values (make-symbol string)))
     (setq string (concat string (list (CHAR-CODE char))))))
 
-(defvar *read-eval* T)
+(defvar *READ-EVAL* T)
 
 (defun sharp-dot-reader (stream char n)
   (if *read-eval*
