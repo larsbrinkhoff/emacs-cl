@@ -405,10 +405,24 @@
 			  ,@(rest clause)))))
 		   clauses)))))
 
-;;; TODO: CCASE
+(cl:defmacro CCASE (place &rest clauses)
+  (with-gensyms (again)
+    `(RESTART-BIND ((STORE-VALUE (LAMBDA (object)
+				   (SETF ,place object)
+				   (GO ,again))))
+       (TAGBODY
+         ,again
+         (ECASE ,place ,@clauses)))))
 
 (cl:defmacro ECASE (form &rest clauses)
-  `(CASE ,form ,@clauses (T (error "type error"))))
+  (with-gensyms (val)
+    `(LET ((,val ,form))
+       (CASE ,val
+	 ,@clauses
+	 (T (type-error ,val (QUOTE (MEMBER ,@(mappend
+					       (lambda (x)
+						 (ensure-list (first x)))
+					       clauses)))))))))
 
 (cl:defmacro TYPECASE (form &rest clauses)
   (let ((val (gensym))
@@ -426,10 +440,21 @@
 		       ,@(rest clause)))
 		   clauses)))))
 
-;;; TODO: CTYPECASE
+(cl:defmacro CTYPECASE (place &rest clauses)
+  (with-gensyms (again)
+    `(RESTART-BIND ((STORE-VALUE (LAMBDA (object)
+				   (SETF ,place object)
+				   (GO ,again))))
+       (TAGBODY
+         ,again
+         (ETYPECASE ,place ,@clauses)))))
 
 (cl:defmacro ETYPECASE (form &rest clauses)
-  `(TYPECASE ,form ,@clauses (T (error "type error"))))
+  (with-gensyms (val)
+    `(LET ((,val ,form))
+       (TYPECASE ,val
+	 ,@clauses
+	 (T (type-error ,val (QUOTE (OR ,@(mapcar #'first clauses)))))))))
 
 (defmacro* MULTIPLE-VALUE-BIND (vars form &body body)
   (if (null vars)
