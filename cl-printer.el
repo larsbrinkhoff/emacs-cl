@@ -21,7 +21,12 @@
        (princ (or (char-name object)
 		  (string (char-code object)))))
       ((cl::bignump object)
-       (princ "980723490872134 or something"))
+       (princ "#x")
+       (dotimes (i (1- (length object)))
+	 (let ((num (aref object (- (length object) i 1))))
+	   (dotimes (j 7)
+	     (princ (string (aref "0123456789abcdef"
+				  (logand (ash num (* -4 (- 6 j))) 15))))))))
       ((bit-vector-p object)
        (princ "#*")
        (dotimes (i (cl:length object))

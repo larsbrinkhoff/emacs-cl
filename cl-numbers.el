@@ -141,6 +141,9 @@
   (cond
     ((and (integerp x) (integerp y))
      (let ((sum (+ x y)))
+       (print x)
+       (print y)
+       (print sum)
        (cond
 	 ((and (plusp x) (plusp y) (minusp sum))
 	  (vector 'bignum sum 0))
@@ -160,7 +163,23 @@
 		       (cl:* (denominator y) (numerator x)))
 	    (cl:* (denominator x) (denominator y))))
     ((or (cl::bignump x) (cl::bignump y))
-     0)
+     (when (integerp x)
+       (psetq x y y x))
+     (if (integerp y)
+	 (let* ((x0 (aref x 1))
+		(sum (+ x0 y))
+		(new (copy-sequence x)))
+	   (aset new 1 sum)
+	   (print x0)
+	   (print y)
+	   (print sum)
+	   (cond
+	     ((and (>= x0 0) (>= y 0) (minusp sum))
+	      (aset new 2 (1+ (aref new 2))))
+	     ((and (minusp x0) (>= y 0) (>= sum 0))
+	      (aset new 2 (1+ (aref new 2)))))
+	   new)
+	 0))
     (t
      (error))))
 
