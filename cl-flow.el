@@ -54,10 +54,12 @@
 ;;; TODO: function-lambda-expression
 
 (defun FUNCTIONP (object)
-  (functionp object))
+  (or (and (functionp object) (atom object) (not (symbolp object)))
+      (INTERPRETED-FUNCTION-P object)))
 
 (defun COMPILED-FUNCTION-P (object)
-  (compiled-function-p object))
+  (or (compiled-function-p object)
+      (subrp object)))
 
 ;;; TODO: call-argument-limit
 

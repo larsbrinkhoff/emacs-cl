@@ -88,24 +88,3 @@
        ((symbolp form)		(member form *constants*))
        (t			T)))
     (t				(eq (first form) 'QUOTE))))
-
-(defun EVAL (form)
-  ;(setq form (nth-value 0 (MACROEXPAND form)))
-  (cond
-    ((SYMBOLP form)
-     (SYMBOL-VALUE form))
-    ((ATOM form)
-     form)
-    (t
-     (case (first form)
-       (IF
-	(if (EVAL (second form))
-	    (third form)
-	    (fourth form)))
-       (QUOTE
-	(second form))
-       (SETQ
-	(set (second form) (EVAL (third form))))
-       (t
-	(apply (symbol-function (first form))
-	       (mapcar #'EVAL (rest form))))))))

@@ -271,6 +271,8 @@
 	  (from (intern (concat "cl:" name))))
       (setf (gethash name cl-table) to)
       (setf (SYMBOL-PACKAGE to) *common-lisp-package*)
+      (if (boundp from)
+	  (set to (symbol-value from)))
       (fset to (symbol-function from))))
 
   (dolist (sym '(** *** ++ +++ // ///))

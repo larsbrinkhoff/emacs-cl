@@ -57,6 +57,8 @@
        (princ ")"))
       ((COMPILED-FUNCTION-P object)
        (PRINT-UNREADABLE-OBJECT (object stream :identity t)))
+      ((INTERPRETED-FUNCTION-P object)
+       (PRINT-UNREADABLE-OBJECT (object stream :identity t)))
       ((FUNCTIONP object)
        (PRINT-UNREADABLE-OBJECT (object stream :identity t)))
       ((cl::bignump object)

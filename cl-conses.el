@@ -18,20 +18,12 @@
   (setcdr cons object)
   cons)
 
-(defun CAR (object)
-  (cond
-    ((consp object)	(car object))
-    ((null object)	nil)
-    (t			(error "type error"))))
+(fset 'CAR (symbol-function 'car-safe))
 
 (defsetf CAR (cons) (car)
   `(setcar ,cons ,car))
 
-(defun CDR (object)
-  (cond
-    ((consp object)	(cdr object))
-    ((null object)	nil)
-    (t			(error "type error"))))
+(fset 'CDR (symbol-function 'cdr-safe))
 
 (defsetf CDR (cons) (car)
   `(setcdr ,cons ,cdr))

@@ -39,21 +39,25 @@
     (goto-char (point-max))
     (when (> (point) emacs-cl-prompt-position)
       (insert "\n")
-      (setq +++ ++
-	    ++ cl:+
-	    cl:+ cl:-
-	    cl:- (READ-FROM-STRING
-		  (buffer-substring emacs-cl-prompt-position (point))))
-      (setq /// // // cl:/)
-      (if debug-on-error
-	  (setq cl:/ (list (EVAL cl:-)))
-	  (condition-case condition
-	      (setq cl:/ (list (EVAL cl:-)))
-	    (error (insert (format "Error: %s" condition)))))
-      (setq *** ** ** cl:* cl:* (first cl:/))
-      (PRINT cl:*)
-      (dolist (x (rest cl:/))
-	(princ "\n")
-	(PRINT x)))
+      (let ((+-sym (nth-value 0 (INTERN "+" "CL")))
+	    (--sym (nth-value 0 (INTERN "-" "CL")))
+	    (*-sym (nth-value 0 (INTERN "*" "CL")))
+	    (/-sym (nth-value 0 (INTERN "/" "CL"))))
+	(setq +++ ++ ++ (SYMBOL-VALUE +-sym))
+	(set +-sym (SYMBOL-VALUE --sym))
+	(set --sym (READ-FROM-STRING
+		    (buffer-substring emacs-cl-prompt-position (point))))
+	(setq /// // // (SYMBOL-VALUE /-sym))
+	(if debug-on-error
+	    (set /-sym (list (EVAL (SYMBOL-VALUE --sym))))
+	    (condition-case condition
+		(set /-sym (list (EVAL (SYMBOL-VALUE --sym))))
+	      (error (insert (format "Error: %s" condition)))))
+	(setq *** ** ** (SYMBOL-VALUE *-sym))
+	(set *-sym (first (SYMBOL-VALUE /-sym)))
+	(PRINT (SYMBOL-VALUE *-sym))
+	(dolist (x (rest (SYMBOL-VALUE /-sym)))
+	  (princ "\n")
+	  (PRINT x))))
     (insert "\nEmacs CL> ")
     (setq emacs-cl-prompt-position (point))))

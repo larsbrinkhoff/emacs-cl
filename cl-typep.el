@@ -142,6 +142,9 @@
 (define-typep (object (INTEGER &optional (low '*) (high '*)) env)
   (and (INTEGERP object) (in-range object low high)))
 
+(define-typep (object INTERPRETED-FUNCTION env)
+  (INTERPRETED-FUNCTION-P object))
+
 (define-typep (object KEYWORD env)
   (KEYWORDP object))
 
