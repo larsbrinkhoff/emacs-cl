@@ -9,8 +9,10 @@
   (ERROR 'FILE-ERROR (kw PATHNAME) pathname))
 
 (defun DIRECTORY (pathspec)
-  ;; TODO...
-  (directory-files pathspec))
+  ;; TODO: A more correct implementation would walk through the result of
+  ;; (directory-files pathspec) and filter out all that matches pathspec.
+  ;; PATHNAME-MATCH-P.
+  (mapcar #'PATHNAME (file-expand-wildcards (NAMESTRING pathspec))))
 
 (defun PROBE-FILE (pathspec)
   ;; TODO...
