@@ -9,13 +9,13 @@
 
 (defun APPLY (fn &rest args)
   (cond
+    ((COMPILED-FUNCTION-P fn)
+     (apply #'apply fn args))
     ((INTERPRETED-FUNCTION-P fn)
      (eval-lambda-form (append (list (aref fn 1))
 			       (butlast args)
 			       (car (last args)))
 		       (aref fn 2)))
-    ((FUNCTIONP fn)
-     (apply #'apply fn args))
     ((functionp fn)
      (apply #'apply fn args))
     (t
@@ -78,10 +78,10 @@
 
 (defun FUNCALL (fn &rest args)
   (cond
+    ((COMPILED-FUNCTION-P fn)
+     (apply fn args))
     ((INTERPRETED-FUNCTION-P fn)
      (eval-lambda-form (cons (aref fn 1) args) (aref fn 2)))
-    ((FUNCTIONP fn)
-     (apply fn args))
     ((functionp fn)
      (apply fn args))
     (t
@@ -98,7 +98,8 @@
     (t					(error "type error"))))
 
 (defun FUNCTIONP (object)
-  (or (and (functionp object) (atom object) (not (symbolp object)))
+  (or (byte-code-function-p object)
+      (subrp object)
       (INTERPRETED-FUNCTION-P object)))
 
 (defun COMPILED-FUNCTION-P (object)
