@@ -250,7 +250,8 @@
 		 (let ((name (symcat conc-name (slot-name slot))))
 		   `((defun ,name (object) ,getter)
 		     ,@(unless (slot-read-only-p slot)
-		         `((defsetf ,name (object) (new) ,setter)))))))
+		         `((defsetf ,name (object) (new) ,setter)
+		           (DEFSETF ,name (object) (new) ,setter)))))))
 	       slots))
 
 	;; Finally, return structure name.
