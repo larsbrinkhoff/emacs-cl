@@ -111,7 +111,7 @@
 (defun cl:>= (number &rest numbers)
   (if (null numbers)
       t
-      (and (binary<= number (first numbers))
+      (and (binary<= (first numbers) number)
 	   (apply #'cl:>= (first numbers) (rest numbers)))))
 
 (defun MAX (&rest numbers)
@@ -159,29 +159,66 @@
     (t
      (error "type error"))))
 
-;;; TODO: floor, ffloor, ceiling, fceiling
-
-(defun divide (x y)
+(defun bignum/ (x y)
   (cond
     ((and (integerp x) (integerp y))
      (if (and (eql x MOST-NEGATIVE-FIXNUM) (eql y -1))
 	 (vector 'bignum MOST-NEGATIVE-FIXNUM 0)
 	 (/ x y)))
     ((and (INTEGERP x) (INTEGERP y))
-     (let ((sign 1) (q 0) (r 0) i)
+     (let ((sign 1)
+	   (q 0)
+	   (r 0)
+	   (i (1- (if (integerp x) 28 (* 28 (1- (length x)))))))
        (when (MINUSP x)
 	 (setq sign -1))
        (when (MINUSP y)
 	 (setq sign (- sign)))
-       (dotimes (i (if (integerp x) 28 (* 28 (1- (length x)))))
+       (while (>= i 0)
+;	 (print (format "x=%s y=%s q=%s r=%s" x y q r))
 	 (setq r (ASH r 1))
 	 (when (LOGBITP i x)
-	   (setq r (cl:1+ r)))
+	   (setq r (LOGIOR r 1)))
 	 (setq q (ASH q 1))
 	 (when (cl:>= r y)
-	   (setq q (cl:1+ q))
-	   (setq r (cl:- r y))))
-       (cl:* sign q)))))
+	   (setq q (LOGIOR q 1))
+	   (setq r (binary- r y)))
+	 (decf i))
+       (binary* sign q)))
+    (t
+     (error "type error"))))
+
+(defun* FLOOR (number &optional (divisor 1))
+  (let ((quotient (cl:/ number divisor)))
+    (cond
+      ((INTEGERP quotient))
+      ((floatp quotient)
+       (setq quotient (floor quotient)))
+      ((cl::ratiop quotient)
+       (setq quotient (bignum/ (NUMERATOR quotient) (DENOMINATOR quotient)))
+       (when (MINUSP quotient)
+	 (setq quotient (binary- quotient 1))))
+      (t
+       (error "type error")))
+    (VALUES quotient (binary- number (binary* quotient divisor)))))
+
+;;; TODO: ffloor
+
+(defun* CEILING (number &optional (divisor 1))
+  (let ((quotient (cl:/ number divisor)))
+    (cond
+      ((INTEGERP quotient))
+      ((floatp quotient)
+       (setq quotient (floor quotient)))
+      ((cl::ratiop quotient)
+       (setq quotient (bignum/ (NUMERATOR quotient) (DENOMINATOR quotient)))
+       (when (PLUSP quotient)
+	 (setq quotient (binary+ quotient 1))))
+      (t
+       (error "type error")))
+    (VALUES quotient (binary- number (binary* quotient divisor)))))
+
+;;; TODO: fceiling
 
 (defun* TRUNCATE (number &optional (divisor 1))
   (let ((quotient (cl:/ number divisor)))
@@ -190,11 +227,10 @@
       ((floatp quotient)
        (setq quotient (truncate quotient)))
       ((cl::ratiop quotient)
-       ;; TODO: bignum
-       (setq quotient (/ (NUMERATOR quotient) (DENOMINATOR quotient))))
+       (setq quotient (bignum/ (NUMERATOR quotient) (DENOMINATOR quotient))))
       (t
        (error "type error")))
-    (VALUES quotient (cl:- number (cl:* quotient divisor)))))
+    (VALUES quotient (binary- number (binary* quotient divisor)))))
 
 ;;; TODO: ftruncate, round, fround
 
@@ -249,7 +285,7 @@
     ((equal x [bignum 1 0])
      (canonical-bignum y))
     ((equal x [bignum -1 -1])
-     (cl:-1 (canonical-bignum y)))
+     (cl:- (canonical-bignum y)))
     ((equal y [bignum 10 0])
      (setq x (canonical-bignum x))
 ;    (print (format "(bignum* %s %s)" x y))
@@ -456,7 +492,7 @@
      (/ x (FLOAT y)))
     ((floatp y)
      (/ (FLOAT x) y))
-    ((or (cl::ratiop x) (cl::ratiop y))
+    ((or (RATIONALP x) (RATIONALP y))
      (cl::ratio (binary* (NUMERATOR x) (DENOMINATOR y))
 		(binary* (DENOMINATOR x) (NUMERATOR y))))
     (t
@@ -530,7 +566,11 @@
 
 ;;; TODO: LOG
 
-;;; TODO: MOD, REM
+(defun MOD (number divisor)
+  (NTH-VALUE 1 (FLOOR number divisor)))
+
+(defun REM (number divisor)
+  (NTH-VALUE 1 (TRUNCATE number divisor)))
 
 ;;; TODO: SIGNUM
 
