@@ -255,9 +255,60 @@
 
 ;;; TODO: round, fround
 
-;;; TODO: sin, cos, tan
+(defun SIN (x)
+  (cond
+    ((REALP x)
+     (sin (FLOAT x)))
+    ((COMLEXP x)
+     (error "TODO"))
+    (t
+     (error "type error"))))
 
-;;; TODO: asin, acos, atan
+(defun COS (x)
+  (cond
+    ((REALP x)
+     (cos (FLOAT x)))
+    ((COMLEXP x)
+     (error "TODO"))
+    (t
+     (error "type error"))))
+
+(defun TAN (x)
+  (cond
+    ((REALP x)
+     (tan (FLOAT x)))
+    ((COMLEXP x)
+     (error "TODO"))
+    (t
+     (error "type error"))))
+
+(defun ASIN (x)
+  (cond
+    ((REALP x)
+     (asin (FLOAT x)))
+    ((COMLEXP x)
+     (error "TODO"))
+    (t
+     (error "type error"))))
+
+(defun ACOS (x)
+  (cond
+    ((REALP x)
+     (acos (FLOAT x)))
+    ((COMLEXP x)
+     (error "TODO"))
+    (t
+     (error "type error"))))
+
+(defun* ATAN (x &optional y)
+  (when y (error "TODO"))
+  (cond
+    ((REALP x)
+     (atan (FLOAT x)))
+    ((COMLEXP x)
+     (error "TODO"))
+    (t
+     (error "type error"))))
 
 (DEFCONSTANT PI 3.141592653589793)
 
@@ -544,9 +595,33 @@
     (t
      (error "type error"))))
 
-;;; TODO: EVENP, ODDP
+(defun EVENP (num)
+  (if (INTEGERP num)
+      (LOGBITP 0 num)
+      (error "type error")))
 
-;;; TODO: EXP, EXPT
+(defun ODDP (num)
+  (if (INTEGERP num)
+      (LOGBITP 0 num)
+      (error "type error")))
+
+(defun EXP (num)
+  (cond
+    ((REALP num)
+     (exp (FLOAT num)))
+    ((COMPLEXP num)
+     (error "TODO"))
+    (t
+     (error "type error"))))
+
+(defun EXPT (base power)
+  (cond
+    ((and (REALP base) (REALP power))
+     (expt (FLOAT base) (FLOAT power)))
+    ((or (NUMBERP base) (NUMBERP power))
+     (error "TODO"))
+    (t
+     (error "type error"))))
 
 (defun GCD (&rest numbers)
   (reduce #'binary-gcd numbers :initial-value 0))
