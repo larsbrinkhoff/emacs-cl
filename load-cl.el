@@ -5,39 +5,49 @@
 ;;; Fake an IN-PACKAGE macro.
 (defmacro IN-PACKAGE (name) nil)
 
-(let ((load-path (cons "~/src/emacs-cl" load-path))
-      (debug-on-error t))
-  (load "utils")
+(defvar *cl-files*
+'("utils"
 
-  (load "cl-evaluation")
-  (load "cl-flow")
-  (load "cl-numbers")
-  (load "cl-conses")
-  (load "cl-arrays")
-  (load "cl-sequences")
-  (load "cl-structures")
-  (load "cl-iteration")
+  "cl-evaluation"
+  "cl-flow"
+  "cl-numbers"
+  "cl-conses"
+  "cl-arrays"
+  "cl-sequences"
+  "cl-structures"
+  "cl-iteration"
 
-  (load "cl-characters")
-  (load "cl-strings")
-  (load "cl-symbols")
-  (load "cl-packages")
+  "cl-characters"
+  "cl-strings"
+  "cl-symbols"
+  "cl-packages"
 
-  (load "cl-types")
-  (load "cl-typep")
-  (load "cl-subtypep")
+  "cl-types"
+  "cl-typep"
+  "cl-subtypep"
 
-  (load "cl-hash")
-  (load "cl-streams")
-  (load "cl-reader")
-  (load "cl-printer")
-  (load "cl-environment")
-  (load "cl-system")
-  (load "interaction")
-  (load "cl-eval")
+  "cl-hash"
+  "cl-streams"
+  "cl-reader"
+  "cl-printer"
+  "cl-environment"
+  "cl-system"
+  "interaction"
+  "cl-eval"
 
-  (load "populate"))
+  "populate"))
 
+(defun load-cl ()
+  (let ((load-path (cons "~/src/emacs-cl" load-path))
+	(debug-on-error t))
+    (mapc #'load *cl-files*)
+    (populate-packages)
+    (garbage-collect)
+    (message "Emacs CL is loaded")))
+
+(defun compile-cl ()
+  (dolist (file *cl-files*)
+    (byte-compile-file (concat file ".el"))))
+
+(load-cl)
 (IN-PACKAGE "CL-USER")
-(populate-packages)
-(garbage-collect)
