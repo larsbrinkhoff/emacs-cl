@@ -43,9 +43,21 @@
        (setf (nth ,index ,sequence) ,obj)
        (setf (AREF ,sequence ,index) ,obj)))
 
-;;; TODO: fill
+(DEFSETF ELT (sequence index) (obj)
+  `(IF (LISTP ,sequence)
+       (SETF (NTH ,index ,sequence) ,obj)
+       (SETF (AREF ,sequence ,index) ,obj)))
 
-(cl:defun make-sequence (type size &key initial-element)
+(cl:defun FILL (seq obj &key (start 0) end)
+  (let ((len (LENGTH seq)))
+    (unless end
+      (setq end len))
+    (do ((i start (1+ i)))
+	((eq i len))
+      (setf (ELT seq i) obj)))
+  seq)
+
+(cl:defun MAKE-SEQUENCE (type size &key initial-element)
   (cond
     ((SUBTYPEP type 'LIST)
      (make-list size initial-element))
@@ -60,7 +72,60 @@
     (t
      (error))))
 
-;;; TODO: subseq
+(defun SUBSEQ (seq start &optional end)
+  (unless end
+    (setq end (LENGTH seq)))
+  (cond
+    ((SIMPLE-STRING-P seq)
+     (substring seq start end))
+    ((STRINGP seq)
+     (substring (aref seq 2) start end))
+    ((listp seq)
+     (if (eq start end)
+	 nil
+	 (let ((new (copy-list (nthcdr start seq))))
+	   (setcdr (nthcdr (- end start 1) new) nil)
+	   new)))
+;     ((BIT-VECTOR-P seq)
+;      (let* ((s (if (SIMPLE-BIT-VECTOR-P seq) seq (aref seq 2)))
+; 	    (len (- end start))
+; 	    (new (make-bool-vector len nil)))
+;        (do ((i 0 (1+ i))
+; 	    (j start (1+ j)))
+; 	   ((eq i len))
+; 	 (aset new i (aref s j)))
+;        new))
+;     ((VECTORP seq)
+;      (let* ((len (- end start -1))
+; 	    (new (make-vector len 'SIMPLE-VECTOR))
+; 	    (s (if (SIMPLE-VECTOR-P seq)
+; 		   (progn (incf start) seq)
+; 		   (aref seq 2))))
+;        (do ((i 1 (1+ i))
+; 	    (j start (1+ j)))
+; 	   ((eq i len))
+; 	 (aset new i (aref seq j)))
+;        new))
+    ((VECTORP seq)
+     (let ((len (- end start))
+	   (i0 0))
+       (when (eq (aref seq 0) 'SIMPLE-VECTOR)
+	 (incf i0)
+	 (incf len)
+	 (incf start))
+       (let ((new (if (BIT-VECTOR-P seq)
+		      (make-bool-vector len nil)
+		      (make-vector len 'SIMPLE-VECTOR)))
+	     (storage (if (SIMPLE-VECTOR-P seq) seq (aref seq 2))))
+	 (do ((i i0 (1+ i))
+	      (j start (1+ j)))
+	     ((eq i len))
+	   (aset new i (aref storage j)))
+	 new)))
+    (t
+     (ERROR 'TYPE-ERROR (kw DATUM) seq (kq EXPECTED-TYPE) 'SEQUENCE))))
+
+;;; TODO: SETF SUBSEQ
 
 (defun* MAP (type fn &rest sequences)
   (let ((i 0)
@@ -86,9 +151,9 @@
 					     sequences)))
       (incf i))))
 
-;;; TODO: reduce
+;;; TODO: REDUCE
 
-;;; TODO: count, count-if, count-if-NOT
+;;; TODO: COUNT, COUNT-IF, COUNT-IF-NOT
 
 (defun LENGTH (sequence)
   (cond
@@ -105,7 +170,9 @@
     (t
      (error))))
 
-(defun* SORT (sequence predicate &key (key #'IDENTITY))
+;;; TODO: REVERSE, NREVERSE
+
+(cl:defun SORT (sequence predicate &key (key (cl:function IDENTITY)))
   (cond 
     ((listp sequence)
      (sort sequence (lambda (x y)
@@ -116,6 +183,44 @@
 	       (SORT (MAP 'LIST #'IDENTITY sequence) predicate :key key)))
     (t
      (error "type error"))))
+
+(fset 'STABLE-SORT (symbol-function 'SORT))
+
+(cl:defun FIND (obj seq &key from-end test test-not (start 0) end
+		             (key (cl:function IDENTITY)))
+    (when (and test test-not)
+      (error))
+    (when test-not
+      (setq test (COMPLEMENT test-not)))
+    (unless test
+      (setq test (cl:function EQL)))
+  (FIND-IF (lambda (x) (FUNCALL test obj x)) seq
+	   (kw FROM-END) from-end (kw START) start
+	   (kw END) end (kw KEY) key))
+
+(cl:defun FIND-IF (predicate seq &key from-end (start 0) end
+		                      (key (cl:function IDENTITY)))
+  (let ((len (LENGTH seq)))
+    (unless end
+      (setq end len))
+    (catch 'FIND
+      (if from-end
+	  (do ((i (1- end) (1- i)))
+	      ((eq i -1))
+	    (let ((elt (ELT seq i)))
+	      (when (FUNCALL predicate (FUNCALL key elt))
+		(throw 'FIND elt))))
+	  (do ((i start (1+ i)))
+	      ((eq i end))
+	    (let ((elt (ELT seq i)))
+	      (when (FUNCALL predicate (FUNCALL key elt))
+		(throw 'FIND elt))))))))
+
+(cl:defun FIND-IF-NOT (predicate seq &key from-end (start 0) end
+		                      (key (cl:function IDENTITY)))
+  (FIND-IF (COMPLEMENT predicate) seq
+	   (kw FROM-END) from-end (kw START) start
+	   (kw END) end (kw KEY) key))
 
 (defmacro* dovector ((var vector &optional result) &body body)
   (with-gensyms (i len vec)
