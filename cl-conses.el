@@ -5,19 +5,16 @@
 
 (IN-PACKAGE "CL")
 
-(setf (symbol-function CAR) (symbol-function car))
-
-(setf (symbol-function CDR) (symbol-function cdr))
-
-(setf (symbol-function CONS) (symbol-function cons))
-
-(setf (symbol-function CONSP) (symbol-function consp))
-
-(setf (symbol-function ATOM) (symbol-function atom))
-
-(setf (symbol-function RPLACA) (symbol-function rplaca))
-
-(setf (symbol-function RPLACD) (symbol-function rplacd))
+(mapc (lambda (to from)
+	(setf (symbol-function to) (symbol-function from)))
+      '(CONS CONSP ATOM RPLACA RPLACD CAR CDR CAAR CADR CDAR CDDR CAAAR CAADR
+	CADAR CADDR CDAAR CDADR CDDAR CDDDR CAAAAR CAAADR CAADAR CAADDR CADAAR
+	CADADR CADDAR CADDDR CDAAAR CDAADR CDADAR CDADDR CDDAAR CDDADR CDDDAR
+	CDDDDR)
+      '(cons consp atom rplaca rplacd car cdr caar cadr cdar cddr caaar caadr
+	cadar caddr cdaar cdadr cddar cdddr caaaar caaadr caadar caaddr cadaar
+	cadadr caddar cadddr cdaaar cdaadr cdadar cdaddr cddaar cddadr cdddar
+	cddddr))
 
 (defun* MAKE-LIST (size &key initial-element)
   (make-list size initial-element))
