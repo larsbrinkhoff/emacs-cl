@@ -522,13 +522,31 @@
     (when (eq (car plist) indicator)
       (return-from GETF (cadr plist)))))
 
-;;; TODO: Can't use defsetf here, use DEFINE-SETF-EXPANDER instead.
-(defsetf GETF (plist indicator &optional default) (value)
-  `(MULTIPLE-VALUE-BIND (ind val tail)
-       (GET-PROPERTIES ,plist '(,indicator))
-     (if (null tail)
-	 (progn (setf ,plist (LIST* ,indicator ,value ,plist) ,value))
-	 (setf (SECOND tail) ,value))))
+(DEFINE-SETF-EXPANDER GETF (plist indicator &optional default)
+  (MULTIPLE-VALUE-BIND (temps values variables setter getter)
+      (GET-SETF-EXPANSION plist nil) ;TODO: env
+    (with-gensyms (itemp dtemp obj)
+      (let (ilist)
+	(unless (null default)
+	  (push dtemp temps)
+	  (push default values))
+	(if (quoted-object-p indicator)
+	    (setq itemp indicator
+		  ilist `(QUOTE (,(second indicator))))
+	    (setq ilist `(LIST ,itemp)
+		  temps (cons itemp temps)
+		  values (cons indicator values)))
+	(VALUES temps
+		values
+		(list obj)
+		`(MULTIPLE-VALUE-BIND (ind val tail)
+		     (GET-PROPERTIES ,getter ,ilist)
+		   (IF (NULL tail)
+		       (MULTIPLE-VALUE-BIND ,variables 
+			   (LIST* ,itemp ,obj ,getter)
+			 ,setter)
+		       (SETF (SECOND tail) ,obj)))
+		`(GETF ,getter ,itemp))))))
 
 (defun delete-property (plist indicator)
   (cond
