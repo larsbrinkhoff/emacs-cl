@@ -5,6 +5,14 @@ most other Common Lisp features like lexical closures, packages,
 readtables, multiple values, bignums, adjustable arrays, etc, are
 present.  At this stage many bugs remain and error checking is sparse.
 
+This implementation provides a Common Lisp environment, separate from
+Emacs Lisp, running in Emacs.  It does not intend to extend Emacs Lisp
+with Common Lisp functionality; however, Common Lisp functions compile
+to byte code, so Emacs Lisp functions can call Common Lisp functions
+and vice versa.  Most Emacs Lisp data can be passed unchanged to
+Common Lisp functions, except vectors, which are used to implement
+various Common Lisp types not present in Emacs Lisp.
+
 See INSTALL for usage instructions.
 
 Some algorithms and messages have been inspired by SBCL.  Notes on the
@@ -15,9 +23,9 @@ internals of the implementation follows:
 Mapping from Emacs Lisp object types to Common Lisp object types:
 
 EL type			CL type
-bit-vector		simple-bit-vector
-bool-vector		simple-bit-vector
-TODO: character
+bit-vector (XEmacs)	simple-bit-vector
+bool-vector (GNU Emacs)	simple-bit-vector
+character (XEmacs)	character
 compiled-function	compiled-function
 cons			cons
 float			single-float
