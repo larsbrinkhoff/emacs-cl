@@ -15,7 +15,9 @@
   (setq *STANDARD-OUTPUT* (make-buffer-output-stream (current-buffer))
 	*ERROR-OUTPUT* *STANDARD-OUTPUT*
 	*TRACE-OUTPUT* *STANDARD-OUTPUT*)
-  (setq *STANDARD-INPUT* (make-read-char-exclusive-input-stream))
+  (setq *STANDARD-INPUT*
+	(MAKE-ECHO-STREAM (make-read-char-exclusive-input-stream)
+			  *STANDARD-OUTPUT*))
   (setq *TERMINAL-IO* (MAKE-TWO-WAY-STREAM *STANDARD-INPUT* *STANDARD-OUTPUT*)
 	*QUERY-IO* *TERMINAL-IO*)
   (insert "Emacs CL> ")

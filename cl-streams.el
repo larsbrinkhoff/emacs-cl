@@ -5,15 +5,6 @@
 
 (IN-PACKAGE "EMACS-CL")
 
-;;; System Class STREAM
-;;; TODO: System Class BROADCAST-STREAM
-;;; TODO: System Class CONCATENATED-STREAM
-;;; TODO: System Class ECHO-STREAM
-;;; TODO: System Class FILE-STREAM
-;;; TODO: System Class STRING-STREAM
-;;; TODO: System Class SYNONYM-STREAM
-;;; TODO: System Class TWO-WAY-STREAM
-
 (DEFSTRUCT (STREAM (:predicate STREAMP) (:copier nil))
   (openp T)
   (ELEMENT-TYPE 'CHARACTER)
@@ -348,7 +339,7 @@
 (defun MAKE-TWO-WAY-STREAM (input output)
   (mk-TWO-WAY-STREAM
    (kw INPUT-STREAM) input
-   (kw OUTPUT-STREAM) input
+   (kw OUTPUT-STREAM) output
    (kw read-fn)
      (lambda (stream)
        (CHAR-CODE (READ-CHAR (TWO-WAY-STREAM-INPUT-STREAM stream))))
@@ -372,9 +363,22 @@
 	 (WRITE-CHAR char (ECHO-STREAM-OUTPUT-STREAM stream))
 	 (CHAR-CODE char)))))
 
-;;; TODO: CONCATENATED-STREAM-STREAMS
+;;; CONCATENATED-STREAM-STREAMS defined by defstruct.
 
-;;; TODO: MAKE-CONCATENATED-STREAM
+(defun MAKE-CONCATENATED-STREAM (&rest streams)
+  (mk-CONCATENATED-STREAM
+   (kw STREAMS) streams
+   (kw read-fn)
+     (lambda (stream)
+       (let ((streams (CONCATENATED-STREAM-STREAMS stream)))
+	 (if (null streams)
+	     :eof
+	     (let ((char (READ-CHAR (first streams) nil)))
+	       (if (null char)
+		   (progn
+		     (pop (CONCATENATED-STREAM-STREAMS stream))
+		     (funcall (STREAM-read-fn stream) stream))
+		   (CHAR-CODE char))))))))
 
 (defun GET-OUTPUT-STREAM-STRING (stream)
   (STREAM-content stream))
