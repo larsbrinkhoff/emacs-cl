@@ -416,11 +416,12 @@
       (let ((form (first body)))
 	(cond
 	  ((STRINGP form)
-	   (if (and doc-allowed (not doc))
+	   (if (and doc-allowed (not doc) (rest body))
 	       (setq doc form)
 	       (done)))
 	  ((and (consp form) (eq (first form) 'DECLARE))
-	   (push (rest form) decl))
+	   (dolist (d (rest form))
+	     (push d decl)))
 	  (t
 	   (done)))))))
 
