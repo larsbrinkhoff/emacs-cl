@@ -57,7 +57,6 @@
 	(set *-sym (first (SYMBOL-VALUE /-sym)))
 	(PRINT (SYMBOL-VALUE *-sym))
 	(dolist (x (rest (SYMBOL-VALUE /-sym)))
-	  (princ "\n")
 	  (PRINT x))))
     (insert "\nEmacs CL> ")
     (setq emacs-cl-prompt-marker (point-marker))))
