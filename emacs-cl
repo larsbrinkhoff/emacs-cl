@@ -1,0 +1,3 @@
+#!/bin/sh
+EMACS=emacs20
+exec $EMACS -batch -l load-cl.el -l batch.el -f batch-repl
