@@ -50,18 +50,42 @@
 	  (throw 'GENTEMP (cl:values symbol)))
 	(incf *gentemp-counter*)))))
 
+; (defun SYMBOL-FUNCTION (symbol)
+;   (unless (symbolp symbol)
+;     (type-error symbol 'SYMBOL))
+;   (unless (fboundp symbol)
+;     (ERROR 'UNDEFINED-FUNCTION (kw NAME) symbol))
+;   (symbol-function symbol))
+
+; (DEFSETF SYMBOL-FUNCTION (symbol) (fn)
+;   `(fset ,symbol ,fn))
+
 (defun SYMBOL-FUNCTION (symbol)
   (unless (symbolp symbol)
     (type-error symbol 'SYMBOL))
   (unless (fboundp symbol)
     (ERROR 'UNDEFINED-FUNCTION (kw NAME) symbol))
-  (symbol-function symbol))
+  (let ((fn (symbol-function symbol)))
+    (if (consp fn)
+	(let ((ifn (second (third fn))))
+	  (if (INTERPRETED-FUNCTION-P ifn) ifn fn))
+	fn)))
 
-(defsetf SYMBOL-FUNCTION (symbol) (fn)
-  `(fset ,symbol ,fn))
+(defsetf SYMBOL-FUNCTION set-symbol-function)
 
-(DEFSETF SYMBOL-FUNCTION (symbol) (fn)
-  `(fset ,symbol ,fn))
+(DEFSETF SYMBOL-FUNCTION set-symbol-function)
+
+(defun set-symbol-function (symbol fn)
+  (unless (symbolp symbol)
+    (type-error symbol 'SYMBOL))
+  (fset symbol
+	(cond
+	  ((INTERPRETED-FUNCTION-P fn)
+	   `(lambda (&rest args) (APPLY ,fn args)))
+	  ((FUNCTIONP fn)
+	   fn)
+	  (t
+	   (type-error fn 'FUNCTION)))))
 
 (defun SYMBOL-NAME (symbol)
   (if symbol
