@@ -75,6 +75,9 @@
     (WRITE-STRING name stream)
     (WRITE-STRING escape stream)))
 
+(defun printer-escaping-p ()
+  (or *PRINT-READABLY* *PRINT-ESCAPE*))
+
 (cl:defun WRITE (object &key
 		 (array *PRINT-ARRAY*)
 		 (base *PRINT-BASE*)
@@ -115,24 +118,32 @@
        (print-float object stream))
       ((symbolp object)
        (cond
-	 ((eq (NTH-VALUE 0 (FIND-SYMBOL (SYMBOL-NAME object) *PACKAGE*))
-	      object)
-	  (print-symbol-name object stream))
-	 ((null (SYMBOL-PACKAGE object))
-	  (when *PRINT-GENSYM*
-	    (WRITE-STRING "#:" stream))
-	  (print-symbol-name object stream))
-	 ((eq (SYMBOL-PACKAGE object) *keyword-package*)
-	  (WRITE-STRING ":" stream)
-	  (print-symbol-name object stream))
-	 (t
-	  (WRITE-STRING (PACKAGE-NAME (SYMBOL-PACKAGE object)) stream)
-	  (WRITE-STRING (if (external-symbol-p object) ":" "::") stream)
-	  (print-symbol-name object stream))))
+	 (if (printer-escaping-p)
+	     (progn
+	       ((eq (NTH-VALUE 0 (FIND-SYMBOL (SYMBOL-NAME object) *PACKAGE*))
+		    object)
+		(print-symbol-name object stream))
+	       ((null (SYMBOL-PACKAGE object))
+		(when *PRINT-GENSYM*
+		  (WRITE-STRING "#:" stream))
+		(print-symbol-name object stream))
+	       ((eq (SYMBOL-PACKAGE object) *keyword-package*)
+		(WRITE-STRING ":" stream)
+		(print-symbol-name object stream))
+	       (t
+		(WRITE-STRING (PACKAGE-NAME (SYMBOL-PACKAGE object)) stream)
+		(WRITE-STRING (if (external-symbol-p object) ":" "::") stream)
+		(print-symbol-name object stream)))
+	     ;; TODO: *PRINT-CASE*
+	     (WRITE-STRING (symbol-name object) stream))))
       ((CHARACTERP object)
-       (WRITE-STRING "#\\" stream)
-       (WRITE-STRING (or (CHAR-NAME object) (string (CHAR-CODE object)))
-		     stream))
+       (if (printer-escaping-p)
+	   (progn
+	     (WRITE-STRING "#\\" stream)
+	     (WRITE-STRING (or (CHAR-NAME object)
+			       (string (CHAR-CODE object)))
+			   stream))
+	   (WRITE-CHAR object stream)))
       ((consp object)
        (WRITE-STRING "(" stream)
        (PRIN1 (car object) stream)
@@ -147,14 +158,14 @@
       ((FUNCTIONP object)
        (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
       ((ratiop object)
-       (PRIN1 (NUMERATOR object) stream)
+       (WRITE (NUMERATOR object) stream)
        (WRITE-STRING "/" stream)
-       (PRIN1 (DENOMINATOR object) stream))
+       (WRITE (DENOMINATOR object) stream (kw RADIX) nil))
       ((COMPLEXP object)
        (WRITE-STRING "#C(" stream)
-       (PRIN1 (REALPART object) stream)
+       (WRITE (REALPART object) stream)
        (WRITE-STRING " " stream)
-       (PRIN1 (IMAGPART object) stream)
+       (WRITE (IMAGPART object) stream)
        (WRITE-STRING ")" stream))
       ((BIT-VECTOR-P object)
        (cond
