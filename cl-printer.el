@@ -350,8 +350,11 @@
 	      (if in-word-p (CHAR-DOWNCASE char) (CHAR-UPCASE char))))
       (setq in-word-p alnump))))
 
-(defun write-char-to-*standard-output* (char)
-  (WRITE-CHAR (CODE-CHAR (char-octet char)) *STANDARD-OUTPUT*))
+(if use-character-type-p
+    (defun write-char-to-*standard-output* (char)
+      (WRITE-CHAR char *STANDARD-OUTPUT*))
+    (defun write-char-to-*standard-output* (char)
+      (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*)))
 
 (cl:defun print-integer (number stream &OPTIONAL (base 10) radix)
   (when radix

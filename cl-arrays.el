@@ -80,7 +80,7 @@
 	  (CHARACTER
 	   (values (or INITIAL-ELEMENT (ch 0))
 		   #'make-string
-		   #'CHAR-CODE
+		   (if use-character-type-p #'IDENTITY #'CHAR-CODE)
 		   'STRING
 		   'char-array))
 	  ((T)
@@ -103,49 +103,6 @@
 				DISPLACED-INDEX-OFFSET))
 	  (t		(vector array-type dimensions storage
 				DISPLACED-INDEX-OFFSET)))))))
-
-;     (ecase (UPGRADED-ARRAY-ELEMENT-TYPE ELEMENT-TYPE)
-;       (BIT
-;        (let* ((initial-element (or INITIAL-ELEMENT 0))
-; 	      (storage (or DISPLACED-TO
-; 			   (make-bit-vector size initial-element)))
-; 	      (array (cond
-; 		       (simplep	storage)
-; 		       (vectorp	(vector 'BIT-VECTOR FILL-POINTER storage
-; 					DISPLACED-INDEX-OFFSET))
-; 		       (t	(vector 'bit-array dimensions storage
-; 					DISPLACED-INDEX-OFFSET)))))
-; 	 (when INITIAL-CONTENTS
-; 	   (set-initial-contents (length dimensions) 0 storage
-; 				 INITIAL-CONTENTS #'bit-bool))
-; 	 array))
-;       (CHARACTER
-;        (let* ((initial-element (CHAR-CODE (or INITIAL-ELEMENT (ch 0))))
-; 	      (storage (or DISPLACED-TO (make-string size initial-element)))
-; 	      (array (cond
-; 		       (simplep	storage)
-; 		       (vectorp	(vector 'STRING FILL-POINTER storage
-; 					DISPLACED-INDEX-OFFSET))
-; 		       (t	(vector 'char-array dimensions storage
-; 					DISPLACED-INDEX-OFFSET)))))
-; 	 (when INITIAL-CONTENTS
-; 	   (set-initial-contents (length dimensions) 0 storage
-; 				 INITIAL-CONTENTS #'CHAR-CODE)
-; 	 array))
-;       ((T)
-;        (when simplep
-; 	 (incf size))
-;        (let* ((storage (or DISPLACED-TO (make-vector size INITIAL-ELEMENT)))
-; 	      (array (cond
-; 		       (simplep	(aset storage 0 'SIMPLE-VECTOR) storage)
-; 		       (vectorp	(vector 'VECTOR FILL-POINTER storage
-; 					DISPLACED-INDEX-OFFSET))
-; 		       (t	(vector 'ARRAY dimensions storage
-; 					DISPLACED-INDEX-OFFSET)))))
-; 	 (when INITIAL-CONTENTS
-; 	   (set-initial-contents (length dimensions) (if simplep 1 0)
-; 				 storage INITIAL-CONTENTS #'IDENTITY))
-; 	 array)))))
 
 (cl:defun ADJUST-ARRAY (array new-dimensions
 			&KEY ELEMENT-TYPE INITIAL-ELEMENT INITIAL-CONTENTS

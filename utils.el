@@ -92,11 +92,19 @@
 (defun type-error (datum type)
   (ERROR 'TYPE-ERROR (kw DATUM) datum (kw EXPECTED-TYPE) type))
 
-(defmacro ch (code)
-  (vector 'CHARACTER code))
+(defconst use-character-type-p (eq (type-of ?A) 'character))
 
-(defmacro ch= (char code)
-  `(eq (aref ,char 1) ,code))
+(if use-character-type-p
+    (defmacro ch (code)
+      (int-char code))
+    (defmacro ch (code)
+      (vector 'CHARACTER code)))
+
+(if use-character-type-p
+    (defmacro ch= (char code)
+      `(char= ,char ,(int-char code)))
+    (defmacro ch= (char code)
+      `(eq (aref ,char 1) ,code)))
 
 (defmacro define-storage-layout (type slots)
   (let ((index 0))

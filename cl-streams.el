@@ -430,8 +430,11 @@
 	 ((= (STREAM-position stream) (STREAM-end stream))
 	  (setf (STRING-STREAM-string stream) :eof))
 	 (t
-	  (char-octet (aref (STRING-STREAM-string stream)
-			    (1- (incf (STREAM-position stream))))))))))
+	  (let ((char (aref (STRING-STREAM-string stream)
+			    (1- (incf (STREAM-position stream))))))
+	    (if use-character-type-p
+		(CHAR-CODE char)
+		char)))))))
 
 (cl:defun MAKE-STRING-OUTPUT-STREAM (&KEY (ELEMENT-TYPE 'CHARACTER))
   (mk-STRING-STREAM

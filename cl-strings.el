@@ -34,16 +34,17 @@
     (t
      (type-error ,string 'STRING))))
 
-(unless (fboundp 'char-octet)
-  (defmacro char-octet (x) x))
+(if use-character-type-p
+    (defun SCHAR (string index)
+      (aref string index))
+    (defun SCHAR (string index)
+      (CODE-CHAR (aref string index))))
 
-(defun SCHAR (string index)
-  ;; TODO: make use of XEmacs' character type
-  (CODE-CHAR (char-octet (aref string index))))
-
-(defsetf SCHAR (string index) (char)
-  ;; TODO: make use of XEmacs' character type
-  `(aset ,string ,index (CHAR-CODE ,char)))
+(if use-character-type-p
+    (defsetf SCHAR (string index) (char)
+      `(aset ,string ,index ,char))
+    (defsetf SCHAR (string index) (char)
+      `(aset ,string ,index (CHAR-CODE ,char))))
 
 (defun STRING (x)
   (cond
@@ -184,5 +185,8 @@
   (or (stringp object)
       (vector-and-typep object 'STRING)))
 
-(cl:defun MAKE-STRING (size &KEY initial-element element-type)
-  (make-string size (if initial-element (CHAR-CODE initial-element) 0)))
+(if use-character-type-p
+    (cl:defun MAKE-STRING (size &KEY initial-element element-type)
+      (make-string size (or initial-element ?\000)))
+    (cl:defun MAKE-STRING (size &KEY initial-element element-type)
+      (make-string size (if initial-element (CHAR-CODE initial-element) 0))))

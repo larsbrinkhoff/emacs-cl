@@ -65,6 +65,7 @@
 			`(SIMPLE-BIT-VECTOR ,(length object)))
        ((compiled-function subr)
 			'COMPILED-FUNCTION)
+       (character	'CHARACTER)
        (cons		'CONS)
        (float		'SINGLE-FLOAT)
        (hash-table	'HASH-TABLE)

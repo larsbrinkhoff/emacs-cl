@@ -12,7 +12,8 @@
 
 ;;; TODO: use the XEmacs character type
 
-(define-storage-layout char (code))
+(unless use-character-type-p
+  (define-storage-layout char (code)))
 
 (defun CHAR= (&rest chars)
   (apply #'cl:= (mapcar #'CHAR-CODE chars)))
@@ -61,8 +62,10 @@
     (t
      (error "invalid character designator"))))
 
-(defun CHARACTERP (char)
-  (vector-and-typep char 'CHARACTER))
+(if use-character-type-p
+    (fset 'CHARACTERP (symbol-function 'characterp))
+    (defun CHARACTERP (char)
+      (vector-and-typep char 'CHARACTER)))
 
 (defun ALPHA-CHAR-P (char)
   (or (cl:<= 65 (CHAR-CODE char) 90)
@@ -90,9 +93,14 @@
   (let ((code (CHAR-CODE char)))
     (and (>= code 32) (<= code 126))))
 
-(defun STANDARD-CHAR-P (char)
-  (find (CHAR-CODE char)
-	"\n abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$\"'(),_-./:;?+<=>#%&*@[\\]{|}`^~"))
+(defconst standard-chars
+    "\n abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$\"'(),_-./:;?+<=>#%&*@[\\]{|}`^~")
+
+(if use-character-type-p
+    (defun STANDARD-CHAR-P (char)
+      (find char standard-chars))
+    (defun STANDARD-CHAR-P (char)
+      (find (CHAR-CODE char) standard-chars)))
 
 (defun CHAR-UPCASE (char)
   (if (LOWER-CASE-P char)
@@ -113,16 +121,22 @@
 (defun BOTH-CASE-P (char)
   (or (UPPER-CASE-P char) (LOWER-CASE-P char)))
 
-(defun CHAR-CODE (char)
-  ;;(CHECK-TYPE char 'CHARACTER)
-  (char-code char))
+(if use-character-type-p
+    (fset 'CHAR-CODE (symbol-function 'char-to-int))
+    (defun CHAR-CODE (char)
+      (char-code char)))
 
 (fset 'CHAR-INT (symbol-function 'CHAR-CODE))
 
-(defun CODE-CHAR (code)
-  (if (and (integerp code) (< code CHAR-CODE-LIMIT))
-      (vector 'CHARACTER code)
-      nil))
+(if use-character-type-p
+    (defun CODE-CHAR (code)
+      (if (and (integerp code) (< code CHAR-CODE-LIMIT))
+	  (int-char code)
+	  nil))
+    (defun CODE-CHAR (code)
+      (if (and (integerp code) (< code CHAR-CODE-LIMIT))
+	  (vector 'CHARACTER code)
+	  nil)))
 
 (DEFCONSTANT CHAR-CODE-LIMIT 256)
 
