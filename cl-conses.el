@@ -114,7 +114,7 @@
      tree)
     (t
      (CONS (SUBST new old (CAR tree) (kw KEY) KEY (kw TEST) TEST)
-	   (SUBST new old (CAR tree) (kw KEY) KEY (kw TEST) TEST)))))
+	   (SUBST new old (CDR tree) (kw KEY) KEY (kw TEST) TEST)))))
 
 (cl:defun SUBST-IF (new predicate tree &KEY KEY)
   (unless KEY
@@ -126,7 +126,7 @@
      tree)
     (t
      (CONS (SUBST-IF new predicate (CAR tree) (kw KEY) KEY)
-	   (SUBST-IF new predicate (CAR tree) (kw KEY) KEY)))))
+	   (SUBST-IF new predicate (CDR tree) (kw KEY) KEY)))))
 
 (cl:defun SUBST-IF-NOT (new predicate tree &KEY KEY)
   (unless KEY
@@ -138,7 +138,7 @@
      tree)
     (t
      (CONS (SUBST-IF new predicate (CAR tree) (kw KEY) KEY)
-	   (SUBST-IF new predicate (CAR tree) (kw KEY) KEY)))))
+	   (SUBST-IF new predicate (CDR tree) (kw KEY) KEY)))))
 
 (cl:defun NSUBST (new old tree &KEY KEY TEST TEST-NOT)
   (unless KEY
@@ -155,8 +155,8 @@
     ((ATOM tree)
      tree)
     (t
-     (RPLACA tree (SUBST new old (CAR tree) (kw KEY) KEY (kw TEST) TEST))
-     (RPLACD tree (SUBST new old (CDR tree) (kw KEY) KEY (kw TEST) TEST)))))
+     (RPLACA tree (NSUBST new old (CAR tree) (kw KEY) KEY (kw TEST) TEST))
+     (RPLACD tree (NSUBST new old (CDR tree) (kw KEY) KEY (kw TEST) TEST)))))
 
 (cl:defun NSUBST-IF (new predicate tree &KEY KEY)
   (unless KEY
