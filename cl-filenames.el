@@ -97,8 +97,11 @@
 (defun DIRECTORY-NAMESTRING (pathname-designator)
   (let* ((pathname (PATHNAME pathname-designator))
 	 (dir (PATHNAME-DIRECTORY pathname))
-	 (string (if (and (consp dir) (eq (first dir) (kw ABSOLUTE)))
-		     "/" "")))
+	 (string (cond
+		   ((atom dir) (error "error"))
+		   ((eq (first dir) (kw ABSOLUTE)) "/")
+		   ((equal dir (list (kw RELATIVE))) "./")
+		   (t ""))))
     (dolist (x (rest dir) string)
       (setq string
 	    (concat string
@@ -217,15 +220,22 @@
 	 (ERROR 'ERROR)))
     ((STRINGP thing)
      ;; TODO: parse logical pathnames
-     (let* ((string (SUBSEQ thing START END))
-	    (dir (parse-dir (file-name-directory string)))
-	    (name+ver (file-name-nondirectory string))
-	    (name-ver (file-name-sans-versions name+ver))
-	    (ver (parse-ver name-ver (substring name+ver (length name-ver))))
-	    (name (maybe-wild (file-name-sans-extension name-ver)))
-	    (type (maybe-wild (file-name-extension name+ver))))
-       (cl:values (mkpathname nil nil dir name type ver)
-		  (or END (LENGTH thing)))))
+     (cond
+       ((string= thing ".")
+	(mkpathname nil nil (list (kw RELATIVE)) nil nil nil))
+       ((string= thing "..")
+	(mkpathname nil nil (list (kw RELATIVE) (kw UP)) nil nil nil))
+       (t
+	(let* ((string (SUBSEQ thing START END))
+	       (dir (parse-dir (file-name-directory string)))
+	       (name+ver (file-name-nondirectory string))
+	       (name-ver (file-name-sans-versions name+ver))
+	       (ver (parse-ver name-ver
+			       (substring name+ver (length name-ver))))
+	       (name (maybe-wild (file-name-sans-extension name-ver)))
+	       (type (maybe-wild (file-name-extension name+ver))))
+	  (cl:values (mkpathname nil nil dir name type ver)
+		     (or END (LENGTH thing)))))))
     (t
      (type-error thing '(OR PATHNAME STRING STREAM)))))
 
@@ -271,12 +281,12 @@
     ((wild-test first pathname wildcard)
      (directories-match-p (rest pathname) (rest wildcard)))))
 
-(defvar *all-wild-pathname* (mkpathname (kw WILD) (kw WILD) (kw WILD)
-					(kw WILD) (kw WILD) (kw WILD)))
+(defvar *wild-pathname* (mkpathname (kw WILD) (kw WILD) (kw WILD)
+				    (kw WILD) (kw WILD) (kw WILD)))
 
 (defun PATHNAME-MATCH-P (pathname-designator wildcard)
   (let ((pathname (PATHNAME pathname-designator))
-	(wildcard (MERGE-PATHNAMES wildcard *all-wild-pathname* (kw WILD))))
+	(wildcard (MERGE-PATHNAMES wildcard *wild-pathname* (kw WILD))))
     (and (wild-test PATHNAME-HOST pathname wildcard)
 	 (wild-test PATHNAME-DEVICE pathname wildcard)
 	 (or (wild-test PATHNAME-DIRECTORY pathname wildcard)
