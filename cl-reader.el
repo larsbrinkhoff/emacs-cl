@@ -285,27 +285,42 @@
 
 
 
-;(DEFMACRO BACKQUOTE (form)
-;  (expand-backquote form))
-
-(defun expand-backquote (form)
+(DEFMACRO BACKQUOTE (form)
   (PRINT form)
+  (PRINT (expand-bq form)))
+
+(defun expand-bq (form)
   (cond
     ((consp form)
-     (case (first form)
+     (case (car form)
        (COMMA
 	(second form))
        ((COMMA-AT COMMA-DOT)
 	(error "syntax error"))
        (t
-	(append (list 'APPEND)
-		(mapcar (lambda (x) (list 'LIST (list 'QUOTE x))) form)
-		(let ((tail (cdr (last form))))
-		  (list (list 'QUOTE tail)))))))
+	(cons 'APPEND (expand-bq-list form)))))
     ((VECTORP form)
      (apply #'VECTOR nil))
     (t
      form)))
+
+(defun* expand-bq-list (list)
+  (let ((car (car list))
+	(cdr (cdr list)))
+    (cons
+     (if (consp car)
+	 (case (first car)
+	   (COMMA			`(LIST ,(second car)))
+	   ((COMMA-AT COMMA-DOT)	(second car))
+	   (t				`(LIST ,(expand-bq car))))
+	 (case car
+	   (COMMA			(return-from expand-bq-list
+					  (list (second list)))
+	   ((COMMA-AT COMMA-DOT)	(error "syntax error"))
+	   (t				`(LIST ,(expand-bq car)))))
+     (if (consp cdr)
+	 (expand-bq-list cdr)
+	 `((QUOTE ,cdr))))))
 
 
 
