@@ -29,7 +29,11 @@
   (setq emacs-cl-prompt-marker (point-marker)))
 
 (defun emacs-cl-mode ()
-  "Major mode for an Emacs Common Lisp listener."
+  "Major mode for an Emacs Common Lisp listener.
+
+  \\[emacs-cl-newline]		Process current line
+  \\[emacs-cl-history-previous]		Previous line in history
+  \\[emacs-cl-history-next]		Next line in history"
   (interactive)
   (kill-all-local-variables)
   (setq major-mode 'emacs-cl-mode)
