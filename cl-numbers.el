@@ -204,7 +204,7 @@
      (error "type error"))))
 
 (defconst two^fixnum-bits
-    (* 2 (1+ (float most-positive-fixnum)))))
+    (* 2 (1+ (float most-positive-fixnum))))
 
 (defun floor-to-bignum (float)
   (let ((list nil))
