@@ -12,11 +12,9 @@
 ;;; TODO: Function GET-UNIVERSAL-TIME, GET-DECODED-TIME
 
 (defun SLEEP (seconds)
-  (sit-for (if (or (integerp seconds) (floatp seconds))
-	       seconds
-	       (FLOAT seconds))
-	   0 t)
-  ;; TODO: if sit-for didn't return t, sleep some more.
+  (sleep-for (if (or (integerp seconds) (floatp seconds))
+		 seconds
+		 (FLOAT seconds)))
   nil)
 
 ;;; TODO: Function APROPOS, APROPOS-LIST
