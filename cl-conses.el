@@ -387,26 +387,29 @@
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
     (setq TEST #'EQL))
-  (do ((list list (cdr list)))
-      ((null list) nil)
-    (when (FUNCALL TEST object (FUNCALL KEY (car list)))
-      (return-from MEMBER list))))
+  (catch 'MEMBER
+    (do ((list list (cdr list)))
+	((null list) nil)
+      (when (FUNCALL TEST object (FUNCALL KEY (car list)))
+	(throw 'MEMBER list)))))
 
 (cl:defun MEMBER-IF (predicate list &KEY KEY)
   (unless KEY
     (setq KEY #'IDENTITY))
-  (do ((list list (cdr list)))
-      ((null list) nil)
-    (when (FUNCALL predicate (FUNCALL KEY (car list)))
-      (return-from MEMBER list))))
+  (catch 'MEMBER-IF
+    (do ((list list (cdr list)))
+	((null list) nil)
+      (when (FUNCALL predicate (FUNCALL KEY (car list)))
+	(throw 'MEMBER-IF list)))))
 
 (cl:defun MEMBER-IF-NOT (predicate list &KEY KEY)
   (unless KEY
     (setq KEY #'IDENTITY))
-  (do ((list list (cdr list)))
-      ((null list) nil)
-    (unless (FUNCALL predicate (FUNCALL KEY (car list)))
-      (return-from MEMBER list))))
+  (catch 'MEMBER-IF-NOT
+    (do ((list list (cdr list)))
+	((null list) nil)
+      (unless (FUNCALL predicate (FUNCALL KEY (car list)))
+	(throw 'MEMBER-IF-NOT list)))))
 
 (defun MAPC (fn &rest lists)
   (let ((result (car lists)))
