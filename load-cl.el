@@ -32,6 +32,7 @@
   "cl-printer"
   "cl-environment"
   "cl-system"
+  "cl-files"
   "interaction"
   "cl-eval"
 
