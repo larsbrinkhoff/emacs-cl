@@ -80,6 +80,15 @@
 			 ;; TODO: (kw <name>)
 		         (kw COMMON-LISP)))
 
+(let ((cons (ASSOC (emacs-version)
+		   '(("GNU Emacs" .	(kw GNU-EMACS))
+		     ("XEmacs" .	(kw XEMACS))
+		     ("Hemlock" .	(kw HEMLOCK)))
+		   (kw TEST) (lambda (version string)
+			       (STRING= version string
+					(kw END1) (LENGTH string))))))
+  (push (if cons (cdr cons) (kw UNKNOWN-EMACS)) *FEATURES*))
+
 (defvar *COMPILE-FILE-PATHNAME* nil)
 (defvar *COMPILE-FILE-TRUENAME* nil)
 
