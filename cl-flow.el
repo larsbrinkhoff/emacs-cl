@@ -618,7 +618,8 @@
   (setq place (MACROEXPAND place))
   (cond
    ((consp place)
-    (let ((fn (gethash (first place) *setf-expanders*)))
+    (let* ((name (first place))
+	   (fn (gethash (first place) *setf-expanders*)))
       (if fn
 	  (apply fn (rest place))
 	  (let ((temps (map-to-gensyms (rest place)))
@@ -626,8 +627,8 @@
 	    (VALUES temps
 		    (rest place)
 		    (list var)
-		    `(FUNCALL '(SETF ,(first place)) ,var ,@temps)
-		    `(,(first place) ,@temps))))))
+		    `(FUNCALL (FUNCTION (SETF ,name)) ,var ,@temps)
+		    `(,name ,@temps))))))
    ((symbolp place)
     (let ((var (gensym)))
       (VALUES nil nil (list var) `(SETQ ,place ,var) place)))
