@@ -158,7 +158,40 @@
 	    (APPLY fn (mapcar (lambda (seq) (ELT seq i)) sequences)))
       (incf i))))
 
-;;; TODO: REDUCE
+(cl:defun REDUCE (fn seq &key KEY FROM-END (START 0) END
+			      (INITIAL-VALUE nil initial-value-p))
+  (unless KEY
+    (setq KEY (cl:function IDENTITY)))
+  (unless end
+    (setq end (LENGTH seq)))
+  (let ((len (- END START))
+	result)
+    (cond
+      ((and (eq len 1) (not initial-value-p))
+       (ELT seq START))
+      ((zerop len)
+       (if initial-value-p
+	   INITIAL-VALUE
+	   (FUNCALL fn)))
+      (t
+       (if FROM-END
+	   (progn
+	     (when initial-value-p
+	       (decf END)
+	       (setq result (FUNCALL fn INITIAL-VALUE
+				     (FUNCALL KEY (ELT seq END)))))
+	     (do ((i (1- END) (1- i)))
+		 ((< i START))
+	       (setq result (FUNCALL fn (FUNCALL KEY (ELT seq i)) result))))
+	   (progn
+	     (when initial-value-p
+	       (setq result (FUNCALL fn INITIAL-VALUE
+				     (FUNCALL KEY (ELT seq START))))
+	       (incf START))
+	     (do ((i START (1+ i)))
+		 ((>= i END))
+	       (setq result (FUNCALL fn result (FUNCALL KEY (ELT seq i)))))))
+       result))))
 
 (cl:defun COUNT (obj seq &key FROM-END TEST TEST-NOT (START 0) END
 			      (KEY (cl:function IDENTITY)))
@@ -434,8 +467,47 @@
 (cl:defun REMOVE-IF-NOT (predicate &rest args)
   (apply (cl:function REMOVE-IF) (COMPLEMENT predicate) args))
 
-;;; TODO: DELETE
-;;; TODO: DELETE-IF
+(cl:defun DELETE (obj seq &key FROM-END TEST TEST-NOT (START 0) END COUNT KEY)
+  (when (and TEST TEST-NOT)
+    (error))
+  (when TEST-NOT
+    (setq TEST (COMPLEMENT TEST-NOT)))
+  (unless TEST
+    (setq TEST #'EQL))
+  (DELETE-IF (lambda (x) (FUNCALL TEST obj x)) seq (kw FROM-END) FROM-END
+	     (kw START) START (kw END) END (kw COUNT) COUNT (kw KEY) KEY))
+
+(defun list-delete (predicate list end count key)
+  (cond
+    ((or (null list) (zerop end) (zerop count))
+     nil)
+    ((FUNCALL predicate (FUNCALL key (first list)))
+     (let ((rest (list-delete predicate (rest list) (1- end) (1- count) key)))
+       (if (null rest)
+	   nil
+	 (RPLACA list (car rest))
+	 (RPLACD list (cdr rest)))))
+    (t
+     (RPLACD list (list-delete predicate (rest list) (1- end) count key)))))
+
+(cl:defun DELETE-IF (predicate seq &key FROM-END (START 0) END COUNT KEY)
+  (cond
+    ((listp obj)
+     (progn
+       (unless KEY
+	 (setq KEY #'IDENTITY))
+       (if from-end
+	   (REMOVE-IF predicate seq (kw FROM-END) FROM-END (kw KEY) KEY
+		      (kw START) START (kw END) END (kw COUNT) COUNT)
+	   (list-delete predicate (nthcdr START seq) (or END (LENGTH seq))
+			COUNT KEY))))
+    ((VECTORP obj)
+     (if (ARRAY-HAS-FILL-POINTER-P obj)
+	 (error "TODO")
+	 (REMOVE-IF predicate seq (kw FROM-END) FROM-END (kw KEY) KEY
+		    (kw START) START (kw END) END (kw COUNT) COUNT)))
+    (t
+     (type-error seq 'SEQUENCE))))
 
 (cl:defun DELETE-IF-NOT (predicate &rest args)
   (apply (cl:function DELETE-IF) (COMPLEMENT predicate) args))
