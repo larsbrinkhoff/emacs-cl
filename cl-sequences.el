@@ -41,13 +41,13 @@
 
 (defun* make-sequence (type size &key initial-element)
   (cond
-    ((cl:subtypep type 'list)
+    ((SUBTYPEP type 'list)
      (make-list size initial-element))
-    ((cl:subtypep type 'bit-vector)
+    ((SUBTYPEP type 'bit-vector)
      (make-bool-vector size (ecase initial-element ((0 nil) nil) (1 t))))
-    ((cl:subtypep type 'string)
+    ((SUBTYPEP type 'string)
      (make-string size (if initial-element (char-code initial-element) 0)))
-    ((cl:subtypep type 'vector)
+    ((SUBTYPEP type 'vector)
      (let ((vector (make-vector (1+ size) initial-element)))
        (aset vector 0 'simple-vector)
        vector))

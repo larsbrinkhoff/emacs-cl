@@ -162,8 +162,8 @@
 
 (defun upgraded-array-element-type (typespec &optional env)
   (cond
-    ((cl:subtypep typespec 'bit)	'bit)
-    ((cl:subtypep typespec 'character)	'character)
+    ((SUBTYPEP typespec 'bit)		'bit)
+    ((SUBTYPEP typespec 'character)	'character)
     (t					t)))
 
 (defun simple-vector-p (object)

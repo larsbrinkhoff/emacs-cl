@@ -50,7 +50,7 @@
     ((and (cl::bignump num1) (cl::bignump num2))
      (and (= (length num1) (length num2))
 	  (every #'eql num1 num2)))
-    ((and (cl:numberp num1) (cl:numberp num2))
+    ((and (NUMBERP num1) (NUMBERP num2))
      nil)
     (t
      (error "type error: = %s %s" num1 num2))))
@@ -522,7 +522,7 @@
 
 ;;; TODO: *RANDOM-STATE*
 
-(defun cl:numberp (object)
+(defun NUMBERP (object)
   (or (numberp object)
       (and (vectorp object)
 	   (let ((type (aref object 0)))

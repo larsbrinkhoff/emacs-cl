@@ -44,7 +44,7 @@
 ;;; Definitions for all type specifiers recognized by TYPEP follows.
 
 (define-typep (object (and &rest types) env :compound-only)
-  (every (lambda (type) (cl:typep object type env)) types))
+  (every (lambda (type) (TYPEP object type env)) types))
 
 (define-typep (object arithmetic-error env)
   nil)
@@ -56,10 +56,10 @@
   (not (consp object)))
 
 (define-typep (object base-char env)
-  (cl:typep object 'character env))
+  (TYPEP object 'character env))
 
 (define-typep (object (base-string) env)
-  (cl:typep object 'string env))
+  (TYPEP object 'string env))
 
 (define-typep (object bignum env)
   (cl::bignump object))
@@ -89,7 +89,7 @@
 (define-typep (object (complex &optional (type '*)) env)
   (and (complexp object)
        (star-or type
-		(unless (cl:subtypep type 'real)
+		(unless (SUBTYPEP type 'real)
 		  (error "invalid complex part type: %s" type)))))
 
 ;;; concatenated-stream (atomic only)
@@ -97,14 +97,14 @@
 
 (define-typep (object (cons &optional (car-type '*) (cdr-type '*)) env)
   (and (consp object)
-       (star-or car-type (cl:typep (car object) car-type env))
-       (star-or cdr-type (cl:typep (car object) cdr-type env))))
+       (star-or car-type (TYPEP (car object) car-type env))
+       (star-or cdr-type (TYPEP (car object) cdr-type env))))
 
 ;;; control-error (atomic only)
 ;;; division-by-zero (atomic only)
 
 (define-typep (object (double-float &optional (low '*) (high '*)) env)
-  (cl:typep object `(single-float ,low ,high)))
+  (TYPEP object `(single-float ,low ,high)))
 
 ;;; echo-stream (atomic only)
 ;;; end-of-file (atomic only)
@@ -115,7 +115,7 @@
 ;;; error (atomic only)
 
 (define-typep (object extended-char env)
-  (cl:typep object '(and character (not base-char))))
+  (TYPEP object '(and character (not base-char))))
 
 ;;; file-error (atomic only)
 ;;; file-stream (atomic only)
@@ -124,7 +124,7 @@
   (integerp object))
 
 (define-typep (object (float &optional (low '*) (high '*)) env)
-  (cl:typep object `(single-float ,low ,high)))
+  (TYPEP object `(single-float ,low ,high)))
 
 ;;; floating-point-inexact (atomic only)
 ;;; floating-point-invalid-operation (atomic only)
@@ -152,7 +152,7 @@
 ;;; logical-pathname (atomic only)
 
 (define-typep (object (long-float &optional (low '*) (high '*)) env)
-  (cl:typep object `(single-float ,low ,high)))
+  (TYPEP object `(single-float ,low ,high)))
 
 (define-typep (object (member &rest objects) env :compound-only)
   (member object objects))
@@ -161,22 +161,22 @@
 ;;; method-combination (atomic only)
 
 (define-typep (object (mod n) env :compound-only)
-  (cl:typep object `(integer 0 ,(1- (second type))) env))
+  (TYPEP object `(integer 0 ,(1- (second type))) env))
 
 (define-typep (object nil env)
   nil)
 
 (define-typep (object (not type) env)
-  (not (cl:typep object type env)))
+  (not (TYPEP object type env)))
 
 (define-typep (object null env)
   (null object))
 
 (define-typep (object number env)
-  (cl:numberp object))
+  (NUMBERP object))
 
 (define-typep (object (or &rest types) env :compound-only)
-  (some (lambda (type) (cl:typep object type env)) types))
+  (some (lambda (type) (TYPEP object type env)) types))
 
 (define-typep (object package env)
   (packagep object))
@@ -208,16 +208,16 @@
   (funcall fn object))
 
 (define-typep (object sequence env)
-  (or (listp object) (cl:typep object 'vector)))
+  (or (listp object) (TYPEP object 'vector)))
 
 ;;; serious-condition (atomic only)
 
 (define-typep (object (short-float &optional (low '*) (high '*)) env)
-  (cl:typep object `(single-float ,low ,high)))
+  (TYPEP object `(single-float ,low ,high)))
 
 (define-typep (object (signed-byte &optional n) env)
   (if n
-      (cl:typep object
+      (TYPEP object
 		`(integer ,(- (expt 2 (1- n))) ,(1- (expt 2 (1- n))))
 		env)
       (integerp object)))
@@ -270,7 +270,7 @@
 ;;; undefined-function (atomic only)
 
 (define-typep (object (unsigned-byte &optional n) env)
-  (cl:typep object `(integer 0 ,(if n (1- (expt 2 n)) '*) env)))
+  (TYPEP object `(integer 0 ,(if n (1- (expt 2 n)) '*) env)))
 
 (define-typep (object (values &rest args) env :compound-only)
   (error "values not allowed"))
@@ -280,7 +280,7 @@
 
 
 
-(defun cl:typep (object type &optional env)
+(defun TYPEP (object type &optional env)
   (if (consp type)
       (let ((fn (gethash (first type) *compound-typespecs*)))
 	(if fn

@@ -28,7 +28,7 @@
 
 (defun register (object)
   (dolist (type *types*)
-    (when (cl:typep object type)
+    (when (TYPEP object type)
       (setf (gethash type *type-val*)
 	    (logior (gethash type *type-val*) (object-val object))))))
 
@@ -200,7 +200,7 @@
 	      (real
 	       `((* *) (* *) (* *))))))
        (dolist (object *objects* `(,num ,ranges))
- 	 (when (cl:typep object type)
+ 	 (when (TYPEP object type)
  	   (setq num (logior num (object-val object)))))))
     (t
      (ecase (first type)
@@ -246,7 +246,7 @@
       (t
        (error)))))
 
-(defun cl:subtypep (type1 type2 &optional env)
+(defun SUBTYPEP (type1 type2 &optional env)
   (let ((*types* *types*)
 	(*type-val* *type-val*)
 	(*objects* *objects*))

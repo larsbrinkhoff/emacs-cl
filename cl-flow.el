@@ -135,12 +135,14 @@
 		  (list var)
 		  `(,fn ,@temps ,var)
 		  ())))
-      `(define-setf-expander ,access-fn ,(first args)
-	(let ((body '(progn ,@(cddr args))))
-	  (values ()
-		  ()
-		  ',(second args)
-		  body)))))
+      `(long-form-defsetf ,access-fn ,@args)))
+
+(defmacro* long-form-defsetf (access-fn lambda-list variables &body body)
+  `(define-setf-expander ,access-fn ,lambda-list
+    (values ()
+            ()
+            ',variables
+            ,(cons 'progn body))))
 
 (defvar *setf-expanders* (make-hash-table))
 

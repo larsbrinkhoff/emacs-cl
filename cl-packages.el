@@ -171,5 +171,6 @@
 
 (defvar *package* (find-package "CL-USER"))
 
-(dolist (sym '(BACKQUOTE COMMA COMMA-AT COMMA-DOT FUNCTION SETF QUOTE))
+(dolist (sym '(BACKQUOTE COMMA COMMA-AT COMMA-DOT FUNCTION NUMBERP SETF
+	       SUBTYPEP TYPEP QUOTE))
   (setf (symbol-package sym) (find-package "COMMON-LISP")))
