@@ -95,17 +95,19 @@
 
 (defun SIMPLE-CONDITION-FORMAT-CONTROL (condition)
   (cond
-    ((TYPEP condition 'SIMPLE-CONDITION) (SIMPLE-CONDITION-format condition))
-    ((TYPEP condition 'SIMPLE-ERROR)     (SIMPLE-ERROR-format condition))
-    ((TYPEP condition 'SIMPLE-WARNING)   (SIMPLE-WARNING-format condition))
-    (t					 (error "this sucks"))))
+    ((TYPEP condition 'SIMPLE-CONDITION)  (SIMPLE-CONDITION-format condition))
+    ((TYPEP condition 'SIMPLE-ERROR)      (SIMPLE-ERROR-format condition))
+    ((TYPEP condition 'SIMPLE-WARNING)    (SIMPLE-WARNING-format condition))
+    ((TYPEP condition 'SIMPLE-TYPE-ERROR) (SIMPLE-TYPE-ERROR-format condition))
+    (t					  (error "this sucks"))))
 
 (defun SIMPLE-CONDITION-FORMAT-ARGUMENTS (condition)
   (cond
-    ((TYPEP condition 'SIMPLE-CONDITION) (SIMPLE-CONDITION-args condition))
-    ((TYPEP condition 'SIMPLE-ERROR)     (SIMPLE-ERROR-args condition))
-    ((TYPEP condition 'SIMPLE-WARNING)   (SIMPLE-WARNING-args condition))
-    (t					 (error "this sucks"))))
+    ((TYPEP condition 'SIMPLE-CONDITION)  (SIMPLE-CONDITION-args condition))
+    ((TYPEP condition 'SIMPLE-ERROR)      (SIMPLE-ERROR-args condition))
+    ((TYPEP condition 'SIMPLE-WARNING)    (SIMPLE-WARNING-args condition))
+    ((TYPEP condition 'SIMPLE-TYPE-ERROR) (SIMPLE-TYPE-ERROR-args condition))
+    (t					  (error "this sucks"))))
 
 (defun WARN (datum &rest args)
   (let ((condition (condition datum args 'SIMPLE-WARNING)))
@@ -250,9 +252,11 @@
       (INVOKE-RESTART restart value))))
 
 
-(DEFINE-CONDITION TYPE-ERROR (ERROR) (DATUM EXPECTED-TYPE))
 (DEFINE-CONDITION PROGRAM-ERROR (ERROR) ())
 (DEFINE-CONDITION CONTROL-ERROR (ERROR) ())
+
+(DEFINE-CONDITION TYPE-ERROR (ERROR) (DATUM EXPECTED-TYPE))
+(DEFINE-CONDITION SIMPLE-TYPE-ERROR (TYPE-ERROR) (format args))
 
 (DEFINE-CONDITION UNBOUND-VARIABLE (CELL-ERROR) ())
 (DEFINE-CONDITION UNDEFINED-FUNCTION (CELL-ERROR) ())
