@@ -121,7 +121,7 @@
 
 (defmacro* DEFCONSTANT (name initial-value &optional documentation)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-    (defvar ,name ,initial-value)
+    (defconst ,name ,initial-value)
     (pushnew ',name *constants*)
     ',name))
 
