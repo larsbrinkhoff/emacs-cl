@@ -200,6 +200,11 @@
     (t
      (ecase (first type)
        (mod	`(0 ((0 ,(1- mod)) () ())))
+       (unsigned-byte
+		`(0 ((0 ,(1- (expt 2 (second type)))) () ())))
+       (signed-byte
+		`(0 ((,(expt 2 (1- (second type)))
+		      ,(1- (expt 2 (1- (second type))))) () ())))
        (integer	`(0 (,(rest type) () ())))
        (rational
 		`(0 (,(rest type) ,(rest type) ())))
