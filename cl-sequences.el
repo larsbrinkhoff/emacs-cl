@@ -14,7 +14,7 @@
     ((SIMPLE-VECTOR-P sequence)
      (copy-sequence sequence))
     ((vector-and-typep sequence 'VECTOR)
-     (let ((storage (aref sequence 2))
+     (let ((storage (vector-storage sequence))
 	   (vector (make-vector
 		    (1+ (or (FILL-POINTER sequence) (LENGTH sequence)))
 		    'SIMPLE-VECTOR)))
@@ -23,7 +23,7 @@
 	 (aset vector i (aref storage (1- i))))
        vector))
     ((VECTORP sequence)
-     (subseq (aref sequence 2) 0 (FILL-POINTER sequence)))
+     (subseq (vector-storage sequence) 0 (FILL-POINTER sequence)))
     (t
      (type-error sequence 'SEQUENCE))))
 
@@ -81,7 +81,7 @@
     ((SIMPLE-STRING-P seq)
      (substring seq start end))
     ((STRINGP seq)
-     (substring (aref seq 2) start end))
+     (substring (vector-storage seq) start end))
     ((listp seq)
      (if (eq start end)
 	 nil
@@ -98,7 +98,7 @@
        (let ((new (if (BIT-VECTOR-P seq)
 		      (make-bool-vector len nil)
 		      (make-vector len 'SIMPLE-VECTOR)))
-	     (storage (if (SIMPLE-VECTOR-P seq) seq (aref seq 2))))
+	     (storage (if (SIMPLE-VECTOR-P seq) seq (vector-storage seq))))
 	 (do ((i i0 (1+ i))
 	      (j start (1+ j)))
 	     ((eq i len))
@@ -216,15 +216,15 @@
 (defun LENGTH (sequence)
   (cond
     ((or (listp sequence)
-	 (SIMPLE-BIT-VECTOR-P sequence)
-	 (SIMPLE-STRING-P sequence))
+	 (bool-vector-p sequence)
+	 (stringp sequence))
      (length sequence))
     ((SIMPLE-VECTOR-P sequence)
      (1- (length sequence)))
     ((VECTORP sequence)
      (if (ARRAY-HAS-FILL-POINTER-P sequence)
 	 (FILL-POINTER sequence)
-	 (length (aref sequence 2))))
+	 (vector-size sequence)))
     (t
      (error))))
 

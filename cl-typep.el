@@ -300,6 +300,7 @@
   (and (VECTORP object)
        ;; TODO: SUBTYPEP upgraded type ...
        (star-or T)
+       ;; TODO: vector size, not length
        (star-or (eql size (LENGTH object)))))
 
 

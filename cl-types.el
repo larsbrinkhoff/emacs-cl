@@ -72,11 +72,11 @@
        (symbol		'SYMBOL)
        (vector
 	(case (aref object 0)
-	  (ARRAY	`(ARRAY T ,(aref object 1)))
+	  (ARRAY	`(ARRAY T ,(array-dims object)))
 	  (BIGNUM	'BIGNUM)
-	  (bit-array	`(ARRAY BIT ,(aref object 1)))
-	  (BIT-VECTOR	`(BIT-VECTOR ,(length (aref object 2))))
-	  (char-array	`(ARRAY CHARACTER ,(aref object 1)))
+	  (bit-array	`(ARRAY BIT ,(array-dims object)))
+	  (BIT-VECTOR	`(BIT-VECTOR ,(vector-size object 2)))
+	  (char-array	`(ARRAY CHARACTER ,(array-dims object)))
 	  (CHARACTER	'CHARACTER)
 	  (COMPLEX	'COMPLEX)
 	  (INTERPRETED-FUNCTION
@@ -84,8 +84,8 @@
 	  (RATIO	'RATIO)
 	  (SIMPLE-VECTOR
 			`(SIMPLE-VECTOR ,(1- (length object))))
-	  (STRING	`(STRING ,(length (aref object 2))))
-	  (VECTOR	`(VECTOR ,(length (aref object 2))))
+	  (STRING	`(STRING ,(vector-size object)))
+	  (VECTOR	`(VECTOR ,(vector-size object)))
 	  (t		(aref object 0))))
        ;; For now, throw an error on these.
        ((buffer char-table frame marker overlay process
