@@ -4,23 +4,23 @@
 ;;;;
 ;;;; This file implements operators in chapter 16, Strings.
 
-(defun simple-string-p (object)
+(defun SIMPLE-STRING-P (object)
   (stringp object))
 
 (defun char (string index)
   (cond
-    ((simple-string-p string)
+    ((SIMPLE-STRING-P string)
      (schar string index))
-    ((cl:stringp string)
+    ((STRINGP string)
      (schar (aref string 2) index))
     (t
      (error "type error"))))
 
 (defsetf char (string index) (char)
   `(cond
-    ((simple-string-p string)
+    ((SIMPLE-STRING-P string)
      (setf (schar ,string ,index) ,char))
-    ((cl:stringp string)
+    ((STRINGP string)
      (setf (schar (aref ,string 2) ,index) ,char))
     (t
      (error "type error"))))
@@ -33,7 +33,7 @@
 
 (defun cl:string (x)
   (cond
-    ((cl:stringp x)	x)
+    ((STRINGP x)	x)
     ((symbolp x)	(symbol-name x))
     ((characterp x)	(cl:make-string 1 :initial-element x))
     (t			(error))))
@@ -47,8 +47,8 @@
 ;;; string-equal, string-not-equal, string-lessp, string-greaterp,
 ;;; string-not-greaterp, string-not-lessp
 
-(defun cl:stringp (object)
-  (or (simple-string-p object)
+(defun STRINGP (object)
+  (or (SIMPLE-STRING-P object)
       (vector-and-typep object 'string)))
 
 (defun* cl:make-string (size &key initial-element element-type)

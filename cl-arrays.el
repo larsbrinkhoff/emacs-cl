@@ -76,9 +76,9 @@
 
 (defun AREF (array &rest subscripts)
   (cond
-    ((bit-vector-p array)
+    ((BIT-VECTOR-P array)
      (bit array (just-one subscripts)))
-    ((cl:stringp array)
+    ((STRINGP array)
      (char array (just-one subscripts)))
     ((vector-and-typep array 'simple-vector)
      (svref array (just-one subscripts)))
@@ -91,30 +91,30 @@
 
 (defun ARRAY-DIMENSION (array axis)
   (cond
-    ((cl:vectorp array)		(cl:length array))
-    ((cl:arrayp array)		(nth axis (ARRAY-DIMENSIONS array)))
+    ((VECTORP array)		(LENGTH array))
+    ((ARRAYP array)		(nth axis (ARRAY-DIMENSIONS array)))
     (t				(error))))
 
 (defun ARRAY-DIMENSIONS (array)
   (cond
-    ((cl:vectorp array)		(list (cl:length array)))
-    ((cl:arrayp array)		(aref array 1))
+    ((VECTORP array)		(list (LENGTH array)))
+    ((ARRAYP array)		(aref array 1))
     (t				(error))))
 
 (defun ARRAY-ELEMENT-TYPE (array)
   (cond
-    ((bit-vector-p array)	'bit)
-    ((cl:stringp array)		'character)
-    ((cl:arrayp array)
+    ((BIT-VECTOR-P array)		'bit)
+    ((STRINGP array)			'character)
+    ((ARRAYP array)
      (ecase (aref array 0)
-       (bit-array		'bit)
-       (char-array		'character)
-       ((vector array)		t)))
-    (t				(error))))
+       (bit-array			'bit)
+       (char-array			'character)
+       ((simple-vector vector array)	t)))
+    (t					(error))))
 
 (defun ARRAY-HAS-FILL-POINTER-P (array)
-  (and (cl:vectorp array)
-       (not (simple-vector-p array))
+  (and (VECTORP array)
+       (not (SIMPLE-VECTOR-P array))
        (aref array 1)))
 
 (defun array-in-bounds-p (array &rest subscripts)
@@ -128,8 +128,8 @@
   (apply #'cl:+ (maplist (lambda (x y) (cl:* (car x) (apply #'cl:* (cdr y))))
 			 subscripts (ARRAY-DIMENSIONS a))))
 
-(defun cl:arrayp (object)
-  (or (cl:vectorp object)
+(defun ARRAYP (object)
+  (or (VECTORP object)
       (and (vectorp object)
 	   (case (aref object 0)
 	     ((bit-array char-array array) t)))))
@@ -142,7 +142,7 @@
 
 (defun row-major-aref (array index)
   (cond
-    ((cl:vectorp array)
+    ((VECTORP array)
      (AREF array index))
     ((vector-and-typep array 'array)
      (aref (aref array 2) index))
@@ -151,7 +151,7 @@
 
 (defsetf row-major-aref (array index) (new)
   `(cond
-    ((cl:vectorp ,array)
+    ((VECTORP ,array)
      (setf (AREF ,array ,index) ,new))
     ((and (vectorp ,array)
           (case (aref ,array 0)
@@ -166,9 +166,9 @@
     ((SUBTYPEP typespec 'character)	'character)
     (t					t)))
 
-(defun simple-vector-p (object)
-  (or (simple-bit-vector-p object)
-      (simple-string-p object)
+(defun SIMPLE-VECTOR-P (object)
+  (or (SIMPLE-BIT-VECTOR-P object)
+      (SIMPLE-STRING-P object)
       (vector-and-typep object 'simple-vector)))
 
 (defun svref (vector index)
@@ -182,14 +182,14 @@
       (aset vector (incf i) obj))))
 
 (defun vector-pop (vector)
-  (unless (and (cl:vectorp vector)
+  (unless (and (VECTORP vector)
 	       (ARRAY-HAS-FILL-POINTER-P vector)
 	       (plusp (fill-pointer vector)))
     (error))
   (aref vector (aref vector 2) (aset vector 1 (1- (aref vector 1)))))
 
 (defun vector-push (new-element vector)
-  (unless (and (cl:vectorp vector) (ARRAY-HAS-FILL-POINTER-P vector))
+  (unless (and (VECTORP vector) (ARRAY-HAS-FILL-POINTER-P vector))
     (error))
   (let ((ptr (fill-pointer vector))
 	(storage (aref vector 2)))
@@ -198,7 +198,7 @@
       (aset vector 1 (1+ ptr)))))
 
 (defun vector-push-extend (new-element vector &optional extension)
-  (unless (and (cl:vectorp vector) (ARRAY-HAS-FILL-POINTER-P vector))
+  (unless (and (VECTORP vector) (ARRAY-HAS-FILL-POINTER-P vector))
     (error))
   (let* ((storage (aref vector 2))
 	 (len (length storage))
@@ -212,17 +212,17 @@
     (aset storage ptr new-element)
     (aset vector 1 (1+ ptr))))
 
-(defun cl:vectorp (object)
-  (or (simple-vector-p object)
+(defun VECTORP (object)
+  (or (SIMPLE-VECTOR-P object)
       (and (vectorp object)
 	   (case (aref object 0)
 	     ((string bit-vector vector) t)))))
 
 (defun bit (array &rest subscripts)
   (cond
-    ((simple-bit-vector-p array)
+    ((SIMPLE-BIT-VECTOR-P array)
      (if (aref array (just-one subscripts)) 1 0))
-    ((bit-vector-p array)
+    ((BIT-VECTOR-P array)
      (if (aref (aref array 2) (just-one subscripts)) 1 0))
     ((vector-and-typep array 'bit-array)
      (error "TODO"))
@@ -232,9 +232,9 @@
 (defun sbit (array index)
   (aref array index))
 
-(defun bit-vector-p (object)
-  (or (simple-bit-vector-p object)
+(defun BIT-VECTOR-P (object)
+  (or (SIMPLE-BIT-VECTOR-P object)
       (vector-and-typep object 'bit-vector)))
 
-(defun simple-bit-vector-p (object)
+(defun SIMPLE-BIT-VECTOR-P (object)
   (bool-vector-p object))
