@@ -30,6 +30,12 @@
     (t
      (error "type error"))))
 
+;;; TODO: fboundp
+
+;;; TODO: fmakunbound
+
+;;; TODO: flet, labels, macrolet
+
 (defun cl:funcall (fn &rest args)
   (cond
     ((symbolp fn)
@@ -38,6 +44,18 @@
      (apply (FDEFINITION fn) args))
     (t
      (error))))
+
+;;; TODO: function
+
+;;; TODO: function-lambda-expression
+
+(defun FUNCTIONP (object)
+  (functionp object))
+
+(defun COMPILED-FUNCTION-P (object)
+  (compiled-function-p object))
+
+;;; TODO: call-argument-limit
 
 (defvar lambda-list-keywords
         '(&allow-other-keys &aux &body &environment &key &optional
