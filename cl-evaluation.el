@@ -75,10 +75,14 @@
 	     (cl:values new (not (eq form new))))
 	   (cl:values form nil))))
     ((symbolp form)
-     (let ((fn (gethash form *symbol-macro-functions*)))
-       (if fn
-	   (cl:values (funcall *MACROEXPAND-HOOK* fn form env) T)
-	   (cl:values form nil))))
+     (multiple-value-bind (type localp decls) (variable-information form env)
+       (if (eq type :symbol-macro)
+	   (let ((fn (lexical-value form env)))
+	     (cl:values (funcall *MACROEXPAND-HOOK* fn form env) T)
+	     (let ((fn (gethash form *symbol-macro-functions*)))
+	       (if fn
+		   (cl:values (funcall *MACROEXPAND-HOOK* fn form env) T)
+		   (cl:values form nil)))))))
     (t
      (cl:values form nil))))
 
