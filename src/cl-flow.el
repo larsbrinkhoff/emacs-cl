@@ -454,7 +454,7 @@
        (COND
 	 ,@(mapcar (destructuring-lambda ((key &rest forms))
 		     (when seen-otherwise
-		       (ERROR (QUOTE PROGRAM-ERROR)))
+		       (ERROR 'PROGRAM-ERROR))
 		     (setq seen-otherwise
 			   (memq key '(T OTHERWISE)))
 		     (cond

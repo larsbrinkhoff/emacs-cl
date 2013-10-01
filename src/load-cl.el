@@ -67,7 +67,7 @@
 
 (defun compile-cl ()
   (interactive)
-  (let ((byte-compile-warnings t))
+  (let ((byte-compile-warnings '(not cl-functions)))
     (dolist (file *cl-files*)
       (byte-compile-file (concat file ".el")))))
 
