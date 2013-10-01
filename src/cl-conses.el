@@ -511,7 +511,7 @@
 	(throw 'ASSOC-IF-NOT pair)))))
 
 (defun COPY-ALIST (alist)
-  (mapcar (lambda (pair) (CONS (CAR pair) (CDR pair)))))
+  (mapcar (lambda (pair) (CONS (CAR pair) (CDR pair))) alist))
 
 (defun PAIRLIS (keys data &optional alist)
   (NCONC (MAPCAR #'CONS keys data) alist))
