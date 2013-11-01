@@ -1,23 +1,20 @@
-#EMACS = emacs19
-EMACS = emacs20
-#EMACS = emacs21
-#EMACS = xemacs20
-#EMACS = xemacs21
+VERSION = 0.5
+CONTENT_DIR = emacs-cl-$(VERSION)
+CONTENT_TAR = $(CONTENT_DIR).tar
 
-EMACSEN = emacs20 emacs21 xemacs21 # ../emacs-19.34/src/emacs
+package: $(CONTENT_TAR)
 
-all:
-	$(EMACS) -batch -l load-cl.el -f compile-cl
+$(CONTENT_TAR): $(CONTENT_DIR)
+	tar cf $@ $<
 
-#install:
-
-TESTFILES = -l load-cl.el -l batch.el -l tests.el
-
-check:
-	for e in $(EMACSEN); do						\
-		echo CHECKING $$e;					\
-		$$e -batch $(TESTFILES) -f test-cl 2> /dev/null;	\
-	done
+$(CONTENT_DIR): emacs-cl-pkg.el Makefile
+	rm -rf $(CONTENT_DIR)
+	mkdir $(CONTENT_DIR)
+	sed "s/VERSION/$(VERSION)/" < $< > $(CONTENT_DIR)/$<
+	cp README $(CONTENT_DIR)
+	cp COPYING $(CONTENT_DIR)
+	cp src/* $(CONTENT_DIR)
 
 clean:
-	rm -f *.elc
+	$(MAKE) -C src clean
+	rm -rf $(CONTENT_DIR) $(CONTENT_TAR)
