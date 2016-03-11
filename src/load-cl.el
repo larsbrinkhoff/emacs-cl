@@ -15,6 +15,9 @@
 (defmacro IN-PACKAGE (name) nil)
 (defun FIND-PACKAGE (name) nil)
 
+(unless (fboundp 'cl-mapcar-many)
+  (fset 'cl-mapcar-many (symbol-function 'cl--mapcar-many)))
+
 (defvar *cl-files*
   '("utils"
     "func"

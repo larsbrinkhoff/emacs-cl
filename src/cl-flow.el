@@ -44,13 +44,13 @@
 (cl:defmacro DEFUN (name lambda-list &body forms)
   (MULTIPLE-VALUE-BIND (body decls doc) (parse-body forms t)
     `(EVAL-WHEN (,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
-       (cl-defun (QUOTE ,name) (LAMBDA ,lambda-list
-				 ,@(when doc `(,doc))
-				 ,@(when decls `((DECLARE ,@decls)))
-				 (BLOCK ,(function-block-name name)
-				   ,@body))))))
+       (set-fun (QUOTE ,name) (LAMBDA ,lambda-list
+				,@(when doc `(,doc))
+				,@(when decls `((DECLARE ,@decls)))
+				(BLOCK ,(function-block-name name)
+				  ,@body))))))
 
-(defun cl-defun (name fn)
+(defun set-fun (name fn)
   (setf (FDEFINITION name) fn)
   (setf (function-name fn) name)
   name)

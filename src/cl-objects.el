@@ -321,7 +321,7 @@
   (cond
     ((null gf)
      (setq gf (make-gf name LAMBDA-LIST))
-     (cl-defun name gf))
+     (set-fun name gf))
     (*DEBUG-IO*
      (FRESH-LINE *DEBUG-IO*)
      (WRITE-STRING "Redefinition of generic function " *DEBUG-IO*)
@@ -582,9 +582,9 @@
       (ERROR "No such class ~A." name))
     class))
 
-(cl-defun '(SETF FIND-CLASS)
-	  (lambda (class name &optional errorp env)
-	    (puthash name class *classes*)))
+(set-fun '(SETF FIND-CLASS)
+	 (lambda (class name &optional errorp env)
+	   (puthash name class *classes*)))
 
 ;;; TODO: Local Function NEXT-METHOD-P
 ;;; TODO: Local Macro CALL-METHOD,
@@ -679,9 +679,9 @@
   (class-name class))
 
 ;;; TODO: Standard Generic Function (SETF CLASS-NAME)
-(cl-defun '(SETF CLASS-NAME)
-	  (lambda (name class)
-	    (setf (class-name class) name)))
+(set-fun '(SETF CLASS-NAME)
+	 (lambda (name class)
+	   (setf (class-name class) name)))
 
 ;;; TODO: Function CLASS-OF
 (defun CLASS-OF (object)
@@ -732,7 +732,7 @@
 ;;; UNBOUND-SLOT and UNBOUND-SLOT-INSTANCE defined in cl-conditions.el.
 
 ;;; TODO:
-(cl-defun '(SETF DOCUMENTATION) (lambda (value object type) value))
+(set-fun '(SETF DOCUMENTATION) (lambda (value object type) value))
 
 (cl:defmethod MAKE-LOAD-FORM  ((object T) &OPTIONAL env)
   (built-in-make-load-form object env))
