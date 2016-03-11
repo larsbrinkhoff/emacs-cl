@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 12, Numbers.
 
 (IN-PACKAGE "EMACS-CL")
@@ -47,7 +47,9 @@
     ((and (NUMBERP num1) (NUMBERP num2))
      nil)
     (t
-     (error "type error: = %s %s" num1 num2))))
+     (unless (NUMBERP num1)
+       (type-error num1 'NUMBER))
+     (type-error num2 'NUMBER))))
 
 (defun cl:/= (number &rest numbers)
   (if (null numbers)
@@ -73,7 +75,9 @@
     ((or (bignump num1) (bignump num2))
      (MINUSP (binary- num1 num2)))
     (t
-     (error "type error: = %s %s" num1 num2))))
+     (unless (REALP num1)
+       (type-error num1 'REAL))
+     (type-error num2 'REAL))))
 
 (defun cl:> (number &rest numbers)
   (if (null numbers)
@@ -100,7 +104,9 @@
      (let ((diff (binary- num1 num2)))
        (or (MINUSP diff) (ZEROP diff))))
     (t
-     (error "type error: = %s %s" num1 num2))))
+     (unless (REALP num1)
+       (type-error num1 'REAL))
+     (type-error num2 'REAL))))
 
 (defun cl:>= (number &rest numbers)
   (if (null numbers)
@@ -125,7 +131,7 @@
     ((bignump num)
      (minusp (aref num (1- (length num)))))
     ((ratiop num)
-     (minusp (NUMERATOR num)))
+     (MINUSP (NUMERATOR num)))
     (t
      (type-error num 'REAL))))
 
@@ -136,7 +142,7 @@
     ((bignump num)
      (>= (aref num (1- (length num))) 0))
     ((ratiop num)
-     (plusp (NUMERATOR num)))
+     (PLUSP (NUMERATOR num)))
     (t
      (type-error num 'REAL))))
 
@@ -182,7 +188,9 @@
 	 (decf i))
        (cl:values (binary* sign q) (not (ZEROP r)))))
     (t
-     (error "type error"))))
+     (unless (INTEGERP x)
+       (type-error x 'INTEGER))
+     (type-error y 'INTEGER))))
 
 (defconst two^fixnum-bits
     (* 2 (1+ (float most-positive-fixnum))))
@@ -192,7 +200,7 @@
     (while (or (>= float 1.0) (<= float -1.0))
       (let ((residue (mod float two^fixnum-bits)))
 	(push (truncate (if (> residue most-positive-fixnum)
-			    (- residue two^fixnum-bits 1)
+			    (- residue two^fixnum-bits)
 			    residue))
 	      list))
       (setq float (/ float two^fixnum-bits)))
@@ -217,8 +225,11 @@
        (MULTIPLE-VALUE-SETQ (quotient remainder)
 	 (integer-truncate number divisor)))
       (t
-       (error "type error")))
-    (when (and remainder (MINUSP quotient))
+       (unless (REALP number)
+	 (type-error number 'REAL))
+       (type-error divisor 'REAL)))
+    (when (and remainder (or (MINUSP quotient)
+			     (and (ZEROP quotient) (MINUSP number))))
       (setq quotient (binary- quotient 1)))
     (cl:values quotient (binary- number (binary* quotient divisor)))))
 
@@ -248,8 +259,11 @@
        (MULTIPLE-VALUE-SETQ (quotient remainder)
 	 (integer-truncate number divisor)))
       (t
-       (error "type error")))
-    (when (and remainder (PLUSP quotient))
+       (unless (REALP number)
+	 (type-error number 'REAL))
+       (type-error divisor 'REAL)))
+    (when (and remainder (or (PLUSP quotient)
+			     (and (ZEROP quotient) (PLUSP number))))
       (setq quotient (binary+ quotient 1)))
     (cl:values quotient (binary- number (binary* quotient divisor)))))
 
@@ -286,7 +300,9 @@
       ((and (INTEGERP number) (INTEGERP divisor))
        (setq quotient (integer-truncate number divisor)))
       (t
-       (error "type error")))
+       (unless (REALP number)
+	 (type-error number 'REAL))
+       (type-error divisor 'REAL)))
     (cl:values quotient (binary- number (binary* quotient divisor)))))
 
 (cl:defun FTRUNCATE (number &OPTIONAL (divisor 1))
@@ -307,38 +323,38 @@
   (cond
     ((REALP x)		(sin (FLOAT x)))
     ((COMPLEXP x)	(error "TODO"))
-    (t			(error "type error"))))
+    (t			(type-error x 'NUMBER))))
 
 (defun COS (x)
   (cond
     ((REALP x)		(cos (FLOAT x)))
     ((COMPLEXP x)	(error "TODO"))
-    (t			(error "type error"))))
+    (t			(type-error x 'NUMBER))))
 
 (defun TAN (x)
   (cond
     ((REALP x)		(tan (FLOAT x)))
     ((COMPLEXP x)	(error "TODO"))
-    (t			(error "type error"))))
+    (t			(type-error x 'NUMBER))))
 
 (defun ASIN (x)
   (cond
     ((REALP x)		(asin (FLOAT x)))
     ((COMPLEXP x)	(error "TODO"))
-    (t			(error "type error"))))
+    (t			(type-error x 'NUMBER))))
 
 (defun ACOS (x)
   (cond
     ((REALP x)		(acos (FLOAT x)))
     ((COMPLEXP x)	(error "TODO"))
-    (t			(error "type error"))))
+    (t			(type-error x 'NUMBER))))
 
 (defun ATAN (x &optional y)
   (when y (error "TODO"))
   (cond
     ((REALP x)		(atan (FLOAT x)))
     ((COMPLEXP x)	(error "TODO"))
-    (t			(error "type error"))))
+    (t			(type-error x 'NUMBER))))
 
 (DEFCONSTANT PI 3.141592653589793)
 
@@ -396,7 +412,9 @@
        (setq y (vector 'BIGNUM y (if (minusp y) -1 0))))
      (bignum* x y))
     (t
-     (error "type error"))))
+     (unless (NUMBERP x)
+       (type-error x 'NUMBER))
+     (type-error y 'NUMBER))))
 
 (defun bignum* (x y)
   (cond
@@ -614,7 +632,9 @@
      (make-ratio (binary* (NUMERATOR x) (DENOMINATOR y))
 		 (binary* (DENOMINATOR x) (NUMERATOR y))))
     (t
-     (error "type error"))))
+     (unless (NUMBERP x)
+       (type-error x 'NUMBER))
+     (type-error y 'NUMER))))
   
 (defun cl:1+ (number)
   (binary+ number 1))
@@ -641,23 +661,23 @@
 	 (cl:- number)
 	 number))
     (t
-     (error "type error"))))
+     (type-error number 'NUMBER))))
 
 (defun EVENP (num)
   (if (INTEGERP num)
-      (LOGBITP 0 num)
-      (error "type error")))
+      (not (LOGBITP 0 num))
+      (type-error num 'INTEGER)))
 
 (defun ODDP (num)
   (if (INTEGERP num)
       (LOGBITP 0 num)
-      (error "type error")))
+      (type-error num 'INTEGER)))
 
 (defun EXP (num)
   (cond
     ((REALP num)	(exp (FLOAT num)))
     ((COMPLEXP num)	(error "TODO"))
-    (t			(error "type error"))))
+    (t			(type-error num 'NUMBER))))
 
 (defun EXPT (base power)
   (cond
@@ -668,14 +688,17 @@
     ((and (NUMBERP base) (NUMBERP power))
      (error "TODO"))
     (t
-     (error "type error"))))
+     (unless (NUMBERP base)
+       (type-error base 'NUMBER))
+     (type-error power 'NUMBER))))
 
 (defun exact-expt (base power)
   (cond
     ((ZEROP power)
      1)
     ((MINUSP power)
-     (make-ratio 1 (exact-expt base (cl:- power))))
+     (exact-expt (make-ratio (DENOMINATOR base) (NUMERATOR base))
+		 (cl:- power)))
     (t
      (let ((result 1))
        (while (PLUSP power)
@@ -689,19 +712,21 @@
   (reduce #'binary-gcd numbers :initial-value 0))
 
 (defun binary-gcd (x y)
-  (if (and (integerp x) (integerp y))
-      (progn
-	(when (> y x)
-	  (psetq x y y x))
-	(while (not (zerop y))
-	  (psetq y (% x y) x y))
-	(abs x))
-      (progn
-	(when (cl:> y x)
-	  (psetq x y y x))
-	(while (not (ZEROP y))
-	  (psetq y (REM x y) x y))
-	(ABS x))))
+  (cond
+    ((or (eq x 1) (eq y 1))
+     1)
+    ((and (integerp x) (integerp y))
+     (when (> y x)
+       (psetq x y y x))
+     (while (not (zerop y))
+       (psetq y (% x y) x y))
+     (abs x))
+    (t
+     (when (cl:> y x)
+       (psetq x y y x))
+     (while (not (ZEROP y))
+       (psetq y (REM x y) x y))
+     (ABS x))))
 
 (cl:defmacro INCF (place &optional delta)
   (unless delta
@@ -744,7 +769,9 @@
     ((and (NUMBERP number) (NUMBERP base))
      (error "TODO"))
     (t
-     (error "type error"))))
+     (unless (NUMBERP number)
+       (type-error number 'NUMBER))
+     (type-error base 'NUMBER))))
   
 (defun MOD (number divisor)
   (NTH-VALUE 1 (FLOOR number divisor)))
@@ -762,19 +789,18 @@
 			      ((minusp number)	-1.0)))
     ((COMPLEXP number)	(if (ZEROP number)	number
 						(binary/ number (ABS number))))
-    (t			(error "type error"))))
+    (t			(type-error number 'NUMBER))))
 
 (defun SQRT (number)
   (cond
     ((REALP number)	(sqrt (FLOAT number)))
     ((COMPLEXP number)	(error "TODO"))
-    (t			(error "type error"))))
-
-; (defun ISQRT (number)
-;   (cl:values (FLOOR (sqrt (FLOAT number)))))
+    (t			(type-error number 'NUMBER))))
 
 ;;; http://www.embedded.com/98/9802fe2.htm
 (defun ISQRT (number)
+  (unless (and (INTEGERP number) (not (MINUSP number)))
+    (type-error number '(INTEGER 0 *)))
   (do ((rem 0)
        (root 0)
        (i (LOGAND (INTEGER-LENGTH number) -2) (- i 2)))
@@ -827,7 +853,7 @@
 (defun RANDOM-STATE-P (object)
   (vector-and-typep object 'RANDOM-STATE))
 
-(defun *RANDOM-STATE* (MAKE-RANDOM-STATE))
+(DEFVAR *RANDOM-STATE* (MAKE-RANDOM-STATE))
 
 (defun NUMBERP (object)
   (or (numberp object)
@@ -855,7 +881,7 @@
 (defun COMPLEXP (object)
   (vector-and-typep object 'COMPLEX))
 
-(defun CONJUGAGE (num)
+(defun CONJUGATE (num)
   (vector 'COMPLEX (REALPART num) (cl:- (IMAGPART num))))
 
 (defun PHASE (num)
@@ -878,8 +904,12 @@
   (or (RATIONALP num) (floatp num)))
 
 (defun make-ratio (num den)
-  (unless (and (INTEGERP num) (INTEGERP den))
-    (error "type error"))
+  (unless (INTEGERP num)
+    (type-error num 'INTEGER))
+  (unless (INTEGERP den)
+    (type-error den 'INTEGER))
+  (when (ZEROP den)
+    (ERROR 'DIVISION-BY-ZERO))
   (if (and (eq num MOST-NEGATIVE-FIXNUM) (eq den -1))
       (vector 'BIGNUM MOST-NEGATIVE-FIXNUM 0)
       (let* ((gcd (GCD num den))
@@ -911,34 +941,30 @@
   (cond
     ((floatp num)
      (MULTIPLE-VALUE-BIND (significand exp sign) (INTEGER-DECODE-FLOAT num)
-       (cl:values
-	(make-ratio
-	 (PARSE-INTEGER (prin1-to-string (+ (SCALE-FLOAT significand 53)) .5)
-			(kw JUNK-ALLOWED) t)
-	 (EXPT 2 (- 53 exp))))))
+       (let ((bits (max exp 53)))
+	 (cl:values
+	  (make-ratio (ROUND (SCALE-FLOAT significand bits))
+		      (EXPT 2 (- bits exp)))))))
     ((RATIONALP num)
      num)
     (t
      (type-error num 'REAL))))
 
-(defun RATIONALIZE (num)
+(defun* RATIONALIZE (num)
   (cond
     ((floatp num)
-     (MULTIPLE-VALUE-BIND (significand exp sign) (INTEGER-DECODE-FLOAT num)
-       (do ((i -5 (1+ i))
-	    (j (PARSE-INTEGER (prin1-to-string
-			       (+ (SCALE-FLOAT significand 52)) .5)
-			      (kw JUNK-ALLOWED) t))
-	    (k (EXPT 2 (- 52 exp)))
-	    (result nil))
-	   ((eq i 6) (cl:values result))
-	 (do ((l -5 (1+ l)))
-	     ((eq l 6))
-	   (let ((candidate (make-ratio (binary+ i j) (binary+ k l))))
-	     (if result
-		 (when (binary< (DENOMINATOR candidate) (DENOMINATOR result))
-		   (setq result candidate))
-		 (setq result candidate)))))))
+     ;; Algorithm from Gareth McCaughan.
+     (let ((p 0) (q 1) (r 1) (s 0))
+       (while (binary< s max-rationalize-denominator)
+	 (MULTIPLE-VALUE-BIND (intpart fracpart) (FLOOR num)
+	   (setq p (prog1 r
+		     (setq r (binary+ p (binary* intpart r)))))
+	   (setq q (prog1 s
+		     (setq s (binary+ q (binary* intpart s)))))
+	   (when (< fracpart 1e-14)
+	     (return-from RATIONALIZE (cl:values (make-ratio r s))))
+	   (setq num (binary/ 1 fracpart))))
+       (cl:values (make-ratio p q))))
     ((RATIONALP num)
      num)
     (t
@@ -977,7 +1003,7 @@
       (let ((n (aref num i)))
 	(aset num i (if first
 			(ash n -1)
-			(logior (lsh n -1) (ash carry 27))))
+			(logior (lsh n -1) (ash carry (1- fixnum-bits)))))
 	(setq carry (logand n 1)
 	      first nil))
       (decf i))))
@@ -1016,7 +1042,7 @@
 	      (throw 'PARSE-INTEGER (cl:values nil i))
 	      (ERROR 'PARSE-ERROR))))
       (setq char (CHAR string i))
-      (when (find (CHAR-CODE char) "+-")
+      (when (FIND char "+-")
 	(when (ch= char 45)
 	  (setq sign -1))
 	(incf i)
@@ -1090,7 +1116,7 @@
 	 (aset new (1+ i) (lognot (aref num (1+ i)))))
        new))
     (t
-     (error "type error"))))
+     (type-error num 'INTEGER))))
 
 (defun LOGAND (&rest numbers)
   (reduce #'binary-logand numbers :initial-value -1))
@@ -1112,7 +1138,23 @@
 	   new)
 	 (logand (aref y 1) x)))
     ((and (bignump x) (bignump y))
-     0)))
+     (bignum-logand x y))
+    (t
+     (unless (INTEGERP x)
+       (type-error x 'INTEGER))
+     (type-error y 'INTEGER))))
+
+(defun bignum-logand (x y)
+  (setq x (bignum-list x))
+  (setq y (bignum-list y))
+  (when (< (length x) (length y))
+    (psetq x y y x))
+  (when (< (length y) (length x))
+    (setq y (nreverse y))
+    (while (< (length y) (length x))
+      (push (if (MINUSP (first y)) -1 0) y))
+    (setq y (nreverse y)))
+  (canonical-bignum (MAPCAR (lambda (n m) (logand n m)) x y)))
 
 (defun LOGIOR (&rest numbers)
   (reduce #'binary-logior numbers :initial-value 0))
@@ -1134,7 +1176,23 @@
 	   (aset new 1 (logior (aref y 1) x))
 	   new)))
     ((and (bignump x) (bignump y))
-     0)))
+     (bignum-logior x y))
+    (t
+     (unless (INTEGERP x)
+       (type-error x 'INTEGER))
+     (type-error y 'INTEGER))))
+
+(defun bignum-logior (x y)
+  (setq x (bignum-list x))
+  (setq y (bignum-list y))
+  (when (< (length x) (length y))
+    (psetq x y y x))
+  (when (< (length y) (length x))
+    (setq y (nreverse y))
+    (while (< (length y) (length x))
+      (push (if (MINUSP (first y)) -1 0) y))
+    (setq y (nreverse y)))
+  (canonical-bignum (MAPCAR (lambda (n m) (logior n m)) x y)))
 
 (defun LOGNAND (x y)
   (LOGNOT (LOGAND x y)))
@@ -1179,13 +1237,30 @@
 	   (aset new (+ i 2) (lognot (aref new (+ i 2))))))
        new))
     ((and (bignump x) (bignump y))
-     0)))
+     (bignum-logxor x y))
+    (t
+     (unless (INTEGERP x)
+       (type-error x 'INTEGER))
+     (type-error y 'INTEGER))))
+
+(defun bignum-logxor (x y)
+  (setq x (bignum-list x))
+  (setq y (bignum-list y))
+  (when (< (length x) (length y))
+    (psetq x y y x))
+  (when (< (length y) (length x))
+    (setq y (nreverse y))
+    (while (< (length y) (length x))
+      (push (if (MINUSP (first y)) -1 0) y))
+    (setq y (nreverse y)))
+  (canonical-bignum (MAPCAR (lambda (n m) (logxor n m)) x y)))
+
 
 (defun LOGBITP (index integer)
   (unless (integerp index)
     (error "TODO"))
   (when (minusp index)
-    (error "type error"))
+    (type-error index '(INTEGER 0 *)))
   (cond
     ((integerp integer)
      (if (>= index fixnum-bits)
@@ -1198,7 +1273,9 @@
 	       (j (% index fixnum-bits)))
 	   (not (zerop (logand (aref integer i) (ash 1 j)))))))
     (t
-     (error "type error"))))
+     (type-error integer 'INTEGER))))
+
+(defconst max-rationalize-denominator (exact-expt 2 52))
 
 (defun LOGCOUNT (num)
   (when (MINUSP num)
@@ -1260,9 +1337,9 @@
 (defun MASK-FIELD (bytespec integer)
   (LOGAND integer (DPB -1 bytespec 0)))
 
-(DEFCONSTANT MOST-POSITIVE-FIXNUM 134217727)
+(DEFCONSTANT MOST-POSITIVE-FIXNUM most-positive-fixnum)
 
-(DEFCONSTANT MOST-NEGATIVE-FIXNUM -134217728)
+(DEFCONSTANT MOST-NEGATIVE-FIXNUM most-negative-fixnum)
 
 (DEFINE-SETF-EXPANDER MASK-FIELD (bytespec integer)
   (MULTIPLE-VALUE-BIND (temps values variables setter getter)
@@ -1279,7 +1356,7 @@
 
 (defun DECODE-FLOAT (float)
   (unless (floatp float)
-    (error "type error"))
+    (type-error float 'FLOAT))
   (if (zerop float)
       (cl:values 0.0 0 1.0)
       (let ((exponent (1+ (logb float))))
@@ -1288,13 +1365,15 @@
 		   (if (minusp float) -1.0 1.0)))))
 
 (defun SCALE-FLOAT (float integer)
-  (unless (and (floatp float) (INTEGERP integer))
-    (error "type error"))
+  (unless (floatp float)
+    (type-error float 'FLOAT))
+  (unless (INTEGERP integer)
+    (type-error integer 'INTEGER))
   (* float (expt 2.0 (FLOAT integer))))
 
 (defun FLOAT-RADIX (float)
   (unless (floatp float)
-    (error "type error"))
+    (type-error float 'FLOAT))
   2)
 
 (cl:defun FLOAT-SIGN (float1 &OPTIONAL (float2 1.0))
@@ -1304,12 +1383,12 @@
 
 (defun FLOAT-DIGITS (float)
   (unless (floatp float)
-    (error "type error"))
+    (type-error float 'FLOAT))
   53)
 
 (defun FLOAT-PRECISION (float)
   (unless (floatp float)
-    (error "type error"))
+    (type-error float 'FLOAT))
   (if (zerop float)
       0
       ;; TODO: return number of significant digits in denormals.
@@ -1317,7 +1396,7 @@
 
 (defun INTEGER-DECODE-FLOAT (float)
   (unless (floatp float)
-    (error "type error"))
+    (type-error float 'FLOAT))
   (if (zerop float)
       (cl:values 0.0 0 1)
       (let ((exponent (1+ (logb float))))
@@ -1327,13 +1406,13 @@
 
 (defun bignum-float (num)
   (do ((i 1 (1+ i))
-       (w 1.0 (* w 268435456.0))
+       (w 1.0 (* w two^fixnum-bits))
        (x 0.0)
        (len (1- (length num))))
       ((eq i len)
        (+ x (* w (aref num i))))
     (let ((y (aref num i)))
-      (incf x (* w (if (minusp y) (+ 268435456.0 y) y))))))
+      (incf x (* w (if (minusp y) (+ two^fixnum-bits y) y))))))
 
 (defun FLOAT (num &optional prototype)
   (cond
@@ -1346,7 +1425,7 @@
     ((bignump num)
      (bignum-float num))
     (t
-     (error "type error"))))
+     (type-error num 'REAL))))
 
 (fset 'FLOATP (symbol-function 'floatp))
 

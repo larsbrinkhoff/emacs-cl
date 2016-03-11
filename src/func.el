@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file provides cl:lambda, cl:function, and cl:defun.
 
 (defmacro cl:function (name)
@@ -17,8 +17,75 @@
      (fset ',name (cl:lambda ,lambda-list ,@body))
      ',name))
 
-(defun lambda-keyword-p (x)
-  (memq x '(&OPTIONAL &REST &KEY)))
+(defmacro parse-parameter (p kind k v i s err)
+  `(cond
+    ((or (symbolp ,p) (not (memq ,kind '(&OPTIONAL &KEY &AUX))))
+     (when (and ',k (eq ,kind '&KEY) (not (listp ,p)))
+       (setq ,k (keyword (symbol-name ,p))))
+     (when ',v (setq ,v ,p)))
+    ((and (consp ,p) (<= (length ,p) 3))
+     (cond
+       ((or (symbolp (first ,p)) (not (eq ,kind '&KEY)))
+	(when (and ',k (eq ,kind '&KEY))
+	  (setq ,k (keyword (symbol-name (first ,p)))))
+	(when ',v (setq ,v (first ,p))))
+       ((and (consp (first ,p)) (= (length (first ,p)) 2))
+	(when ',k (setq ,k (first (first ,p))))
+	(when ',v (setq ,v (second (first ,p)))))
+       (t
+	,err))
+     (when ',i (setq ,i (second ,p)))
+     (when ',s (setq ,s (third ,p))))
+    (t
+     ,err)))
+
+(defmacro* do-lambda-list ((var kind lambda-list &optional result
+			    &key (keywords 'LAMBDA-LIST-KEYWORDS))
+			   &body body)
+  (let ((keyword-var nil)
+	(var-var nil)
+	(default-var nil)
+	(supplied-var nil)
+	(v (gensym)))
+    (parse-parameter var '&KEY keyword-var var-var default-var supplied-var
+		     (error "Syntax error in do-lambda-list."))
+    (with-gensyms (list)
+      `(do ((,kind :required)
+	    (,list ,lambda-list (rest ,list)))
+	   ((atom ,list)
+	    (unless (null ,list)
+	      (setq ,kind '&REST)
+	      (let ((,keyword-var nil)
+		    (,var-var ,list)
+		    (,default-var nil)
+		    (,supplied-var nil))
+		,@body))
+	    ,result)
+	 (let ((,v (car ,list)))
+	   (if (memq ,v ,keywords)
+	       (setq ,kind ,v)
+	       (let ,(remove nil (list var-var keyword-var
+				       default-var supplied-var))
+		 (parse-parameter ,v ,kind ,keyword-var ,var-var ,default-var
+				  ,supplied-var (ERROR 'PROGRAM-ERROR))
+		 ,@body
+		 (when (memq ,kind '(&ENVIRONMENT &WHOLE))
+		   (setq ,kind :required)))))))))
+
+;;; Allowed lambda list keywords:
+;;; Ordinary		&optional &rest &key &allow-other-keys &aux
+;;; Generic Function	&optional &rest &key &allow-other-keys
+;;; Specialized		&optional &rest &key &allow-other-keys &aux
+;;; Macro		&whole &optional &rest &body &key &allow-other-keys
+;;;			&aux &environment
+;;; Destructuring	&whole &optional &rest &body &key &allow-other-keys
+;;;			&aux
+;;; Boa			Same as Ordinary.
+;;; Defsetf		&optional &rest &key &allow-other-keys &environment
+;;; Deftype		Same as Macro.
+;;; Define-modify-macro	&optional &rest
+;;; Define-method-combination
+;;;			&whole &optional &rest &key &allow-other-keys &aux
 
 (defvar rest-sym (make-symbol "rest"))
 
@@ -26,191 +93,164 @@
 
 (defun* simplify-lambda-list (lambda-list &optional env)
   (let ((result nil)
-	(state :required))
-    (dolist (x lambda-list)
-      (cond
-	((memq x '(&KEY &REST))
-	 (push '&rest result)
-	 (push rest-sym result)
-	 (return-from simplify-lambda-list (nreverse result)))
-	((lambda-keyword-p x)
-	 (setq state x)
-	 (push (cdr (assq x '((&OPTIONAL . &optional)))) result))
-	((symbolp x)
-	 (push (if env (lexical-value x env) x) result))
-	((consp x)
-	 (when (eq state :required)
-	   (error "required parameters must be symbols"))
-	 (when (memq (car result) '(&optional &rest))
-	   (pop result))
-	 (push '&rest result)
-	 (push rest-sym result)
-	 (return-from simplify-lambda-list (nreverse result)))
-	(t
-	 (error "syntax error"))))
+	(push-optional t))
+    (do-lambda-list ((var default supp) kind lambda-list)
+      (case kind
+        (&OPTIONAL
+         (when push-optional
+	   (push '&optional result)
+	   (setq push-optional nil)))
+        ((&REST &KEY)
+         (push '&rest result)
+         (push rest-sym result)
+         (return-from simplify-lambda-list (nreverse result)))
+	(&AUX
+         (return-from simplify-lambda-list (nreverse result))))
+      (when (or default supp)
+         (when (eq (car result) '&optional)
+           (pop result))
+         (push '&rest result)
+         (push rest-sym result)
+         (return-from simplify-lambda-list (nreverse result)))
+      (push (if env (compile-variable var env) var)
+	    result))
     (nreverse result)))
 
 (defun* lambda-list-bindings (lambda-list env)
   (let ((bindings nil)
-	(state :required)
-	x)
-    (while lambda-list
-      (setq x (pop lambda-list))
-      (cond
-	((eq x '&KEY)
-	 (dolist (y (lambda-list-keyword-vars (cons '&KEY lambda-list) env t))
-	   (push `(,y ',unbound) bindings))
-	 (return-from lambda-list-bindings (nreverse bindings)))
-	((lambda-keyword-p x)
-	 (setq state x))
-	((symbolp x)
-	 (when env (setq x (lexical-value x env)))
-	 (case state
-	   (:optional-rest
-	    (push `(,x (pop ,rest-sym)) bindings))
-	   (&REST
-	    (push `(,x ,rest-sym) bindings))))
-	((consp x)
-	 (when (eq state '&OPTIONAL)
-	   (setq state :optional-rest))
-	 (case state
-	   (:optional-rest
-	    (let ((var (first x))
-		  (default (second x))
-		  (supplied (third x)))
-	      (when supplied
-		(when env (setq supplied (lexical-value supplied env)))
-		(push `(,supplied ,rest-sym) bindings))
-	      (when env (setq var (lexical-value var env)))
-	      (push `(,var (if ,rest-sym (pop ,rest-sym) ,default)) bindings)))
-	   (t
-	    (error "syntax error"))))
-	(t
-	 (error "syntax error"))))
+	(optional-rest nil))
+    (do-lambda-list ((var default supp) kind lambda-list)
+      (when env
+	(setq var (compile-variable var env))
+	(when supp
+	  (setq supp (compile-variable supp env))))
+      (case kind
+	(&OPTIONAL
+	 (when (or default supp)
+	   (setq optional-rest t))
+	 (when optional-rest
+	   (when supp
+	     (push `(,supp ,rest-sym) bindings))
+	   (when env
+	     (setq default (compile-form default env)))
+	   (push `(,var (if ,rest-sym (pop ,rest-sym) ,default))
+		 bindings)))
+	(&REST
+	 (push `(,var ,rest-sym) bindings))
+	(&KEY
+	 (push `(,var ',unbound) bindings)
+	 (when supp
+	   (push `(,supp nil) bindings)))
+	(&AUX
+	 (push var bindings))))
     (nreverse bindings)))
 
 (defun lambda-list-keys (lambda-list)
-  (let ((key (copy-list (member '&KEY lambda-list))))
-    (when key
-      (let ((x key))
-	(while (rest x)
-	  (if (lambda-list-keyword-p (second x))
-	      (rplacd x nil)
-	      (setq x (rest x)))))
-      (mapcar (lambda (var)
-		(cond
-		  ((symbolp var)
-		   (keyword (symbol-name var)))
-		  ((and (consp var) (symbolp (first var)))
-		   (keyword (symbol-name (first var))))
-		  ((and (consp var) (consp (first var)))
-		   (caar var))
-		  (t
-		   (error "syntax error"))))
-	      (rest key)))))
+  (with-collector collect
+    (do-lambda-list (((key var)) kind lambda-list)
+      (when (eq kind '&KEY)
+	(collect key)))))
 
 (defun lambda-list-keyword-vars (lambda-list env &optional include-supplied)
-  (let ((key (copy-list (member '&KEY lambda-list))))
-    (when key
-      (let ((x key))
-	(while (rest x)
-	  (if (lambda-list-keyword-p (second x))
-	      (rplacd x nil)
-	      (setq x (rest x)))))
-      (mappend (lambda (var)
-		 (cond
-		   ((symbolp var)
-		    (when env (setq var (lexical-value var env)))
-		    (list var))
-		   ((and (consp var) (symbolp (first var)))
-		    (if (and (cddr var) include-supplied)
-			(if env
-			    (list (lexical-value (first var) env)
-				  (lexical-value (third var) env))
-			    (list (first var) (third var)))
-			(if env
-			    (list (lexical-value (first var) env))
-			    (list (first var)))))
-		   ((and (consp var) (consp (first var)))
-		    (if (and (cddr var) include-supplied)
-			(if env
-			    (list (lexical-value (cadar var) env)
-				  (lexical-value (third var) env))
-			    (list (cadar var) (third var)))
-			(if env
-			    (list (lexical-value (cadar var) env))
-			    (list (cadar var)))))))
-	       (rest key)))))
+  (with-collector collect
+    (do-lambda-list ((var nil supp) kind lambda-list)
+      (when (eq kind '&KEY)
+	(collect (if env (lexical-value var env) var))
+	(when (and supp include-supplied)
+	  (collect (if env (lexical-value supp env) supp)))))))
 
 (defun lambda-list-keyword-defaults (lambda-list)
-  (let ((key (copy-list (member '&KEY lambda-list))))
-    (when key
-      (let ((x key))
-	(while (rest x)
-	  (if (lambda-list-keyword-p (second x))
-	      (rplacd x nil)
-	      (setq x (rest x)))))
-      (mapcar (lambda (var)
-		(when (and (consp var) (cdr var))
-		  (second var)))
-	      (rest key)))))
+  (with-collector collect
+    (do-lambda-list ((var default) kind lambda-list)
+      (when (eq kind '&KEY)
+	(collect default)))))
 
-(defun keyword-bindings (lambda-list env)
-  (let ((allow-other-keys-p (member '&ALLOW-OTHER-KEYS lambda-list))
+(defun load-time-symbol (sym)
+  (if (or (not (boundp '*keyword-package*))
+	  (eq (SYMBOL-PACKAGE sym) *keyword-package*))
+      `(keyword ,(symbol-name sym))
+      `(INTERN ,(symbol-name sym) ,(PACKAGE-NAME (SYMBOL-PACKAGE sym)))))
+
+(defun keyword-assignments (lambda-list env)
+  (let ((allow-other-keys-p (memq '&ALLOW-OTHER-KEYS lambda-list))
 	(temp (gensym))
+	(allow (gensym))
+	(val (gensym))
 	(keys (lambda-list-keys lambda-list))
 	(vars (lambda-list-keyword-vars lambda-list env))
 	(defaults (lambda-list-keyword-defaults lambda-list)))
     (when keys
-      `((while ,rest-sym
-	  (let ((,temp (position (pop ,rest-sym) ; ',keys)))
-				 ;; TODO: have to do run-time computation
-				 ;; since compiler doesn't preserve object
-				 ;; identities.
-				 (mapcar #'keyword
-					 ',(mapcar #'symbol-name keys)))))
-	    ,@(unless allow-other-keys-p
-	       `((unless ,temp (ERROR "Unknown keyword"))))
-	    (set (nth ,temp ',vars) (pop ,rest-sym))))
-	,@(mappend (lambda (var default)
-		     `((when (eq ,var ',unbound)
-			 (setq ,var ,default))))
-		   vars defaults)))))
+      (let* ((list `(list ,@(mapcar #'load-time-symbol keys)))
+	     (keyword-list
+	      (if (eval-when-compile (featurep 'xemacs))
+		  list
+		  `(load-time-value ,list)))
+	     (body
+	      `((while ,rest-sym
+		  (let ((,temp (position (pop ,rest-sym) ,keyword-list)) ,val)
+		    ,@(unless allow-other-keys-p
+		       `((unless (or ,temp ,allow) (ERROR 'PROGRAM-ERROR))))
+		    (when (null ,rest-sym)
+		      (ERROR 'PROGRAM-ERROR))
+		    (setq ,val (pop ,rest-sym))
+		    (when ,temp
+		      (set (nth ,temp ',vars) ,val))))
+		,@(mappend (lambda (var default)
+			     `((when (eq ,var ',unbound)
+				 (setq ,var
+				       ,(if env
+					    (compile-form default env)
+					    default)))))
+			   vars defaults))))
+	(unless allow-other-keys-p
+	  (setq body
+		`((let ((,allow (cadr (memq (kw ALLOW-OTHER-KEYS) ,rest-sym))))
+		    ,@body))))
+	body))))
+
+(defun aux-assignments (lambda-list env)
+  (let ((bindings nil))
+    (do-lambda-list ((var default) kind lambda-list)
+      (when (and (eq kind '&AUX)
+		 default)
+	(when env
+	  (setq var (compile-variable var env)
+		default (compile-form default env)))
+	(push `(,var ,default) bindings)))
+    (when bindings
+      `((setq ,@(nreverse bindings))))))
 
 (defun translate-lambda-list (lambda-list env)
   (mapcar (lambda (x)
-	    (let ((cons (assq x '((&OPTIONAL . &optional)
-				  (&REST . &rest)))))
+	    (let ((cons (assq x '((&OPTIONAL . &optional) (&REST . &rest)))))
 	      (cond
 		(cons	(cdr cons))
-		(env	(lexical-value x env))
+		(env	(compile-variable x env))
 		(t	x))))
 	  lambda-list))
 
 (defun lambda-list-variables (lambda-list)
-  (let ((vars nil))
-    (dolist (x lambda-list (nreverse vars))
-      (cond
-	((lambda-list-keyword-p x))
-	((symbolp x)
-	 (push x vars))
-	((consp x)
-	 (push (if (consp (car x)) (cadar x) (car x)) vars)
-	 (when (eq (length x) 3)
-	   (push (third x) vars)))))))
+  (let ((result nil))
+    (do-lambda-list ((var default supp) kind lambda-list)
+      (if (symbolp var)
+	  (push var result)
+	  (setq result (nconc result (lambda-list-variables var))))
+      (when supp (push supp result)))
+    result))
 
 (defun expand-lambda (lambda-list body &optional env)
-  (dolist (k '(&optional &rest &key &aux &allow-other-keys))
-    (when (memq k lambda-list)
-      (error "Emacs Lisp lambda list keywords not allowed")))
   (if (and (every 'symbolp lambda-list)
-	   (notany (lambda (x) (member x '(&KEY))) lambda-list))
-      ;; Easy case: no defaults, suppliedp, or keyword arguments.
+	   (notany (lambda (x) (memq x '(&KEY &AUX))) lambda-list))
+      ;; Easy case: no defaults, suppliedp, keyword, or aux parameters.
       `(lambda ,(translate-lambda-list lambda-list env) ,@body)
       ;; Difficult case:
       `(lambda ,(simplify-lambda-list lambda-list env)
 	(let* ,(lambda-list-bindings lambda-list env)
-	  ,@(keyword-bindings lambda-list env)
+;; 	  ,@(unless (or (memq '&REST lambda-list) (memq '&KEY lambda-list))
+;; 	      `((when ,rest-sym
+;; 		  (ERROR 'PROGRAM-ERROR))))
+	  ,@(keyword-assignments lambda-list env)
+	  ,@(aux-assignments lambda-list env)
 	  ,@body))))
 
 (defmacro cl:lambda (lambda-list &rest body)

@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements the LOOP macro from chapter 6, Iteration.
 
 (IN-PACKAGE "EMACS-CL")
@@ -67,7 +67,6 @@
     (when (loop-result ,state)
       (setq result (loop-result ,state)))))
 
-
 (defvar *loop-clause-handlers* (make-hash-table :test #'equal))
 
 (defmacro* define-loop-clause (names () &body body)
@@ -118,56 +117,130 @@
 		    (pop forms)
 		    (pop forms))))
 	(push `(,var ,val) bs))
-      (setq more (prog1 (peek= "AND")
-		   (pop forms))))
+      (setq more (prog1 (peek= "AND")))
+      (when more
+	(pop forms)))
     (push bs bindings)))
+
+;; (defun destructuring-setq-form (lambda-list form)
+;;   `(MULTIPLE-VALUE-SETQ ,(lambda-list-variables lambda-list)
+;;      (DESTRUCTURING-BIND ,lambda-list ,form
+;;        (VALUES ,@(lambda-list-variables lambda-list)))))
+
+(defun assignment-form (var form)
+  (cond
+    ((null var)
+     nil)
+    ((symbolp var)
+     `(SETQ ,var ,form))
+    ((consp var)
+     (let ((val (gensym)))
+       `(LET ((,val ,form))
+	  ,@(do ((forms nil)
+		 (vars var (rest vars)))
+		((atom vars)
+		 (unless (null vars)
+		   (push `(SETQ ,vars ,val) forms))
+		 (nreverse forms))
+	      (push (assignment-form (first vars) `(POP ,val)) forms)))))
+;;        `(LET ((,val ,form))
+;; 	 ,(assignment-form (car var) `(CAR ,val))
+;; 	 ,(assignment-form (cdr var) `(CDR ,val)))))
+;;      `(MULTIPLE-VALUE-SETQ ,(lambda-list-variables lambda-list)
+;;         (DESTRUCTURING-BIND ,lambda-list ,form
+;; 	  (VALUES ,@(lambda-list-variables lambda-list)))))
+    (t
+     (type-error var '(OR SYMBOL CONS)))))
 
 (define-loop-clause ("FOR" "AS") ()
   (let* ((var (pop forms))
 	 (form (pop forms))
 	 (k (symbol-name form)))
     (cond
-      ((some (lambda (s) (string= k s))
-	     '("FROM" "UPFROM" "TO" "UPTO" "BELOW"
-	       "DOWNTO" "ABOVE" "DOWNFROM"))
+      ((member k '("FROM" "UPFROM" "TO" "UPTO" "BELOW" "DOWNTO"
+		   "ABOVE" "DOWNFROM"))
        (parse-for-arithmetic var form))
        
       ((string= k "IN")
-       (let ((list (gensym)))
-	 (push `((,list ,(pop forms)) ,var) bindings)
+       (let ((list (gensym))
+	     (form (pop forms))
+	     (by-fn '(FUNCTION CDR)))
+	 (when (and forms
+		    (symbolp (first forms))
+		    (equal (symbol-name (first forms)) "BY"))
+	   (pop forms)
+	   (setq by-fn (pop forms)))
+	 (push `((,list ,form)
+		 ,@(if (atom var) (list var) (lambda-list-variables var)))
+	       bindings)
 	 (push `(ENDP ,list) tests)
-	 (push `(SETQ ,var (CAR ,list)) setters)
-	 (push `(SETQ ,list (CDR ,list)) steps)))
+	 (push (assignment-form var `(CAR ,list)) setters)
+;; 	 (push (if (atom var)
+;; 		   `(SETQ ,var (CAR ,list))
+;; 		   (destructuring-setq-form var `(CAR ,list)))
+;; 	       setters)
+	 (push `(SETQ ,list (FUNCALL ,by-fn ,list)) steps)))
 
       ((string= k "ON")
-       (push `((,var ,(pop forms))) bindings)
-       (push `(ATOM ,var) tests)
-       (push `(SETQ ,var (CDR ,var)) steps))
+       (let ((list (gensym))
+	     (form (pop forms))
+	     (by-fn '(FUNCTION CDR)))
+	 (when (and forms
+		    (symbolp (first forms))
+		    (equal (symbol-name (first forms)) "BY"))
+	   (pop forms)
+	   (setq by-fn (pop forms)))
+	 (push `((,list ,form)
+		 ,@(if (atom var) (list var) (lambda-list-variables var)))
+	       bindings)
+	 (push `(ATOM ,list) tests)
+	 (push (assignment-form var list) setters)
+;; 	 (push (if (atom var)
+;; 		   `(SETQ ,var ,list)
+;; 		   (destructuring-setq-form var list))
+;; 	       setters)
+	 (push `(SETQ ,list (FUNCALL ,by-fn ,list)) steps)))
+;; 	 (push `((,var ,form)) bindings)
+;; 	 (push `(ATOM ,var) tests)
+;; 	 (push `(SETQ ,var (FUNCALL ,by-fn ,var)) steps)))
 
       ((string= k "=")
-       (let* ((form1 (pop forms))
-	      (form2 form1))
-	 (push `((,var ,form1)) bindings)
-	 (when (peek= "THEN")
-	   (pop forms)
-	   (setq form2 (pop forms)))
-	 (push `(SETQ ,var ,form2) steps)))
+       (let ((form1 (pop forms)))
+	 (cond
+	   ((peek= "THEN")
+	    (pop forms)
+	    (let ((form2 (pop forms)))
+	      (push `((,var ,form1)) bindings)
+	      (push (assignment-form var form2) steps)))
+;; 	      (push (if (atom var)
+;; 			`(SETQ ,var ,form2)
+;; 			(destructuring-setq-form var form2))
+;; 		    steps)))
+	   (t
+	    (push (if (atom var) (list var) (lambda-list-variables var))
+		  bindings)
+	    (push (assignment-form var form1) setters)))))
+;; 	    (push (if (atom var)
+;; 		      `(SETQ ,var ,form1)
+;; 		      (destructuring-setq-form var form1))
+;; 		  setters)))))
 
       ((string= k "ACROSS")
-       (with-gensyms (vector length)
-	 (push `(,var (,index 0) (,vector (pop forms))) bindings)
-	 (push `((,length (just-one (ARRAY-DIMENSIONS ,vector)))))
-	 (push `(eq ,index ,length) tests)
-	 (push `(SETQ ,var (AREF ,vector ,index)) setters)
+       (with-gensyms (vector index length)
+	 (push `(,var (,index 0) (,vector ,(pop forms))) bindings)
+	 (push `((,length (just-one (ARRAY-DIMENSIONS ,vector)))) bindings)
+	 (push `(EQ ,index ,length) tests)
+	 (push (assignment-form var `(AREF ,vector ,index)) setters)
+;;	 (push `(SETQ ,var (AREF ,vector ,index)) setters)
 	 (push `(INCF ,index) steps)))
 
       ((string= k "BEING")
        (setq k (symbol-name (pop forms)))
        (when (or (string= k "THE") (string= k "EACH"))
 	 (setq k (symbol-name (pop forms))))
-       ;; Discard IN or OF.
-       (pop forms)
-       (setq k (symbol-name (pop forms)))
+       (let ((k (symbol-name (pop forms))))
+	 (unless (or (string= k "IN") (string= k "OF"))
+	   (ERROR "Unknown LOOP BEING keyword: ~A" k)))
        (let ((list (gensym)))
 	 (push `((,list (package-symbols
 			 (OR (FIND-PACKAGE ,(pop forms))
@@ -175,23 +248,29 @@
 			 ,(cond
 			   ((or (string= k "SYMBOL")
 				(string= k "SYMBOLS"))
-			    `(QUOTE (,(kw EXTERNAL)
-				     ,(kw INTERNAL)
-				     ,(kw INHERITED))))
+			    `(QUOTE (,kw:EXTERNAL
+				     ,kw:INTERNAL
+				     ,kw:INHERITED)))
 			   ((or (string= k "PRESENT-SYMBOL")
 				(string= k "PRESENT-SYMBOLS"))
-			    `(QUOTE (,(kw EXTERNAL)
-				     ,(kw INTERNAL))))
+			    `(QUOTE (,kw:EXTERNAL
+				     ,kw:INTERNAL)))
 			   ((or (string= k "EXTERNAL-SYMBOL")
 				(string= k "EXTERNAL-SYMBOLS"))
-			    `(QUOTE (,(kw EXTERNAL))))
+			    `(QUOTE (,kw:EXTERNAL)))
 			   (t
 			    (ERROR "Invalid LOOP keyword: ~A" k)))))
 		 ,var)
 	       bindings)
 	 (push `(NULL ,list) tests)
 	 (push `(SETQ ,var (CAAR ,list)) setters)
-	 (push `(SETQ ,list (CDR ,list)) steps))))))
+	 (push `(SETQ ,list (CDR ,list)) steps)))))
+  ;; TODO: this is a gross hack!
+  (when (and forms
+	     (symbolp (first forms))
+	     (string= (symbol-name (first forms)) "AND"))
+    (pop forms)
+    (push 'FOR forms)))
 
 (defun parse-for-arithmetic (var k)
   (let ((start-key nil)
@@ -291,10 +370,12 @@
 	(setq test-fn (if (string= start-key "DOWNFROM") lt gt)))
       ;(print (format "%s %s %s %s %s BY %s %s" start-key start-form end-key test-fn end-form step-fn by-form))
       ;(FORMAT T "~S ~S ~S ~S ~S BY ~S ~S" start-key start-form end-key test-fn end-form step-fn by-form)
-      (with-gensyms (end)
-	(push `((,var ,start-form) (,end ,end-form)) bindings)
-	(push `(,test-fn ,var ,end) tests)
-	(push `(,step-fn ,var ,by-form) steps)))))
+      (when end-form
+	(with-gensyms (end)
+	  (push `((,end ,end-form)) bindings)
+	  (push `(,test-fn ,var ,end) tests)))
+      (push `((,var ,start-form)) bindings)
+      (push `(,step-fn ,var ,by-form) steps))))
 
 (defvar *loop-collect* (gensym))
 (defvar *loop-append* (gensym))
@@ -384,6 +465,30 @@
 	  body)
     (setf result accumulator)))
 
+(define-loop-clause "REPEAT" ()
+  (let ((end (pop forms))
+	(var (gensym)))
+    (push `((,var 0)) bindings)
+    (push `(,(INTERN ">=") ,var ,end) tests)
+    (push `(SETQ ,var (,(INTERN "1+" *cl-package*) ,var)) setters)))
+
+(define-loop-clause "ALWAYS" ()
+  (let ((val (gensym)))
+    (setf result T)
+    (push `(UNLESS ,(pop forms) (RETURN-FROM ,name nil)) body)))
+
+(define-loop-clause "NEVER" ()
+  (let ((val (gensym)))
+    (setf result T)
+    (push `(WHEN ,(pop forms) (RETURN-FROM ,name nil)) body)))
+
+(define-loop-clause "THEREIS" ()
+  (let ((val (gensym)))
+    (setf result nil)
+    (push `(LET ((,val ,(pop forms)))
+	    (WHEN ,val (RETURN-FROM ,name ,val)))
+	  body)))
+
 (define-loop-clause "WHILE" ()
   (push `(NOT ,(pop forms)) tests))
 
@@ -418,7 +523,7 @@
     (push (pop forms) body)))
 
 (define-loop-clause "RETURN" ()
-  (push `(RETURN-FROM ,name (pop forms))))
+  (push `(RETURN-FROM ,name ,(pop forms)) body))
 
 (define-loop-clause "INITIALLY" ()
   (while (consp (first forms))
@@ -460,6 +565,13 @@
 	  ,(loop-result state))))))
 
 (defun expand-bindings (bindings body)
-  (if (null bindings)
-      body
-      `(LET ,(first bindings) ,(expand-bindings (rest bindings) body))))
+  (cond
+    ((null bindings)
+     body)
+    ((or (atom (caar bindings))
+	 (atom (caaar bindings)))
+     `(LET ,(first bindings)
+        ,(expand-bindings (rest bindings) body)))
+    (t
+     `(DESTRUCTURING-BIND ,(caaar bindings) ,(cadaar bindings)
+        ,(expand-bindings (rest bindings) body)))))

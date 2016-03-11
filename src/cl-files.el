@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 20, Files.
 
 (IN-PACKAGE "EMACS-CL")
@@ -40,7 +40,7 @@
 		 files)))))))
 
 (defun DIRECTORY (pathname-designator)
-  (let ((pathname (PATHNAME pathname-designator)))
+  (let ((pathname (MERGE-PATHNAMES pathname-designator)))
     (if (WILD-PATHNAME-P pathname (kw DIRECTORY))
 	(let* ((dir (PATHNAME-DIRECTORY pathname))
 	       (x (pop dir))
@@ -58,42 +58,54 @@
 	      (push file result)))
 	  result))))
 
-(defun PROBE-FILE (pathspec)
-  ;; TODO...
-  (if (file-exists-p pathspec)
-      pathspec
-      nil))
+(defun PROBE-FILE (pathname-designator)
+  (let ((pathname (MERGE-PATHNAMES pathname-designator)))
+    (when (file-exists-p (NAMESTRING pathname))
+      (TRUENAME pathname))))
 
-(defun ENSURE-DIRECTORIES-EXIST (pathspec &optional verbose)
-  (let ((dir (file-name-directory (NAMESTRING pathspec))))
-    (cl:values pathspec
-	       (if (file-exists-p dir)
-		   (progn (make-directory dir t) T)
-		   nil))))
+(cl:defun ENSURE-DIRECTORIES-EXIST (pathname-designator &KEY VERBOSE)
+  (let* ((pathname (MERGE-PATHNAMES pathname-designator))
+	 (dir (DIRECTORY-NAMESTRING pathname)))
+    (when (or (eq (PATHNAME-HOST pathname) (kw WILD))
+	      (eq (PATHNAME-DEVICE pathname) (kw WILD))
+	      (or (memq (kw WILD) (PATHNAME-DIRECTORY pathname))
+		  (memq (kw WILD-INFERIORS) (PATHNAME-DIRECTORY pathname))))
+      (ERROR 'FILE-ERROR))
+    (cl:values pathname-designator
+	       (unless (file-exists-p dir)
+		 (make-directory dir t)
+		 T))))
 
-(defun TRUENAME (filespec)
-  (PATHNAME (file-truename (NAMESTRING filespec))))
+(defun TRUENAME (pathname-designator)
+  (let ((pathname (MERGE-PATHNAMES pathname-designator)))
+    (PATHNAME (file-truename (NAMESTRING pathname)))))
 
-(defun FILE-AUTHOR (pathspec)
-  (user-login-name (nth 2 (file-attributes pathspec))))
+(defun FILE-AUTHOR (pathname-designator)
+  (let ((pathname (MERGE-PATHNAMES pathname-designator)))
+    (user-login-name (nth 2 (file-attributes (NAMESTRING pathname))))))
 
-(defun FILE-WRITE-DATE (pathspec)
-  (let* ((x (nth 5 (file-attributes pathspec)))
+(defun FILE-WRITE-DATE (pathname-designator)
+  (let* ((pathname (MERGE-PATHNAMES pathname-designator))
+	 (filename (NAMESTRING pathname))
+	 (x (nth 5 (file-attributes filename)))
 	 (y (first x))
 	 (z (second x)))
     (when (null x)
-      (file-error pathspec))
+      (file-error pathname))
     (cl:+ (binary* y 65536) z universal-time-offset)))
 
-(defun RENAME-FILE (filespec new-name)
-  (rename-file filespec new-name t)
-  ;; TODO...
-  (cl:values new-name filespec new-name))
+(defun RENAME-FILE (old-pathname-designator new-pathname-designator)
+  (let* ((old-pathname (MERGE-PATHNAMES old-pathname-designator))
+	 (new-pathname (MERGE-PATHNAMES new-pathname-designator old-pathname)))
+    (rename-file (NAMESTRING old-pathname) (NAMESTRING new-pathname) t)
+    (cl:values new-pathname (TRUENAME old-pathname) (TRUENAME new-pathname))))
 
-(defun DELETE-FILE (filespec)
-  (if (file-exists-p filespec)
-      (delete-file filespec)
-      (file-error filespec))
-  T)
+(defun DELETE-FILE (pathname-designator)
+  (let* ((pathname (MERGE-PATHNAMES pathname-designator))
+	 (filename (NAMESTRING pathname)))
+    (if (file-exists-p filename)
+	(delete-file filename)
+	(file-error pathname))
+    T))
 
 ;;; FILE-ERROR and FILE-ERROR-PATHNAME are defined in cl-conditions.el.

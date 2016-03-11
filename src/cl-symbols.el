@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 10, Symbols.
 
 (IN-PACKAGE "EMACS-CL")
@@ -16,10 +16,13 @@
   (and (SYMBOLP sym)
        (eq (SYMBOL-PACKAGE sym) *keyword-package*)))
 
-(fset 'MAKE-SYMBOL (symbol-function 'make-symbol))
+(defun MAKE-SYMBOL (string)
+  (unless (STRINGP string)
+    (type-error string 'STRING))
+  (make-symbol string))
 
 (defun COPY-SYMBOL (sym &optional copy-properties)
-  (let ((new (make-symbol (symbol-name sym))))
+  (let ((new (make-symbol (SYMBOL-NAME sym))))
     (when copy-properties
       (when (boundp sym)
 	(setf (symbol-value new) (symbol-value sym)))
@@ -28,16 +31,17 @@
       (setf (symbol-plist new) (copy-list (symbol-plist sym))))
     new))
 
-(defun GENSYM (&optional x)
+(cl:defun GENSYM (&OPTIONAL (x "G"))
   (multiple-value-bind (prefix suffix)
       (cond
-	((null x)	(values "G" (1- (incf *GENSYM-COUNTER*))))
-	((STRINGP x)	(values x (1- (incf *GENSYM-COUNTER*))))
+	((STRINGP x)	(values x (prog1 *GENSYM-COUNTER*
+				      (setq *GENSYM-COUNTER*
+					    (binary+ *GENSYM-COUNTER* 1)))))
 	((INTEGERP x)	(values "G" x))
-	(t		(error "type error")))
+	(t		(type-error x '(OR STRING INTEGER))))
     (MAKE-SYMBOL (FORMAT nil "~A~D" prefix suffix))))
 
-(defvar *GENSYM-COUNTER* 1)
+(DEFVAR *GENSYM-COUNTER* 1)
 
 (defvar *gentemp-counter* 1)
 
@@ -68,6 +72,9 @@
   (let ((fn (symbol-function symbol)))
     (cond
       ((and (consp fn)
+	    (eq (car fn) 'macro))
+       nil)
+      ((and (consp fn)
 	    (consp (third fn))
 	    (eq (first (third fn)) 'APPLY))
        (let ((ifn (second (third fn))))
@@ -95,20 +102,20 @@
 		     `((interactive ,@(cdadr form)))))))
 	forms))
 
+(defun el-function (fn)
+  (if (vectorp fn)
+      `(lambda (&rest args)
+	,@(interactive-stuff
+	   (cddr (cl:values (FUNCTION-LAMBDA-EXPRESSION fn))))
+	(APPLY ,fn args))
+      fn))
+
 (defun set-symbol-function (symbol fn)
-  (unless (symbolp symbol)
-    (type-error symbol 'SYMBOL))
   (fset symbol
 	(cond
-	  ((INTERPRETED-FUNCTION-P fn)
-	   `(lambda (&rest args)
-	     ,@(interactive-stuff
-		(cddr (cl:values (FUNCTION-LAMBDA-EXPRESSION fn))))
-	     (APPLY ,fn args)))
-	  ((FUNCTIONP fn)
-	   fn)
-	  (t
-	   (type-error fn 'FUNCTION)))))
+	  ((INTERPRETED-FUNCTION-P fn)	(el-function fn))
+	  ((FUNCTIONP fn)		fn)
+	  (t				(type-error fn 'FUNCTION)))))
 
 (defun SYMBOL-NAME (symbol)
   (if symbol
@@ -118,7 +125,8 @@
 (defvar *symbol-package-table* (make-hash-table :test 'eq :weakness t))
 
 (defun SYMBOL-PACKAGE (sym)
-  (gethash sym *symbol-package-table*))
+  (or (gethash sym *symbol-package-table*)
+      (when (interned-p sym) *emacs-lisp-package*)))
 
 (defsetf SYMBOL-PACKAGE (sym) (package)
   `(if (null ,package)
@@ -141,7 +149,7 @@
 (defun GET (symbol property &optional default)
   (let ((val (member property (symbol-plist symbol))))
     (if val
-	(car val)
+	(cadr val)
 	default)))
 
 (DEFSETF GET (symbol property &optional default) (val)
@@ -150,9 +158,15 @@
 (defun REMPROP (symbol indicator)
   (setplist symbol (delete-property (symbol-plist symbol) indicator)))
 
-(fset 'BOUNDP (symbol-function 'boundp))
+(defun BOUNDP (symbol)
+  (unless (symbolp symbol)
+    (type-error symbol 'SYMBOL))
+  (boundp symbol))
 
-(fset 'MAKUNBOUND (symbol-function 'makunbound))
+(defun MAKUNBOUND (symbol)
+  (unless (symbolp symbol)
+    (type-error symbol 'SYMBOL))
+  (makunbound symbol))
 
 (fset 'SET (symbol-function 'set))
 

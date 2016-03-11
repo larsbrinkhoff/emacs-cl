@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 6, Iteration.
 
 (IN-PACKAGE "EMACS-CL")
@@ -18,22 +18,23 @@
 	       `(,(first var) ,(third var))))
 	   vars))
 
-(defun expand-do (let setq vars test result body)
+(defun expand-do (let setq vars test result forms)
   (with-gensyms (start)
-    (MULTIPLE-VALUE-BIND (body decls) (parse-body body)
-      (let ((block `(BLOCK nil
-		      (TAGBODY
-			,start
-			,@(when test `((WHEN ,test (RETURN (PROGN ,@result)))))
-			,@(if decls
-			      `((LOCALLY ,@decls ,@body))
-			      body)
-			,@(when vars `((,setq ,@(var-steps vars))))
-			(GO ,start)))))
-	(cond
-	  (vars		`(,let ,(var-inits vars) ,@decls ,block))
-	  (decls	`(LOCALLY ,@decls ,block))
-	  (t		block))))))
+    (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
+      (let ((block `(TAGBODY
+		      ,start
+		      ,@(when test `((WHEN ,test (RETURN (PROGN ,@result)))))
+		      ,@(if decls
+		    	    `((LOCALLY (DECLARE ,@decls) ,@body))
+		    	    body)
+		      ,@(when vars `((,setq ,@(var-steps vars))))
+		      (GO ,start))))
+	`(BLOCK nil
+	   ,(cond
+	     (vars	`(,let ,(var-inits vars)
+			   ,@(when decls `((DECLARE ,@decls))) ,block))
+	     (decls	`(LOCALLY (DECLARE ,@decls) ,block))
+	     (t		block)))))))
 
 (cl:defmacro DO (vars (test &rest result) &body body)
   (expand-do 'LET 'PSETQ vars test result body))
@@ -45,17 +46,21 @@
   (with-gensyms (end)
     `(DO ((,var 0 (,(INTERN "1+" "CL") ,var))
 	  (,end ,count))
-         ((EQL ,var ,end)
-	  ,result)
+         ((,(INTERN ">=" *cl-package*) ,var ,end)
+	  (LET ((,var (MAX ,count 0)))
+	    ,result))
        ,@body)))
 
-(cl:defmacro DOLIST ((var list &optional result) &body body)
+(cl:defmacro DOLIST ((var list &optional result) &body forms)
   (with-gensyms (glist)
-    `(DO (,var
-	  (,glist ,list (CDR ,glist)))
-	 ((NULL ,glist)
-	  ,result)
-      (SETQ ,var (CAR ,glist))
-      ,@body)))
+    (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
+      `(DO (,var
+	    (,glist ,list (CDR ,glist)))
+	  ((NULL ,glist)
+	   (LET ((,var nil))
+	     ,result))
+	 (DECLARE ,@decls)
+	 (SETQ ,var (CAR ,glist))
+	 ,@body))))
 
 ;;; LOOP and LOOP-FINISH are implemented in cl-loop.el.

@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 21, Streams.
 
 (IN-PACKAGE "EMACS-CL")
@@ -36,11 +36,11 @@
 (defun stream-error (stream)
   (ERROR 'STREAM-ERROR (kw STREAM) stream))
 
-(defvar *STANDARD-INPUT* nil)
+(DEFVAR *STANDARD-INPUT* nil)
 
-(defvar *STANDARD-OUTPUT* nil)
+(DEFVAR *STANDARD-OUTPUT* nil)
 
-(defvar *TERMINAL-IO* nil)
+(DEFVAR *TERMINAL-IO* nil)
 
 (defun input-stream (designator)
   (case designator
@@ -114,16 +114,16 @@
     (when (STREAM-unread-buffer stream)
       (return-from READ-CHAR (pop (STREAM-unread-buffer stream))))
     (let* ((fn (STREAM-read-fn stream))
-	   (ch (funcall (or fn (stream-error stream)) stream)))
-      (if (eq ch :eof)
+	   (char (funcall (or fn (stream-error stream)) stream)))
+      (if (eq char :eof)
 	  (if eof-error-p
 	      (ERROR 'END-OF-FILE (kw STREAM) stream)
 	      eof-value)
-	  (CODE-CHAR ch)))))
+	  char))))
 
 (cl:defun read-char-exclusive-ignoring-arg (arg)
   (let ((char (read-char-exclusive)))
-    (if (eq char 13) 10 char)))
+    (cl-char (if (eq char 13) 10 char))))
 
 (cl:defun READ-CHAR-NO-HANG (&OPTIONAL stream-designator (eof-error-p T)
 				       eof-value recursive-p)
@@ -141,7 +141,10 @@
 
 (cl:defun FRESH-LINE (&OPTIONAL stream-designator)
   (let ((stream (output-stream stream-designator)))
-    (unless (STREAM-fresh-line-p stream)
+    (unless (if (bufferp (STREAM-content stream))
+		(with-current-buffer (STREAM-content stream)
+		  (eql (char-before (point)) (ch 10)))
+		(STREAM-fresh-line-p stream))
       (TERPRI stream))))
 
 (cl:defun UNREAD-CHAR (char &OPTIONAL stream-designator)
@@ -156,7 +159,7 @@
 	 (fn (STREAM-write-fn stream)))
     (unless fn
       (stream-error stream))
-    (funcall fn (CHAR-CODE char) stream)
+    (funcall fn char stream)
     (setf (STREAM-fresh-line-p stream) (ch= char 10))
     char))
 
@@ -180,7 +183,7 @@
     (setq END (LENGTH string)))
   (do ((stream (output-stream stream-designator))
        (i START (1+ i)))
-      ((eq i END) string)
+      ((>= i END) string)
     (WRITE-CHAR (CHAR string i) stream)))
 
 (cl:defun WRITE-LINE (string &OPTIONAL stream-designator &KEY (START 0) END)
@@ -237,15 +240,15 @@
 (cl:defun OPEN (filespec &KEY (DIRECTION (kw INPUT)) (ELEMENT-TYPE 'CHARACTER)
 		              IF-EXISTS IF-DOES-NOT-EXIST
 			      (EXTERNAL-FORMAT (kw DEFAULT)))
+  (setq filespec (NAMESTRING (MERGE-PATHNAMES filespec)))
   (mk-FILE-STREAM
    (kw direction) DIRECTION
-   (kw filename) (if (STRINGP filespec) filespec (NAMESTRING filespec))
-   (kw content) (let ((buffer (create-file-buffer (NAMESTRING filespec))))
+   (kw filename) filespec
+   (kw content) (let ((buffer (create-file-buffer filespec)))
 		  (when (eq DIRECTION (kw INPUT))
 		    (save-current-buffer
 		      (set-buffer buffer)
-		      (insert-file-contents-literally
-		       (NAMESTRING filespec))))
+		      (insert-file-contents-literally filespec)))
 		  buffer)
    (kw position) 0
    (kw read-fn)
@@ -254,13 +257,12 @@
 	 (set-buffer (STREAM-content stream))
 	 (if (= (STREAM-position stream) (buffer-size))
 	     :eof
-	     (char-after (incf (STREAM-position stream))))))
+	     (cl-char (char-after (incf (STREAM-position stream)))))))
    (kw write-fn)
      (lambda (char stream)
-       (save-current-buffer
-	 (set-buffer (STREAM-content stream))
+       (with-current-buffer (STREAM-content stream)
 	 (goto-char (incf (STREAM-position stream)))
-	 (insert char)))))
+	 (insert (el-char char))))))
 
 (defun STREAM-EXTERNAL-FORMAT (stream)
   (kw DEFAULT))
@@ -274,15 +276,19 @@
      ,@body))
 
 (cl:defun CLOSE (stream &KEY ABORT)
-  (when (and (TYPEP stream 'FILE-STREAM)
-	     (OUTPUT-STREAM-P stream))
-    (save-current-buffer
-      (set-buffer (STREAM-content stream))
-      (write-region 1 (1+ (buffer-size)) (FILE-STREAM-filename stream))))
-  (when (bufferp (STREAM-content stream))
-    (kill-buffer (STREAM-content stream)))
-  (setf (STREAM-openp stream) nil)
-  T)
+  (cond
+    ((STREAM-openp stream)
+     (when (and (TYPEP stream 'FILE-STREAM)
+		(OUTPUT-STREAM-P stream))
+       (save-current-buffer
+	 (set-buffer (STREAM-content stream))
+	 (write-region 1 (1+ (buffer-size)) (FILE-STREAM-filename stream))))
+     (when (bufferp (STREAM-content stream))
+       (kill-buffer (STREAM-content stream)))
+     (setf (STREAM-openp stream) nil)
+     T)
+    (t
+     nil)))
 
 (cl:defmacro WITH-OPEN-STREAM ((var stream) &body body)
   `(LET ((,var ,stream))
@@ -374,7 +380,7 @@
    (kw STREAMS) streams
    (kw write-fn) (lambda (char stream)
 		   (dolist (s (BROADCAST-STREAM-STREAMS stream))
-		     (WRITE-CHAR (CODE-CHAR char) s)))))
+		     (WRITE-CHAR char s)))))
 
 (defun MAKE-TWO-WAY-STREAM (input output)
   (mk-TWO-WAY-STREAM
@@ -383,10 +389,10 @@
    (kw OUTPUT-STREAM) output
    (kw read-fn)
      (lambda (stream)
-       (CHAR-CODE (READ-CHAR (TWO-WAY-STREAM-INPUT-STREAM stream))))
+       (READ-CHAR (TWO-WAY-STREAM-INPUT-STREAM stream)))
    (kw write-fn)
      (lambda (char stream)
-       (WRITE-CHAR (CODE-CHAR char) (TWO-WAY-STREAM-OUTPUT-STREAM stream)))))
+       (WRITE-CHAR char (TWO-WAY-STREAM-OUTPUT-STREAM stream)))))
 
 ;;; TWO-WAY-STREAM-INPUT-STREAM and TWO-WAY-STREAM-OUTPUT-STREAM
 ;;; defined by defstruct.
@@ -403,7 +409,7 @@
      (lambda (stream)
        (let ((char (READ-CHAR (ECHO-STREAM-INPUT-STREAM stream))))
 	 (WRITE-CHAR char (ECHO-STREAM-OUTPUT-STREAM stream))
-	 (CHAR-CODE char)))))
+	 char))))
 
 ;;; CONCATENATED-STREAM-STREAMS defined by defstruct.
 
@@ -421,7 +427,7 @@
 		   (progn
 		     (pop (CONCATENATED-STREAM-STREAMS stream))
 		     (funcall (STREAM-read-fn stream) stream))
-		   (CHAR-CODE char))))))))
+		   char)))))))
 
 (defun GET-OUTPUT-STREAM-STRING (stream)
   (STRING-STREAM-string stream))
@@ -440,11 +446,8 @@
 	 ((= (STREAM-position stream) (STREAM-end stream))
 	  (setf (STRING-STREAM-string stream) :eof))
 	 (t
-	  (let ((char (aref (STRING-STREAM-string stream)
-			    (1- (incf (STREAM-position stream))))))
-	    (if use-character-type-p
-		(CHAR-CODE char)
-		char)))))))
+	  (CHAR (STRING-STREAM-string stream)
+		(1- (incf (STREAM-position stream)))))))))
 
 (cl:defun MAKE-STRING-OUTPUT-STREAM (&KEY (ELEMENT-TYPE 'CHARACTER))
   (mk-STRING-STREAM
@@ -454,7 +457,7 @@
      (lambda (char stream)
        (setf (STRING-STREAM-string stream)
 	     (concat (STRING-STREAM-string stream)
-		     (list char))))))
+		     (list (el-char char)))))))
 
 (cl:defmacro WITH-INPUT-FROM-STRING ((var string &key INDEX START END)
 				     &body body)
@@ -464,15 +467,11 @@
   `(WITH-OPEN-STREAM (,var (MAKE-STRING-INPUT-STREAM ,string ,START ,END))
      ,@body))
 
-(defmacro* WITH-OUTPUT-TO-STRING ((var &optional string &key ELEMENT-TYPE)
-				  &body body)
-  (when (null ELEMENT-TYPE)
-    (setq ELEMENT-TYPE ''CHARACTER))
+(defmacro* WITH-OUTPUT-TO-STRING ((var &optional string) &body body)
   (if string
       `(WITH-OPEN-STREAM (,var (make-fill-pointer-output-stream ,string))
 	 ,@body)
-      `(WITH-OPEN-STREAM (,var (MAKE-STRING-OUTPUT-STREAM
-				,(kw ELEMENT-TYPE) ,ELEMENT-TYPE))
+      `(WITH-OPEN-STREAM (,var (MAKE-STRING-OUTPUT-STREAM))
 	 ,@body
 	 (GET-OUTPUT-STREAM-STRING ,var))))
 
@@ -488,12 +487,12 @@
 	 ,@body
 	 (GET-OUTPUT-STREAM-STRING ,var))))
 
-(defvar *DEBUG-IO* nil)
-(defvar *ERROR-OUTPUT* nil)
-(defvar *QUERY-IO* nil)
+(DEFVAR *DEBUG-IO* nil)
+(DEFVAR *ERROR-OUTPUT* nil)
+(DEFVAR *QUERY-IO* nil)
 ;;; *STANDARD-INPUT* defined above.
 ;;; *STANDARD-OUTPUT* defined above.
-(defvar *TRACE-OUTPUT* nil)
+(DEFVAR *TRACE-OUTPUT* nil)
 ;;; *TERMINAL-IO* defined above.
 
 ;;; STREAM-ERROR, STREAM-ERROR-STREAM, and END-OF-FILE defined by
@@ -504,21 +503,37 @@
   (MAKE-STREAM (kw direction) (kw OUTPUT)
 	       (kw content) buffer
 	       (kw write-fn) (lambda (char stream)
-			       (insert char)
-			       (when (eq char 10)
+			       (with-current-buffer (STREAM-content stream)
+				 (insert (el-char char)))
+			       (when (ch= char 10)
 				 (sit-for 0)))))
 
+(defun make-buffer-input-stream (buffer)
+  (MAKE-STREAM
+   (kw direction) (kw INPUT)
+   (kw content) buffer
+   (kw position) 0
+   (kw read-fn)
+   (lambda (stream)
+     (with-current-buffer (STREAM-content stream)
+       (if (= (STREAM-position stream) (buffer-size))
+	   :eof
+	   (cl-char (char-after (incf (STREAM-position stream)))))))))
+
 (defun make-read-char-exclusive-input-stream ()
-  (MAKE-STREAM (kw read-fn) (cl:function read-char-exclusive-ignoring-arg)))
+  (MAKE-STREAM (kw direction) (kw INPUT)
+	       (kw read-fn) (cl:function read-char-exclusive-ignoring-arg)
+	       (kw position) nil))
 
 (defun make-fill-pointer-output-stream (string)
   (mk-STRING-STREAM (kw direction) (kw OUTPUT)
 		    (kw string) string
 		    (kw write-fn) (lambda (char stream)
 				    (VECTOR-PUSH-EXTEND
-				     (CODE-CHAR char)
+				     char
 				     (STRING-STREAM-string stream)))))
 
 (defun make-princ-stream ()
   (MAKE-STREAM (kw direction) (kw OUTPUT)
-	       (kw write-fn) (lambda (char stream) (princ (string char)))))
+	       (kw write-fn)
+	         (lambda (char stream) (princ (string (el-char char))))))

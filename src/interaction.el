@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; A major mode implementing an Emacs Common Lisp listener.
 
 (defvar emacs-cl-prompt-marker nil
@@ -26,7 +26,9 @@
   (setq *TERMINAL-IO* (MAKE-TWO-WAY-STREAM *STANDARD-INPUT* *STANDARD-OUTPUT*)
 	*QUERY-IO* *TERMINAL-IO*)
   (setq standard-output
-	(lambda (char) (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*)))
+	(if use-character-type-p
+	    (lambda (char) (WRITE-CHAR char *STANDARD-OUTPUT*))
+	    (lambda (char) (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*))))
   (insert (PACKAGE-NAME *PACKAGE*) "> ")
   (setq emacs-cl-prompt-marker (point-marker)))
 
@@ -34,8 +36,10 @@
   "Major mode for an Emacs Common Lisp listener.
 
   \\[emacs-cl-newline]		Process current line
+  \\[emacs-cl-beginning-of-line]		Go to start of current line
   \\[emacs-cl-history-previous]		Previous line in history
-  \\[emacs-cl-history-next]		Next line in history"
+  \\[emacs-cl-history-next]		Next line in history
+  \\[emacs-cl-beginning-of-line]		Go to start of current line"
   (interactive)
   (kill-all-local-variables)
   (setq major-mode 'emacs-cl-mode)
@@ -51,35 +55,28 @@
 
 (unless emacs-cl-mode-map
   (setq emacs-cl-mode-map (make-keymap))
-  (substitute-key-definition 'newline 'emacs-cl-newline
-			     emacs-cl-mode-map global-map)
-  (substitute-key-definition 'beginning-of-line 'emacs-cl-beginning-of-line
-			     emacs-cl-mode-map global-map)
+  (define-key emacs-cl-mode-map "\C-m" 'emacs-cl-newline)
+  (define-key emacs-cl-mode-map "\C-a" 'emacs-cl-beginning-of-line)
   (define-key emacs-cl-mode-map "\M-p" 'emacs-cl-history-previous)
   (define-key emacs-cl-mode-map "\M-n" 'emacs-cl-history-next))
 
-(defun* emacs-cl-eval-1 (form)
-  (set (INTERN "-" "CL") form)
-  (let ((*-sym (INTERN "*" "CL"))
-	(/-sym (INTERN "/" "CL"))
-	(+-sym (INTERN "+" "CL"))
-	(values
-	 (restart-bind ((ABORT (lambda () (return-from emacs-cl-eval-1))))
-	   (MULTIPLE-VALUE-LIST (EVAL form)))))
-    (setq +++ ++ ++ (SYMBOL-VALUE +-sym))
-    (set +-sym form)
-    (setq /// // // (SYMBOL-VALUE /-sym))
-    (set /-sym values)
-    (setq *** ** ** (SYMBOL-VALUE *-sym))
-    (set *-sym (first values))
-    values))
-
-(defun emacs-cl-eval-interactively (form)
-  (if debug-on-error
-      (emacs-cl-eval-1 form)
-      (condition-case condition
-	  (emacs-cl-eval-1 form)
-	(error (FORMAT T "~%Error: ~S" condition)))))
+(defun* emacs-cl-eval-interactively (form)
+  (save-current-buffer
+    (set (INTERN "-" "CL") form)
+    (let ((*-sym (INTERN "*" "CL"))
+	  (/-sym (INTERN "/" "CL"))
+	  (+-sym (INTERN "+" "CL"))
+	  (values
+	   (restart-bind ((ABORT (lambda ()
+				   (return-from emacs-cl-eval-interactively))))
+	     (MULTIPLE-VALUE-LIST (EVAL form)))))
+      (setq +++ ++ ++ (SYMBOL-VALUE +-sym))
+      (set +-sym form)
+      (setq /// // // (SYMBOL-VALUE /-sym))
+      (set /-sym values)
+      (setq *** ** ** (SYMBOL-VALUE *-sym))
+      (set *-sym (first values))
+      values)))
 
 (defun emacs-cl-get-line ()
   (let ((line (buffer-substring emacs-cl-prompt-marker (point))))

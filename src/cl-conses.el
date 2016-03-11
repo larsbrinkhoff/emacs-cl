@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 14, Conses.
 
 (IN-PACKAGE "EMACS-CL")
@@ -22,34 +22,41 @@
   (setcdr cons object)
   cons)
 
-(fset 'CAR (symbol-function 'car-safe))
+(fset 'CAR (symbol-function 'car))
 
 (DEFSETF CAR (cons) (car)
   `(PROGN
      (RPLACA ,cons ,car)
      ,car))
 
-(fset 'CDR (symbol-function 'cdr-safe))
+(fset 'CDR (symbol-function 'cdr))
 
 (DEFSETF CDR (cons) (cdr)
   `(PROGN
      (RPLACD ,cons ,cdr)
      ,cdr))
 
-(defun build-cxr (string index)
+(defun build-cxr (string index var fn)
   (case (aref string index)
-    (65		`(CAR ,(build-cxr string (1+ index))))
-    (68		`(CDR ,(build-cxr string (1+ index))))
-    (t		'cons)))
+    (?A		(funcall fn 'CAR (build-cxr string (1+ index) var fn)))
+    (?D		(funcall fn 'CDR (build-cxr string (1+ index) var fn)))
+    (t		var)))
+
+(defun plain-cxr (fn arg)
+  `(,fn ,arg))
+
+(defun backquoted-cxr (fn arg)
+  `(list ',fn ,arg))
 
 (macrolet ((def (sym)
 	     (let ((name (symbol-name sym)))
 	       `(progn
 		 (defun ,sym (cons)
-		   ,(build-cxr name 1))
-		 (defsetf ,sym (cons) (obj)
-		   (list ',(if (eq (aref name 1) 65) 'setcar 'setcdr)
-			 ,(build-cxr name 2) obj))))))
+		   ,(build-cxr name 1 'cons #'plain-cxr))
+		 (DEFSETF ,sym (cons) (obj)
+		   (list ',(if (eq (aref name 1) ?A) 'setcar 'setcdr)
+			 ,(build-cxr name 2 'cons #'backquoted-cxr)
+			 obj))))))
   (def CAAR) (def CADR) (def CDAR) (def CDDR)
   (def CAAAR) (def CAADR) (def CADAR) (def CADDR)
   (def CDAAR) (def CDADR) (def CDDAR) (def CDDDR)
@@ -191,7 +198,7 @@
     (setq TEST #'EQL))
   (cond
     ((and (ATOM tree1) (ATOM tree2))
-     (FUNCALL TEST tree1 tree2))
+     (cl:values (FUNCALL TEST tree1 tree2)))
     ((and (CONSP tree1) (CONSP tree2))
      (and (TREE-EQUAL (CAR tree1) (CAR tree2) (kw TEST) TEST)
 	  (TREE-EQUAL (CDR tree1) (CDR tree2) (kw TEST) TEST)))))
@@ -229,7 +236,7 @@
 	 ,setter
 	 ,car))))
 
-(fset 'FIRST (symbol-function 'car-safe))
+(fset 'FIRST (symbol-function 'car))
 
 (DEFSETF FIRST (list) (new)
   `(PROGN
@@ -323,7 +330,8 @@
     ((consp object)	nil)
     (t			(type-error object 'LIST))))
 
-(fset 'NULL (symbol-function 'null))
+(defun NULL (list)
+  (if list nil 'T))
 
 (fset 'NCONC (symbol-function 'nconc))
 
@@ -335,41 +343,55 @@
 (defun NRECONC (list tail)
   (nconc (nreverse list) tail))
 
-(defun* BUTLAST (list &optional (n 1))
-  (NBUTLAST (COPY-LIST list) n))
+(cl:defun BUTLAST (list &OPTIONAL (n 1))
+  (LDIFF list (LAST list n)))
 
-(defun* NBUTLAST (list &optional (n 1))
-  (setcdr (LAST list (1+ n)) nil)
-  list)
+(cl:defun NBUTLAST (list &OPTIONAL (n 1))
+  (unless (listp list)
+    (type-error list 'LIST))
+  (unless (TYPEP n '(INTEGER 0))
+    (type-error n '(INTEGER 0)))
+  (do ((l list (cdr l))
+       (r nil)
+       (i 0 (binary+ i 1)))
+      ((atom l)
+       (when (consp r)
+	 (setcdr r nil)
+	 list))
+    (cond
+      ((binary= n i) (setq r list))
+      ((binary< n i) (pop r)))))
 
-(defun* LAST (list &optional (n 1))
+(cl:defun LAST (list &OPTIONAL (n 1))
+  (unless (listp list)
+    (type-error list 'LIST))
+  (unless (TYPEP n '(INTEGER 0))
+    (type-error n '(INTEGER 0)))
   (do ((l list (cdr l))
        (r list)
-       (i 0 (+ i 1)))
+       (i 0 (binary+ i 1)))
       ((atom l) r)
-    (if (>= i n) (pop r))))
+    (if (binary<= n i) (pop r))))
 
 (defun LDIFF (list object)
   (unless (listp list)
     (type-error list 'LIST))
-  (let ((result nil))
-    (catch 'TAILP
-      (while (consp list)
-	(when (EQL object list)
-	  (throw 'TAILP nil))
-	(push (car list) result)
-	(setq list (cdr list))))
-    (nreverse result)))
+  (catch 'LDIFF
+    (do ((list list (cdr list))
+	 (r '() (cons (car list) r)))
+	((atom list)
+	 (if (EQL list object) (nreverse r) (NRECONC r list)))
+      (when (EQL object list)
+	(throw 'LDIFF (nreverse r))))))
 
 (defun TAILP (object list)
   (unless (listp list)
     (type-error list 'LIST))
   (catch 'TAILP
-    (while (consp list)
-      (when (EQL object list)
-	(throw 'TAILP T))
-      (setq list (cdr list)))
-    (EQL object list)))
+    (do ((list list (cdr list)))
+	((atom list) (EQL list object))
+      (if (EQL object list)
+	  (throw 'TAILP T)))))
 
 (fset 'NTHCDR (symbol-function 'nthcdr))
 
@@ -412,6 +434,8 @@
 	(throw 'MEMBER-IF-NOT list)))))
 
 (defun MAPC (fn &rest lists)
+  (when (null lists)
+    (ERROR 'PROGRAM-ERROR))
   (let ((result (car lists)))
     (while (notany (cl:function ENDP) lists)
       (APPLY fn (mapcar (cl:function car) lists))
@@ -419,6 +443,8 @@
     result))
 
 (defun MAPCAR (fn &rest lists)
+  (when (null lists)
+    (ERROR 'PROGRAM-ERROR))
   (let ((result nil))
     (while (notany (cl:function ENDP) lists)
       (push (APPLY fn (mapcar (cl:function car) lists)) result)
@@ -430,6 +456,8 @@
 	 (apply (cl:function MAPCAR) fn lists)))
 
 (defun MAPL (fn &rest lists)
+  (when (null lists)
+    (ERROR 'PROGRAM-ERROR))
   (let ((result (car lists)))
     (while (notany (cl:function ENDP) lists)
       (APPLY fn lists)
@@ -437,6 +465,8 @@
     result))
 
 (defun MAPLIST (fn &rest lists)
+  (when (null lists)
+    (ERROR 'PROGRAM-ERROR))
   (let ((result nil))
     (while (notany (cl:function ENDP) lists)
       (push (APPLY fn lists) result)

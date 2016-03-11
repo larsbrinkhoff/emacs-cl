@@ -1,13 +1,12 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements the FORMAT function from chapter 22, Printer.
 
 ;;; This implementation is somewhat silly.  I don't know what I was
 ;;; thinking.  I will improve it later.
 
 (IN-PACKAGE "EMACS-CL")
-
 
 ;;; Some tests:
 ;;; (FORMAT nil "~D~?~D" 1 "~X" '(10) 3)
@@ -199,6 +198,8 @@
 		    stream)))
 
 ;;; TODO: ~<
+(define-format-directive 60 (stream state atp colonp)			; ~<
+  nil)
 
 (define-format-directive 73 (stream state atp colonp &OPTIONAL (n 0))	; ~I
   (PPRINT-INDENT (if colonp (kw CURRENT) (kw BLOCK)) n))
@@ -222,8 +223,16 @@
 ;;; Layout Control ----------------------------------------
 
 ;;; TODO: ~T
+(define-format-directive 84 (stream state atp colonp)			; ~T
+  nil)
+
 ;;; TODO: ~<
+(define-format-directive 60 (stream state atp colonp)			; ~<
+  nil)
+
 ;;; TODO: ~>
+(define-format-directive 62 (stream state atp colonp)			; ~>
+  nil)
 
 ;;; Control-Flow Operations ----------------------------------------
 
@@ -303,8 +312,12 @@
 ;;; Miscellaneous Operations ----------------------------------------
 
 ;;; TODO: ~(
+(define-format-directive 40 (stream state atp colonp)	; ~(
+  nil)
 
 ;;; TODO: ~)
+(define-format-directive 41 (stream state atp colonp)	; ~)
+  nil)
 
 (define-format-directive 80 (stream state atp colonp)	; ~P
   (when (printing-p state)
@@ -319,7 +332,8 @@
 ;;; Miscellaneous Pseudo-Operations ----------------------------------------
 
 (define-format-directive 59 (stream state atp colonp)		      ; ~;
-  (incf (conditional-index state))
+  (when (conditional-index state) ; Ugly hack!
+    (incf (conditional-index state)))
   (check-condition state colonp))
 
 (define-format-directive 94 (stream state atp colonp &OPTIONAL n1 n2 n3)	; ~^
@@ -374,14 +388,22 @@
 	    (let ((char (next-char state)))
 	      (cond
 		((ch= char 126)
-		 (let ((colonp nil) (atp nil))
-		   (while (FIND (setq char (next-char state)) ":@")
+		 (let ((atp nil)
+		       (colonp nil)
+		       (parameters nil))
+		   (setq char (next-char state))
+		   (while (FIND char "0123456789")
+		     (setq char (next-char state)))
+		   (while (FIND char ":@")
 		     (cond
 		       ((ch= char 58)	(setq colonp t))
-		       ((ch= char 64)	(setq atp t))))
+		       ((ch= char 64)	(setq atp t)))
+		     (setq char (next-char state)))
 		   (let ((fn (gethash (char-upcase-code char)
 				      *format-directives*)))
-		     (apply fn stream state atp colonp nil))))
+		     (if (null fn)
+			 (ERROR "Uknown FORMAT directive ~~~A" char)
+			 (apply fn stream state atp colonp parameters)))))
 		((printing-p state)
 		 (WRITE-CHAR char stream)))))))
     (if stream-designator

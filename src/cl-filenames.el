@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 19, Filenames.
 
 (IN-PACKAGE "EMACS-CL")
@@ -22,6 +22,9 @@
 (defun mkpathname (host device directory name type version)
   (vector 'PATHNAME host device directory name type version))
 
+(defun mklogpathname (host device directory name type version)
+  (vector 'LOGICAL-PATHNAME host device directory name type version))
+
 (cl:defun MAKE-PATHNAME (&KEY HOST DEVICE DIRECTORY NAME
 			      TYPE VERSION DEFAULTS CASE)
   (unless DEFAULTS
@@ -33,7 +36,9 @@
 		   DEFAULTS nil))
 
 (defun PATHNAMEP (object)
-  (vector-and-typep object 'PATHNAME))
+  (and (vectorp object)
+       (or (eq (aref object 0) 'PATHNAME)
+	   (eq (aref object 0) 'LOGICAL-PATHNAME))))
 
 (defun PATHNAME-HOST (pathname-designator)
   (pathname-host (PATHNAME pathname-designator)))
@@ -185,7 +190,7 @@
 	  (setq i (1+ j))))
       (nreverse dir))))
 
-(defvar *DEFAULT-PATHNAME-DEFAULTS*
+(DEFVAR *DEFAULT-PATHNAME-DEFAULTS*
   (mkpathname nil nil (parse-dir default-directory) nil nil nil))
 
 (defun parse-ver (name string)
@@ -349,6 +354,17 @@
      (wild-or-nil (PATHNAME-TYPE to-wildcard) (PATHNAME-TYPE source))
      (wild-or-nil (PATHNAME-VERSION to-wildcard) (PATHNAME-VERSION source)))))
 
+(defun merge-directories (dir1 dir2)
+  ;; TODO: Proper handling of directory component.
+  (cond
+    ((null dir1)
+     dir2)
+    ((and (consp dir1) (eq (first dir1) (kw RELATIVE))
+	  (consp dir2) (eq (first dir2) (kw ABSOLUTE)))
+     (append dir2 (rest dir1)))
+    (t
+     dir1)))
+
 (cl:defun MERGE-PATHNAMES (pathname-designator
 			   &OPTIONAL
 			   (default-designator *DEFAULT-PATHNAME-DEFAULTS*)
@@ -358,8 +374,7 @@
     ;; TODO: read spec more closely.
     (mkpathname (or (PATHNAME-HOST pathname) (PATHNAME-HOST default))
 		(or (PATHNAME-DEVICE pathname) (PATHNAME-DEVICE default))
-		;; TODO: Special handling of directory component.
-		(or (PATHNAME-DIRECTORY pathname) (PATHNAME-DIRECTORY default))
+		(merge-directories (PATHNAME-DIRECTORY pathname) (PATHNAME-DIRECTORY default))
 		(or (PATHNAME-NAME pathname) (PATHNAME-NAME default))
 		(or (PATHNAME-TYPE pathname) (PATHNAME-TYPE default))
 		(or (PATHNAME-VERSION pathname)

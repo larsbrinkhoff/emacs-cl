@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 22, Printer.
 
 (IN-PACKAGE "EMACS-CL")
@@ -49,8 +49,9 @@
 (defvar *print-circle-counter* 0)
 
 (defun check-circles (object)
-  (unless (or (INTEGERP object)
-	      (symbolp object))
+  (unless (or (symbolp object)
+	      (and (vectorp object) (eql (length object) 0))
+	      (INTEGERP object))
     (let ((n (gethash object *print-circle-table*)))
       (cond
 	((null n)
@@ -95,15 +96,16 @@
 		   t)))
 	  (PRINT-OBJECT object stream))))
 
-(defun integer-and-plus-p (object)
+(defun positive-integer-p (object)
   (and (integerp object) (plusp object)))
 
 ;;; TODO: PRINT-OBJECT should be a generic function
-(defun PRINT-OBJECT (object stream)
+(defun built-in-print-object (object stream)
   (cond
     ((INTEGERP object)
      (print-integer object stream *PRINT-BASE* *PRINT-RADIX*))
     ((floatp object)
+     ;; http://www.common-lisp.net/paste/display/743
      (print-float object stream))
     ((symbolp object)
      (let ((name (SYMBOL-NAME object)))
@@ -125,28 +127,33 @@
      (if (printer-escaping-p)
 	 (progn
 	   (WRITE-STRING "#\\" stream)
-	   (WRITE-STRING (or (CHAR-NAME object)
+	   (WRITE-STRING (or (and (ch= object 32) " ")
+			     (CHAR-NAME object)
 			     (string (CHAR-CODE object)))
 			 stream))
 	 (WRITE-CHAR object stream)))
     ((consp object)
-     (WRITE-STRING "(" stream)
-     (write-object (car object) stream)
-     (while (consp (cdr object))
-       (if (and *print-circle-table*
-		(integer-and-plus-p (gethash (cdr object)
-					     *print-circle-table*)))
-	   (progn
-	     (WRITE-STRING " . " stream)
-	     (write-object (cdr object) stream)
-	     (setq object '(t)))
-	   (progn
-	     (WRITE-STRING " " stream)
-	     (setq object (cdr object))
-	     (write-object (car object) stream))))
-     (unless (null (cdr object))
-       (WRITE-STRING " . " stream)
-       (write-object (cdr object) stream))
+     (let ((n 0))
+       (WRITE-STRING "(" stream)
+       (write-object (car object) stream)
+       (setq object (cdr object))
+       (while (consp object)
+	 (if (and *print-circle-table*
+		  (positive-integer-p (gethash object *print-circle-table*)))
+	     (progn
+	       (WRITE-STRING " . " stream)
+	       (write-object object stream)
+	       (setq object nil))
+	     (progn
+	       (WRITE-STRING " " stream)
+	       (write-object (car object) stream)
+	       (setq object (cdr object))
+	       (when (and *PRINT-LENGTH* (cl:>= (incf n) *PRINT-LENGTH*))
+		 (WRITE-STRING " ..." stream)
+		 (setq object nil)))))
+       (unless (null object)
+	 (WRITE-STRING " . " stream)
+	 (write-object object stream)))
      (WRITE-STRING ")" stream))
     ((FUNCTIONP object)
      (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
@@ -171,30 +178,33 @@
 	(PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t
 						(kw IDENTITY) t)))))
     ((STRINGP object)
-     (when *PRINT-ESCAPE*
-       (WRITE-STRING "\"" stream))
-     (dotimes (i (LENGTH object))
-       (let ((char (CHAR-CODE (CHAR object i))))
-	 (if *PRINT-ESCAPE*
-	     (case char
-	       (34	(WRITE-STRING "\\\"" stream))
-	       (92	(WRITE-STRING "\\\\" stream))
-	       (t	(WRITE-STRING (string char) stream)))
-	     (WRITE-STRING (string char) stream))))
-     (when *PRINT-ESCAPE*
-       (WRITE-STRING "\"" stream)))
-    ((VECTORP object)
      (cond
-       (*PRINT-ARRAY*
-	(WRITE-STRING "#(" stream)
+       (*PRINT-ESCAPE*
+	(WRITE-CHAR (ch 34) stream)
 	(dotimes (i (LENGTH object))
-	  (when (> i 0)
-	    (WRITE-STRING " " stream))
-	  (PRIN1 (AREF object i) stream))
-	(WRITE-STRING ")" stream))
+	  (let ((char (CHAR object i)))
+	    (case (CHAR-CODE char)
+	      (34	(WRITE-STRING "\\\"" stream))
+	      (92	(WRITE-STRING "\\\\" stream))
+	      (t	(WRITE-CHAR char stream)))))
+	(WRITE-CHAR (ch 34) stream))
        (t
-	(PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t
-						(kw IDENTITY) t)))))
+	(WRITE-STRING object stream))))
+    ((VECTORP object)
+     (if *PRINT-ARRAY*
+	 (let ((*PRINT-LENGTH* (if (BIT-VECTOR-P object) nil *PRINT-LENGTH*)))
+	   (WRITE-STRING "#(" stream)
+	   (catch 'too-long
+	     (dotimes (i (LENGTH object))
+	       (when (> i 0)
+		 (WRITE-STRING " " stream))
+	       (PRIN1 (AREF object i) stream)
+	       (when (and *PRINT-LENGTH* (>= i *PRINT-LENGTH*))
+		 (WRITE-STRING " ..." stream)
+		 (throw 'too-long nil))))
+	   (WRITE-STRING ")" stream))
+	 (PRINT-UNREADABLE-OBJECT (object stream
+				   (kw TYPE) t (kw IDENTITY) t))))
     ((ARRAYP object)
      (cond
        (*PRINT-ARRAY*
@@ -207,16 +217,11 @@
        (PRIN1 (PACKAGE-NAME object) stream)))
     ((READTABLEP object)
      (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
+    ((TYPEP object 'FILE-STREAM)
+     (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
+       (PRIN1 (FILE-STREAM-filename object) stream)))
     ((STREAMP object)
      (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
-    ((or (TYPEP object 'SIMPLE-CONDITION)
-	 ;; TODO: these two won't be necessary later
-	 (TYPEP object 'SIMPLE-ERROR)
-	 (TYPEP object 'SIMPLE-WARNING))
-     (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)
-       (PRINC (apply #'FORMAT nil
-		     (SIMPLE-CONDITION-FORMAT-CONTROL object)
-		     (SIMPLE-CONDITION-FORMAT-ARGUMENTS object)))))
     ((TYPEP object 'CONDITION)
      (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
     ((restartp object)
@@ -228,6 +233,19 @@
     ((PATHNAMEP object)
      (WRITE-STRING "#P" stream)
      (PRIN1 (NAMESTRING object) stream))
+    ((structurep object)
+     (WRITE-STRING "#S(" stream)
+     (PRIN1 (TYPE-OF object) stream)
+     (let ((index 0))
+       (dolist (slot (struct-slots (aref object 0)))
+	 (FORMAT stream " :~A ~S"
+		 (SYMBOL-NAME (first slot)) (aref object (incf index)))))
+     (WRITE-CHAR (ch 41) stream))
+    ((classp object)
+     (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t)
+       (PRIN1 (class-name object) stream)))
+    ((subclassp (CLASS-OF object) +standard-object+)
+     (PRINT-UNREADABLE-OBJECT (object stream (kw TYPE) t (kw IDENTITY) t)))
     (t
      ;; TODO:
      (if *PRINT-READABLY*
@@ -275,7 +293,7 @@
 
 (defun external-symbol-p (symbol)
   (eq (NTH-VALUE 1 (FIND-SYMBOL (SYMBOL-NAME symbol) (SYMBOL-PACKAGE symbol)))
-      (kw EXTERNAL)))
+      kw:EXTERNAL))
 
 (defun print-symbol-prefix (symbol stream)
   (cond
@@ -290,13 +308,28 @@
      (WRITE-STRING (if (external-symbol-p symbol) ":" "::") stream))))
 
 (defun print-symbol-name (name stream)
-  (let* ((read-sym (READ-FROM-STRING name))
-	 (escape (if (and (symbolp read-sym)
-			  (string= name (SYMBOL-NAME read-sym)))
-		     "" "|")))
-    (WRITE-STRING escape stream)
-    (WRITE-STRING name stream)
-    (WRITE-STRING escape stream)))
+  (let* ((read-sym (unless (EQUAL name "")
+		     (READ-FROM-STRING name)))
+	 (escape (not (and (symbolp read-sym)
+			   (string= name (SYMBOL-NAME read-sym))))))
+    (when escape
+      (WRITE-STRING "|" stream))
+    (WRITE-STRING (cond
+		    (escape
+		     name)
+		    ((eq *PRINT-CASE* (kw UPCASE))
+		     name)
+		    ((eq *PRINT-CASE* (kw DOWNCASE))
+		     (STRING-DOWNCASE name))
+		    ((eq *PRINT-CASE* (kw CAPITALIZE))
+		     (symbol-name-capitalize name))
+		    (t
+		     (type-error *PRINT-CASE*
+				 `(MEMBER ,(kw UPCASE) ,(kw DOWNCASE)
+					  ,(kw CAPITALIZE)))))
+		  stream)
+    (when escape
+      (WRITE-STRING "|" stream))))
 
 (defun printer-escaping-p ()
   (or *PRINT-READABLY* *PRINT-ESCAPE*))
@@ -339,22 +372,16 @@
 
 (defun symbol-name-capitalize (string)
   (setq string (copy-sequence string))
-  (do* ((i 0 (1+ i))
-	(in-word-p nil))
-       ((eq i (length string))
-	string)
+  (do ((i 0 (1+ i))
+       (in-word-p nil))
+      ((eq i (length string))
+       string)
     (let* ((char (CHAR string i))
 	   (alnump (ALPHANUMERICP char)))
       (when (UPPER-CASE-P char)
 	(setf (CHAR string i)
 	      (if in-word-p (CHAR-DOWNCASE char) (CHAR-UPCASE char))))
       (setq in-word-p alnump))))
-
-(if use-character-type-p
-    (defun write-char-to-*standard-output* (char)
-      (WRITE-CHAR char *STANDARD-OUTPUT*))
-    (defun write-char-to-*standard-output* (char)
-      (WRITE-CHAR (CODE-CHAR char) *STANDARD-OUTPUT*)))
 
 (cl:defun print-integer (number stream &OPTIONAL (base 10) radix)
   (when radix
@@ -383,8 +410,13 @@
       (WRITE-CHAR (AREF "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" digit)
 		  stream))))
 
+(defun write-char-to-*standard-output* (char)
+  (WRITE-CHAR (cl-char char) *STANDARD-OUTPUT*))
+
 (defun print-float (float stream)
-  (let ((standard-output #'write-char-to-*standard-output*))
+  ;; http://www.common-lisp.net/paste/display/743
+  (let ((*STANDARD-OUTPUT* stream)
+	(standard-output #'write-char-to-*standard-output*))
     (prin1 float)))
 
 (defun print-array (array stream)
@@ -417,12 +449,12 @@
   (WRITE-CHAR (ch 32) stream)
   object)
 
-(defun PPRINT (object &optional stream)
+(cl:defun PPRINT (object &OPTIONAL stream)
   (TERPRI stream)
   (WRITE object (kw STREAM) stream (kw ESCAPE) t (kw PRETTY) t)
   (cl:values))
 
-(defun PRINC (object &optional stream)
+(cl:defun PRINC (object &OPTIONAL stream)
   (WRITE object (kw STREAM) stream (kw ESCAPE) nil (kw READABLY) nil))
 
 (cl:defun WRITE-TO-STRING (object &REST keys)
@@ -437,27 +469,27 @@
   (WITH-OUTPUT-TO-STRING (stream)
     (PRINC object stream)))
 
-(defvar *PRINT-ARRAY* T)
+(DEFVAR *PRINT-ARRAY* T)
 
-(defvar *PRINT-BASE* 10)
+(DEFVAR *PRINT-BASE* 10)
 
-(defvar *PRINT-RADIX* nil)
+(DEFVAR *PRINT-RADIX* nil)
 
-(defvar *PRINT-CASE* (kw UPCASE))
+(DEFVAR *PRINT-CASE* (kw UPCASE))
 
-(defvar *PRINT-CIRCLE* nil)
+(DEFVAR *PRINT-CIRCLE* nil)
 
-(defvar *PRINT-ESCAPE* nil)
+(DEFVAR *PRINT-ESCAPE* nil)
 
-(defvar *PRINT-GENSYM* T)
+(DEFVAR *PRINT-GENSYM* T)
 
-(defvar *PRINT-LEVEL* nil)
+(DEFVAR *PRINT-LEVEL* nil)
 
-(defvar *PRINT-LENGTH* nil)
+(DEFVAR *PRINT-LENGTH* nil)
 
-(defvar *PRINT-LINES* nil)
+(DEFVAR *PRINT-LINES* nil)
 
-(defvar *PRINT-MISER-WIDTH* nil)
+(DEFVAR *PRINT-MISER-WIDTH* nil)
 
 (defvar *initial-pprint-dispatch*
   (let ((table (make-hash-table :test #'equal)))
@@ -503,7 +535,11 @@
     (SET-PPRINT-DISPATCH '(CONS (EQL COMMA) (CONS T NULL))
 			 (lambda (stream object)
 			   (WRITE-STRING "," stream)
-			   (write-object (second object) stream))
+			   (let ((obj (second object)))
+			     (when (and (symbolp obj)
+					(find (aref (symbol-name obj) 0) ".@"))
+			       (WRITE-CHAR (ch 32) stream))
+			     (write-object obj stream)))
 			 100 table)
     (SET-PPRINT-DISPATCH '(CONS (EQL COMMA-AT) (CONS T NULL))
 			 (lambda (stream object)
@@ -512,13 +548,13 @@
 			 100 table)
     table))
 
-(defvar *PRINT-PPRINT-DISPATCH* *initial-pprint-dispatch*)
+(DEFVAR *PRINT-PPRINT-DISPATCH* *initial-pprint-dispatch*)
 
-(defvar *PRINT-PRETTY* nil)
+(DEFVAR *PRINT-PRETTY* nil)
 
-(defvar *PRINT-READABLY* nil)
+(DEFVAR *PRINT-READABLY* nil)
 
-(defvar *PRINT-RIGHT-MARGIN* nil)
+(DEFVAR *PRINT-RIGHT-MARGIN* nil)
 
 ;;; PRINT-NOT-READABLE and PRINT-NOT-READABLE-OBJECT defined in
 ;;; cl-conditions.el.

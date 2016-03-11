@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 25, Environment.
 
 (IN-PACKAGE "EMACS-CL")
@@ -110,26 +110,34 @@
 (defun DESCRIBE-OBJECT (object stream)
   (cond
     ((symbolp object)
-     (FORMAT stream
-	     "~&~S is an ~:[internal~;external~] symbol in ~S."
-	     object (external-symbol-p object) (SYMBOL-PACKAGE object))
-     (FORMAT stream "~%It is also accessible in packages ~{~A~^, ~}"
-	     (let ((name (SYMBOL-NAME object))
-		   (home (SYMBOL-PACKAGE object))
-		   (packages nil))
-	       (dolist (p *all-packages* packages)
-		 (MULTIPLE-VALUE-BIND (sym found) (FIND-SYMBOL name p)
-		   (when (and found (not (eq p home)))
-		     (push (PACKAGE-NAME p) packages))))))
+     (cond
+       ((SYMBOL-PACKAGE object)
+	(FORMAT stream
+		"~&~S is an ~:[internal~;external~] symbol in ~S."
+		object (external-symbol-p object) (SYMBOL-PACKAGE object))
+	(FORMAT stream "~%It is also accessible in packages ~{~A~^, ~}"
+		(let ((name (SYMBOL-NAME object))
+		      (home (SYMBOL-PACKAGE object))
+		      (packages nil))
+		  (dolist (p *all-packages* packages)
+		    (MULTIPLE-VALUE-BIND (sym found) (FIND-SYMBOL name p)
+		      (when (and found (eq sym object) (not (eq p home)))
+			(push (PACKAGE-NAME p) packages)))))))
+       (t
+	(FORMAT stream "~&~S is an uninterned symbol." object)))
      (when (SPECIAL-OPERATOR-P object)
        (FORMAT stream "~%It is a special operator."))
      (when (boundp object)
        (FORMAT stream "~%~:[Constant ~]Value: ~S"
 	       (not (CONSTANTP object)) (symbol-value object)))
-     (when (fboundp object)
-       (FORMAT stream "~%Function: ~S" (symbol-function object)))
-     (when (MACRO-FUNCTION object)
-       (FORMAT stream "~%Macro Function: ~S" (MACRO-FUNCTION object)))
+     (cond
+       ((MACRO-FUNCTION object)
+	(FORMAT stream "~%Macro Function: ~S" (MACRO-FUNCTION object)))
+       ((fboundp object)
+	(FORMAT stream "~%Function: ~S" (SYMBOL-FUNCTION object))))
+     (when (COMPILER-MACRO-FUNCTION object)
+       (FORMAT stream "~%Compiler Macro Function: ~S"
+	       (COMPILER-MACRO-FUNCTION object)))
      (when (symbol-plist object)
        (FORMAT stream "~%Property list: ~S" (symbol-plist object))))
     ((integerp object)
@@ -145,14 +153,19 @@
      ;; TODO: better description
      (FORMAT stream "~&~A is a float." object))
     ((COMPLEXP object)
-     (FORMAT stream "~&~A is a complex." object))
+     (FORMAT stream "~&~A is a complex." object)
+     (FORMAT stream "~%Real part: ~A" (REALPART object))
+     (FORMAT stream "~%Imaginary part: ~A" (IMAGPART object)))
     ((INTERPRETED-FUNCTION-P object)
      (FORMAT stream "~&~A is an interpreted function." object)
      (FORMAT stream "~%Lambda expression: ~S"
 	     (FUNCTION-LAMBDA-EXPRESSION object))
-     (FORMAT stream "~%Name: ~A" (function-name object)))
+     (when (function-name object)
+       (FORMAT stream "~%Name: ~A" (function-name object))))
     ((byte-code-function-p object)
      (FORMAT stream "~&~A is a byte-compiled function." object)
+     (when (function-name object)
+       (FORMAT stream "~%Name: ~A" (function-name object)))
      (FORMAT stream "~%Lambda list: ~A" (aref object 0))
      (FORMAT stream "~%Byte code: ...")
      (when (> (length object) 2)
@@ -165,6 +178,7 @@
        (FORMAT stream "~%Interactive: ~S" (aref object 5))))
     ((subrp object)
      (FORMAT stream "~&~A is a built-in subroutine." object)
+     (FORMAT stream "~%Name: ~A" (function-name object))
      (when (documentation object)
        (FORMAT stream "~%Documentation: ~A" (documentation object))))
     ((PACKAGEP object)
@@ -181,15 +195,15 @@
     ((BIT-VECTOR-P object)
      (FORMAT stream "~&~S is a bit vector of length ~D."
 	     object (LENGTH object))
-     (unless (SIMPLE-VECTOR-P object)
+     (when (ARRAY-HAS-FILL-POINTER-P object)
        (FORMAT stream "~%Fill pointer: ~A" (FILL-POINTER object))))
     ((STRINGP object)
      (FORMAT stream "~&~S is a string of length ~D." object (LENGTH object))
-     (unless (SIMPLE-VECTOR-P object)
+     (when (ARRAY-HAS-FILL-POINTER-P object)
        (FORMAT stream "~%Fill pointer: ~A" (FILL-POINTER object))))
     ((VECTORP object)
      (FORMAT stream "~&~S is a vector of length ~D." object (LENGTH object))
-     (unless (SIMPLE-VECTOR-P object)
+     (when (vectorp object)
        (FORMAT stream "~%Fill pointer: ~A" (FILL-POINTER object))))
     ((ARRAYP object)
      (FORMAT stream "~&~S is an array with dimensions ~A."
@@ -198,7 +212,19 @@
 	     (case (aref object 0)
 	       (bit-array "bits")
 	       (char-array "characters"))))
-    ((arrayp object)
+    ((consp object)
+     (catch 'done
+       (HANDLER-BIND
+	   ((ERROR (lambda (c)
+		     (if (atom (cdr object))
+			 (FORMAT stream "~&~S is a cons cell." object)
+			 (FORMAT stream "~&~S is a dotted list." object))
+		     (throw 'done nil))))
+	 (if (LIST-LENGTH object)
+	     (FORMAT stream "~&~S is a list of length ~D."
+		     object (length object))
+	     (FORMAT stream "~&~S is a circular list." object)))))
+    ((vectorp object)
      ;; TODO:
      (FORMAT stream "~&FIXME: This is a fall-back description.")
      (FORMAT stream "~%~A is an instance of ~S" object (TYPE-OF object))
@@ -264,6 +290,16 @@
     (binary+ (binary* (binary+ (binary* high 65536) low) 1000000) microsec)))
 
 ;;; TODO: Function GET-INTERNAL-RUN-TIME
+(if (fboundp 'get-internal-run-time)
+    (defun GET-INTERNAL-RUN-TIME ()
+      (let* ((time (get-internal-run-time))
+	     (high (first time))
+	     (low (second time))
+	     (microsec (third time)))
+	(binary+ (binary* (binary+ (binary* high 65536) low) 1000000)
+		 microsec)))
+    (defun GET-INTERNAL-RUN-TIME ()
+      (GET-INTERNAL-REAL-TIME)))
 
 (defun DISASSEMBLE (fn)
   (when (or (symbolp fn) (setf-name-p fn))
@@ -349,7 +385,7 @@
   "Emacs Common Lisp")
 
 (defun LISP-IMPLEMENTATION-VERSION ()
-  "0.5")
+  "0.8")
 
 (defun SHORT-SITE-NAME ()
   nil)

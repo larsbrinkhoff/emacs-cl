@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 17, Sequences.
 
 (IN-PACKAGE "EMACS-CL")
@@ -11,7 +11,7 @@
   (cond
     ((listp sequence)
      (copy-list sequence))
-    ((SIMPLE-VECTOR-P sequence)
+    ((or (stringp sequence) (bit-vector-p sequence) (SIMPLE-VECTOR-P sequence))
      (copy-sequence sequence))
     ((vector-and-typep sequence 'VECTOR)
      (let ((storage (vector-storage sequence))
@@ -38,7 +38,7 @@
 	     (error "error"))
 	 (AREF sequence index)))
     (t
-     (error "type error"))))
+     (type-error sequence 'SEQUENCE))))
 
 (defsetf ELT (sequence index) (obj)
   `(if (listp ,sequence)
@@ -60,19 +60,21 @@
   seq)
 
 (cl:defun MAKE-SEQUENCE (type size &KEY INITIAL-ELEMENT)
-  (cond
-    ((SUBTYPEP type 'LIST)
+  ;; TODO: An error of type type-error should be signaled if the
+  ;; result type specifies the number of elements and size is
+  ;; different from that number.
+  (subtypecase type
+    (nil
+     (ERROR "Can't make sequence of type nil."))
+    (LIST
      (make-list size INITIAL-ELEMENT))
-    ((SUBTYPEP type 'BIT-VECTOR)
-     (make-bit-vector size INITIAL-ELEMENT))
-    ((SUBTYPEP type 'STRING)
+    (BIT-VECTOR
+     (make-bit-vector size (or INITIAL-ELEMENT 0)))
+    (STRING
      (make-string size (if INITIAL-ELEMENT (CHAR-CODE INITIAL-ELEMENT) 0)))
-    ((SUBTYPEP type 'VECTOR)
+    (VECTOR
      (make-simple-vector size INITIAL-ELEMENT))
-;     (let ((vector (make-vector (1+ size) INITIAL-ELEMENT)))
-;       (aset vector 0 'SIMPLE-VECTOR)
-;       vector))
-    (t
+    (T
      (type-error type '(MEMBER LIST BIT-VECTOR STRING VECTOR)))))
 
 (defun SUBSEQ (seq start &optional end)
@@ -86,8 +88,10 @@
     ((listp seq)
      (if (eq start end)
 	 nil
-	 (let ((new (copy-list (nthcdr start seq))))
-	   (setcdr (nthcdr (- end start 1) new) nil)
+	 (let* ((new (copy-list (nthcdr start seq)))
+		(last (nthcdr (- end start 1) new)))
+	   (when last
+	     (setcdr last nil))
 	   new)))
     ((VECTORP seq)
      (let ((len (- end start))
@@ -99,7 +103,11 @@
        (let ((new (if (BIT-VECTOR-P seq)
 		      (make-bit-vector len 0)
 		      (make-vector len 'SIMPLE-VECTOR)))
-	     (storage (if (SIMPLE-VECTOR-P seq) seq (vector-storage seq))))
+	     (storage (if (or (bit-vector-p seq)
+			      (stringp seq)
+			      (SIMPLE-VECTOR-P seq))
+			  seq
+			  (vector-storage seq))))
 	 (do ((i i0 (1+ i))
 	      (j start (1+ j)))
 	     ((eq i len))
@@ -122,12 +130,22 @@
 	(return-from MAP
 	  (when type
 	    (setq result (nreverse result))
-	    (ecase type
-	      (LIST	result)
-	      (STRING	(if (null result)
-			    ""
-			    (apply #'string (mapcar #'CHAR-CODE result))))
-	      (VECTOR	(apply #'vector 'SIMPLE-VECTOR result))))))
+	    (subtypecase type
+	      (LIST	
+	       result)
+	      (STRING
+	       (if (null result)
+		   ""
+		   (apply #'string (mapcar #'CHAR-CODE result))))
+	      (BIT-VECTOR
+	       (apply #'make-bit-vector result))
+	      (VECTOR
+	       (apply #'vector 'SIMPLE-VECTOR result))
+	      (SEQUENCE
+	       result)
+	      (T
+	       (ERROR "Type specifier ~S is not a subtype of SEQUENCE."
+		      type))))))
       (let ((item (APPLY fn (mapcar (lambda (seq) (ELT seq i)) sequences))))
 	(when type
 	  (push item result)))
@@ -220,11 +238,11 @@
     ((SIMPLE-VECTOR-P sequence)
      (1- (length sequence)))
     ((VECTORP sequence)
-     (if (ARRAY-HAS-FILL-POINTER-P sequence)
-	 (FILL-POINTER sequence)
+     (or (and (ARRAY-HAS-FILL-POINTER-P sequence)
+	      (FILL-POINTER sequence))
 	 (vector-size sequence)))
     (t
-     (error "error"))))
+     (type-error sequence 'SEQUENCE))))
 
 (defun REVERSE (seq)
   (cond
@@ -262,7 +280,7 @@
 	       #'IDENTITY
 	       (SORT (MAP 'LIST #'IDENTITY sequence) predicate (kw KEY) KEY)))
     (t
-     (error "type error"))))
+     (type-error sequence 'SEQUENCE))))
 
 (fset 'STABLE-SORT (symbol-function 'SORT))
 
@@ -334,7 +352,7 @@
       nil)))
 
 (cl:defun POSITION-IF-NOT (predicate &REST args)
-  (apply (cl:function FIND-IF) (COMPLEMENT predicate) args))
+  (apply (cl:function POSITION-IF) (COMPLEMENT predicate) args))
 
 (defun subseq-p (seq1 start1 end1 seq2 start2 end2 TEST KEY)
   (catch 'subseq-p
@@ -419,13 +437,13 @@
   (unless KEY
     (setq KEY #'IDENTITY))
   (when (and TEST TEST-NOT)
-    (error "error"))
+    (ERROR 'ERROR))
   (when TEST-NOT
     (setq TEST (COMPLEMENT TEST-NOT)))
   (unless TEST
     (setq TEST #'EQL))
-  (NSUBSTITUTE-IF new (lambda (x) (FUNCALL TEST old x))
-		  (kw FROM-END) FROM-END (kw TEST) TEST (kw START) START
+  (NSUBSTITUTE-IF new (lambda (x) (FUNCALL TEST old x)) seq
+		  (kw FROM-END) FROM-END (kw START) START
 		  (kw END) END (kw COUNT) COUNT (kw KEY) KEY))
 
 (cl:defun NSUBSTITUTE-IF (obj predicate seq &KEY FROM-END (START 0) END COUNT
@@ -436,15 +454,15 @@
     (setq END (LENGTH seq)))
   (if FROM-END
       (do ((i (1- END) (1- i)))
-	  ((or (minusp i) (<= COUNT 0)))
+	  ((or (minusp i) (and COUNT (<= COUNT 0))))
 	(when (FUNCALL predicate (FUNCALL KEY (ELT seq i)))
 	  (setf (ELT seq i) obj))
-	(decf COUNT))
+	(when COUNT (decf COUNT)))
       (do ((i START (1+ i)))
-	  ((or (eq i END) (<= COUNT 0)))
+	  ((or (eq i END) (and COUNT (<= COUNT 0))))
 	(when (FUNCALL predicate (FUNCALL KEY (ELT seq i)))
 	  (setf (ELT seq i) obj))
-	(decf COUNT)))
+	(when COUNT (decf COUNT))))
   seq)
 
 (cl:defun NSUBSTITUTE-IF-NOT (predicate &REST args)
@@ -461,12 +479,28 @@
 	 obj (COMPLEMENT predicate) (COPY-SEQ seq) keys))
 
 (defun CONCATENATE (type &rest sequences)
-  (ecase type
+  (subtypecase type
+    (nil
+     (ERROR "Can't concatenate to type nil."))
     (LIST
      (let ((result nil))
        (dolist (seq sequences (nreverse result))
 	 (dosequence (x seq)
            (push x result)))))
+    (STRING
+     (let ((string (make-string (reduce #'+ (mapcar #'LENGTH sequences)) 0))
+	   (i -1))
+       (dolist (seq sequences)
+	 (dosequence (x seq)
+	   (aset string (incf i) (CHAR-CODE x))))
+       string))
+    (BIT-VECTOR
+     (let ((vector (vector (reduce #'+ (mapcar #'LENGTH sequences)) 0))
+	   (i -1))
+       (dolist (seq sequences)
+	 (dosequence (x seq)
+	   (setf (bref vector (incf i)) x)))
+       vector))
     (VECTOR
      (let ((vector (make-vector (1+ (reduce #'+ (mapcar #'LENGTH sequences)))
 				'SIMPLE-VECTOR))
@@ -475,13 +509,8 @@
 	 (dosequence (x seq)
 	   (aset vector (incf i) x)))
        vector))
-    (STRING
-     (let ((string (make-string (reduce #'+ (mapcar #'LENGTH sequences)) 0))
-	   (i -1))
-       (dolist (seq sequences)
-	 (dosequence (x seq)
-	   (aset string (incf i) (CHAR-CODE x))))
-       string))))
+    (T
+     (ERROR "~S is not a recognizable subtype of LIST or VECTOR." type))))
 
 (cl:defun MERGE (type seq1 seq2 predicate &KEY KEY)
   (unless KEY
@@ -489,10 +518,13 @@
   (let* ((len1 (LENGTH seq1))
 	 (len2 (LENGTH seq2))
 	 (len (+ len1 len2))
-	 (result (case type
-		  (LIST		(make-list len nil))
-		  (VECTOR	(make-vector (1+ len) 'SIMPLE-VECTOR))
-		  (t		(type-error type '(MEMBER LIST VECTOR))))))
+	 (result (subtypecase type
+		   (nil		(ERROR "Can't merge to type nil."))
+		   (LIST	(make-list len nil))
+		   (STRING	(make-string len 0))
+		   (BIT-VECTOR	(make-bit-vector len 0))
+		   (VECTOR	(make-vector (1+ len) 'SIMPLE-VECTOR))
+		   (T		(type-error type '(MEMBER LIST VECTOR))))))
     (do ((i 0 (1+ i))
 	 (j 0)
 	 (k 0))
@@ -532,16 +564,17 @@
   (cond
     ((listp seq)
      (if FROM-END
-	 (error "TODO")
+	 (ERROR "REMOVE-IF doesn't implement :FROM-END T.")
 	 (list-remove predicate (nthcdr START seq) (or END (LENGTH seq))
 		      COUNT KEY)))
     ((VECTORP seq)
-     (error "TODO"))
+     (ERROR "REMOVE-IF not implemented for vectors."))
     (t
      (type-error seq 'SEQUENCE))))
 
 (cl:defun REMOVE-IF-NOT (predicate &REST args)
-  (apply (cl:function REMOVE-IF) (COMPLEMENT predicate) args))
+  ;;(apply (cl:function REMOVE-IF) (COMPLEMENT predicate) args))
+  (apply #'REMOVE-IF (COMPLEMENT predicate) args))
 
 (cl:defun DELETE (obj seq &KEY FROM-END TEST TEST-NOT (START 0) END COUNT KEY)
   (when (and TEST TEST-NOT)
@@ -580,7 +613,7 @@
 			COUNT KEY))))
     ((VECTORP seq)
      (if (ARRAY-HAS-FILL-POINTER-P seq)
-	 (error "TODO")
+	 (ERROR "DELETE-IF not implemented for vectors with fill pointers.")
 	 (REMOVE-IF predicate seq (kw FROM-END) FROM-END (kw KEY) KEY
 		    (kw START) START (kw END) END (kw COUNT) COUNT)))
     (t

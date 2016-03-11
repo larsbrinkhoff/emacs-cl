@@ -1,21 +1,37 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 9, Conditions.
 
 (defvar *condition-constructors* (make-hash-table))
 
 (defmacro* DEFINE-CONDITION (name parents slots &rest options)
-  (with-gensyms (constructor)
+  ;(with-gensyms (constructor)
+  (let ((constructor (symcat "condition-constructor-" name)))
     `(progn
-       (DEFSTRUCT (,name
+      (DEFSTRUCT (,name
 		   (:copier nil)
 		   (:constructor ,constructor)
 		   ,@(when parents
 		       `((:include ,(first parents)))))
-	 ,@slots)
-       (puthash ',name ',constructor *condition-constructors*)
-       ',name)))
+	,@slots)
+      (puthash ',name #',constructor *condition-constructors*)
+      ',name)))
+
+(cl:defmacro DEFINE-CONDITION (name parents slots &rest options)
+  `(DEFCLASS ,name ,parents ,slots ,@options))
+
+;; (defun ensure-condition (name parents slots options)
+;;   (ENSURE-CLASS name
+;; 		(kw DIRECT-SUPERCLASSES) parents
+;; 		(kw DIRECT-SLOTS) slots)
+;;   (let ((*PACKAGE* *emacs-cl-package*))
+;;     (dolist (slot slots)
+;;       (when (listp slot)
+;; 	(setq slot (first slot)))
+;;       (ensure-method (symcat name "-" slot)
+;; 		     '(condition)
+;; 		     `((SLOT-VALUE condition (QUOTE ,slot)))))))
 
 (DEFINE-CONDITION CONDITION () ())
 
@@ -52,7 +68,7 @@
      ;; TODO: (kw FORMAT-CONTROL) and (kw FORMAT-ARGUMENTS)
      (MAKE-CONDITION default-type (kw format) datum (kw args) args))
     (t
-     (error "invalid condition designator"))))
+     (ERROR "Invalid condition designator: ~S ~S."))))
 
 (defun ERROR (datum &rest args)
   (let ((condition (condition datum args 'SIMPLE-ERROR)))
@@ -73,9 +89,9 @@
     (apply #'ERROR datum args)))
 
 (cl:defmacro CHECK-TYPE (place type &optional string)
-  `(UNLESS (TYPEP ,place ',type)
+  `(UNLESS (TYPEP ,place (QUOTE ,type))
      ;; TODO...
-     (type-error ,place ',type)))
+     (type-error ,place (QUOTE ,type))))
 
 ;; TODO: inherit from SIMPLE-CONDITION
 (DEFINE-CONDITION SIMPLE-ERROR (ERROR) (format args))
@@ -86,7 +102,7 @@
 (defun METHOD-COMBINATION-ERROR (format &rest args)
   (apply #'ERROR format args))
 
-(defvar *condition-handler-alist* nil)
+(DEFVAR *condition-handler-alist* nil)
 
 (defun SIGNAL (datum &rest args)
   (let ((condition (condition datum args 'SIMPLE-CONDITION)))
@@ -138,28 +154,47 @@
 	 (*DEBUGGER-HOOK* nil))
     (when hook
       (FUNCALL hook condition hook))
-    (PRINC "\nDebugger invoked on condition of type ")
-    (PRIN1 (TYPE-OF condition))
-    (PRINC "\nAvailable restarts: ")
+    (FORMAT T "~&~%Debugger invoked on condition ~A" condition)
+    (when (eq (TYPE-OF condition) 'SIMPLE-ERROR)
+      (FORMAT T ":~%  ")
+      (apply #'FORMAT T (SIMPLE-ERROR-format condition)
+	     (SIMPLE-ERROR-args condition)))
+    (FORMAT T "~&Available restarts:")
     (do ((restarts (COMPUTE-RESTARTS) (cdr restarts))
 	 (i 0 (1+ i)))
 	((null restarts))
-      (PRINC "\n")
-      (PRIN1 i)
-      (PRINC "  ")
-      (PRIN1 (RESTART-NAME (car restarts))))
-    (let ((n (read-minibuffer "Restart number: ")))
-      (if (minusp n)
-	  (debug)
-	  (INVOKE-RESTART (nth n (COMPUTE-RESTARTS)))))))
+      (FORMAT T "~&  ~D  ~A" i (RESTART-NAME (car restarts))))
+    (FORMAT T "~&Type \"r <n>\" or just \"<n>\" to in invoke a restart,~@
+                 and \"b\" to print a backtrace.~%")
+    (let ((n -1) c)
+      (while (minusp n)
+	(message "Debugger command: ")
+	(case (setq c (if (eval-when-compile (featurep 'xemacs))
+			  (char-to-int (read-char-exclusive))
+			  (read-char-exclusive)))
+	  ((114 48 49 50 51 52 53 54 55 56 57)
+	   (cond
+	     ((eq c 114)
+	      (setq n (read-minibuffer "Restart number: "))
+	      (unless (integerp n)
+		(setq n -1)))
+	     (t
+	      (setq n (- c 48)))))
+	  (98
+	   (FORMAT T "~&Backtrace: ~%~A~%"
+		   (with-output-to-string (backtrace))))
+	  (t
+	   (message "Invalid debugger command.")
+	   (sit-for 1))))
+      (INVOKE-RESTART (nth n (COMPUTE-RESTARTS))))))
 
 (defun* BREAK (&optional format &rest args)
   (restart-bind ((CONTINUE (lambda () (return-from BREAK))))
     (debug)))
 
-(defvar *DEBUGGER-HOOK* nil)
+(DEFVAR *DEBUGGER-HOOK* nil)
 
-(defvar *BREAK-ON-SIGNALS* nil)
+(DEFVAR *BREAK-ON-SIGNALS* nil)
 
 (defmacro* HANDLER-BIND (bindings &body body)
   `(let ((*condition-handler-alist*
@@ -174,13 +209,27 @@
 (cl:defmacro HANDLER-BIND (bindings &body body)
   `(LET ((*condition-handler-alist*
 	  (APPEND (LIST ,@(mapcar (lambda (binding)
-				    `(CONS (QUOTE ,(first binding))
-				           ,(second binding)))
+				    `(LIST* (QUOTE ,(first binding))
+				            ,(second binding)
+				            *condition-handler-alist*))
 				  bindings))
 		  *condition-handler-alist*)))
      ,@body))
 
-;;; TODO: HANDLER-CASE
+(cl:defmacro HANDLER-CASE (form &rest clauses)
+  (with-gensyms (block)
+    `(BLOCK ,block
+       (HANDLER-BIND
+	   ,(mapcar
+	      (lambda (clause)
+		(destructuring-bind
+		      (typespec (&optional var) &body body) clause
+		  (unless var
+		    (setq var (gensym)))
+		  `(,typespec (LAMBDA (,var)
+				(RETURN-FROM ,block (PROGN ,@body))))))
+	      clauses)
+	 ,form))))
 
 (cl:defmacro IGNORE-ERRORS (&rest forms)
   (with-gensyms (block)
@@ -194,12 +243,15 @@
 	(APPLY fn args)
 	(error "no such condition type"))))
 
+;; (defun MAKE-CONDITION (type &rest args)
+;;   (apply #'MAKE-INSTANCE type args))
+
 (DEFSTRUCT (RESTART
 	     (:constructor make-restart (NAME handler &OPTIONAL condition))
 	     (:predicate restartp))
   NAME handler condition)
 
-(defvar *restart-alist* nil)
+(DEFVAR *restart-alist* nil)
 
 (defun COMPUTE-RESTARTS (&optional condition)
   (mapcar (lambda (cons) (make-restart (car cons) (cdr cons)))

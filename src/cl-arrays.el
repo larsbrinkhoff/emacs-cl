@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 15, Arrays.
 
 (IN-PACKAGE "EMACS-CL")
@@ -99,10 +99,79 @@
 	   ndims start-index storage INITIAL-CONTENTS convert-fn))
 	(cond
 	  (simplep	storage)
-	  (vectorp	(vector vector-type FILL-POINTER storage
-				DISPLACED-INDEX-OFFSET))
+	  (vectorp	(vector vector-type (just-one dimensions) storage
+				DISPLACED-INDEX-OFFSET FILL-POINTER))
 	  (t		(vector array-type dimensions storage
 				DISPLACED-INDEX-OFFSET)))))))
+
+
+(defun cl-vector (vector)
+  (unless (vectorp vector)
+    (type-error vector 'vector))
+  (vector 'VECTOR (length vector) vector 0 nil))
+
+(defun el-vector (vector)
+  (unless (VECTORP vector)
+    (type-error vector 'VECTOR))
+  (if (and (eq (aref vector 0) 'VECTOR)
+	   (eq (vector-size vector) (length (vector-storage vector)))
+	   (zerop (vector-offset vector)))
+      (vector-storage vector)
+      (let* ((size (LENGTH vector))
+	     (new (make-vector size nil)))
+	(dotimes (i size)
+	  (aset new i (AREF vector i)))
+	new)))
+
+(defun el-string (string)
+  (unless (STRINGP string)
+    (type-error string 'STRING))
+  (cond
+    ((stringp string)
+     string)
+    ((and (eq (vector-size string) (length (vector-storage string)))
+	  (zerop (vector-offset string)))
+     (vector-storage string))
+    (t
+     (let* ((size (LENGTH string))
+	    (new (make-string size (ch 0))))
+       (dotimes (i size)
+	 (aset new i (CHAR string i)))
+       new))))
+
+(if (eval-when-compile (featurep 'xemacs))
+    (defun el-bit-vector (bit-vector)
+      (unless (BIT-VECTOR-P bit-vector)
+	(type-error bit-vector 'BIT-VECTOR))
+      (cond
+	((bit-vector-p bit-vector)
+	 bit-vector)
+	((and (eq (vector-size bit-vector)
+		  (length (vector-storage bit-vector)))
+	      (zerop (vector-offset bit-vector)))
+	 (vector-storage bit-vector))
+	(t
+	 (let* ((size (LENGTH bit-vector))
+		(new (make-bit-vector size 0)))
+	   (dotimes (i size)
+	     (aset new i (BIT bit-vector i)))
+	   new))))
+    (defun el-bool-vector (bool-vector)
+      (unless (BIT-VECTOR-P bool-vector)
+	(type-error bool-vector 'BIT-VECTOR))
+      (cond
+	((bool-vectorp bool-vector)
+	 bool-vector)
+	((and (eq (vector-size bool-vector)
+		  (length (vector-storage bool-vector)))
+	      (zerop (vector-offset bool-vector)))
+	 (vector-storage bool-vector))
+	(t
+	 (let* ((size (LENGTH bool-vector))
+		(new (make-bool-vector size 0)))
+	   (dotimes (i size)
+	     (aset new i (not (zerop (BIT bool-vector i)))))
+	   new)))))
 
 (cl:defun ADJUST-ARRAY (array new-dimensions
 			&KEY ELEMENT-TYPE INITIAL-ELEMENT INITIAL-CONTENTS
@@ -180,33 +249,37 @@
      (type-error array 'ARRAY))))
 
 (defun ARRAY-DIMENSION (array axis)
-  (cond
-    ((VECTORP array)		(LENGTH array))
-    ((ARRAYP array)		(nth axis (ARRAY-DIMENSIONS array)))
-    (t				(error "error"))))
+  (let ((dims (ARRAY-DIMENSIONS array)))
+    (if (< axis (length dims))
+	(nth axis dims)
+	(ERROR "ARRAY-DIMENSION axis out of range."))))
 
 (defun ARRAY-DIMENSIONS (array)
   (cond
-    ((VECTORP array)		(vector-size array))
+    ((or (stringp array)
+	 (bit-vector-p array))	(list (length array)))
+    ((SIMPLE-VECTOR-P array)	(list (1- (length array))))
+    ((VECTORP array)		(list (vector-size array)))
     ((ARRAYP array)		(array-dims array))
-    (t				(error "error"))))
+    (t				(type-error array 'ARRAY))))
 
 (defun ARRAY-ELEMENT-TYPE (array)
   (cond
-    ((BIT-VECTOR-P array)		'BIT)
-    ((STRINGP array)			'CHARACTER)
-    ((ARRAYP array)
-     (ecase (aref array 0)
-       (bit-array			'BIT)
-       (char-array			'CHARACTER)
-       ((simple-vector vector array)	T)))
-    (t					(error "error"))))
+    ((stringp array)			'CHARACTER)
+    ((bit-vector-p array)		'BIT)
+    ((vectorp array)
+     (case (aref array 0)
+       ((BIT-VECTOR bit-array)		'BIT)
+       ((STRING char-array)		'CHARACTER)
+       ((SIMPLE-VECTOR VECTOR ARRAY)	'T)
+       (t				(type-error array 'ARRAY))))
+    (t					(type-error array 'ARRAY))))
 
 (defun ARRAY-HAS-FILL-POINTER-P (array)
   (unless (ARRAYP array)
     (type-error array 'ARRAY))
-  (and (VECTORP array)
-       (not (SIMPLE-VECTOR-P array))))
+  (and (vectorp array)
+       (memq (aref array 0) '(VECTOR STRING BIT-VECTOR))))
 
 (defun ARRAY-DISPLACEMENT (array)
   (unless (ARRAYP array)
@@ -262,42 +335,57 @@
   (cond
     ((VECTORP array)
      (AREF array index))
-    ((vector-and-typep array 'ARRAY)
+    ((ARRAYP array)
      (aref (array-storage array) index))
     (t
-     (error "error"))))
+     (type-error array 'ARRAY))))
 
 (defsetf ROW-MAJOR-AREF (array index) (new)
   `(cond
     ((VECTORP ,array)
      (setf (AREF ,array ,index) ,new))
-    ((and (vectorp ,array)
-          (case (aref ,array 0)
-	    ((ARRAY bit-array char-array))))
+    ((ARRAYP array)
      (aset (array-storage ,array) ,index ,new))
     (t
-     (error "type error"))))
+     (type-error array 'ARRAY))))
 
-(defun UPGRADED-ARRAY-ELEMENT-TYPE (typespec &optional env)
-  (cond
-    ((SUBTYPEP typespec 'BIT)		'BIT)
-    ((SUBTYPEP typespec 'CHARACTER)	'CHARACTER)
-    (t					T)))
+(defun UPGRADED-ARRAY-ELEMENT-TYPE (type &optional env)
+  (case type
+    ((nil)		nil)
+    (BIT		'BIT)
+    (CHARACTER		'CHARACTER)
+    (T			'T)
+    (t
+     (subtypecase type
+       (BIT		'BIT)
+       (CHARACTER	'CHARACTER)
+       (T		'T)))))
 
-(DEFCONSTANT ARRAY-DIMENSION-LIMIT MOST-POSITIVE-FIXNUM)
-(DEFCONSTANT ARRAY-RANK-LIMIT MOST-POSITIVE-FIXNUM)
-(DEFCONSTANT ARRAY-TOTAL-SIZE-LIMIT MOST-POSITIVE-FIXNUM)
+(DEFCONSTANT ARRAY-DIMENSION-LIMIT (/ MOST-POSITIVE-FIXNUM 10))
+(DEFCONSTANT ARRAY-RANK-LIMIT 100) ;(/ MOST-POSITIVE-FIXNUM 10))
+(DEFCONSTANT ARRAY-TOTAL-SIZE-LIMIT (/ MOST-POSITIVE-FIXNUM 10))
 
 (defun SIMPLE-VECTOR-P (object)
-  (or (stringp object)
-      (bit-vector-p object)
-      (vector-and-typep object 'SIMPLE-VECTOR)))
+  (vector-and-typep object 'SIMPLE-VECTOR))
 
 (defun SVREF (vector index)
   (aref vector (1+ index)))
 
-(defsetf SVREF (vector index) (obj)
-  `(setf (aref ,vector (1+ ,index)) ,obj))
+(defsetf SVREF (vector index) (object)
+  `(setf (aref ,vector (1+ ,index)) ,object))
+
+(DEFINE-SETF-EXPANDER SVREF (vector index)
+  (let ((object (gensym))
+	(vtemp (gensym))
+	(itemp (gensym)))
+    (cl:values (list vtemp itemp)
+	       (list vector index)
+	       (list object)
+	       `(SET-SVREF ,object ,vtemp ,itemp)
+	       `(SVREF ,vtemp ,itemp))))
+
+(defun SET-SVREF (object vector index)
+  (aset vector (1+ index) object))
 
 (defun VECTOR (&rest objects)
   (let ((vector (make-simple-vector (length objects) nil))
@@ -357,7 +445,7 @@
     ((vector-and-typep array 'bit-array)
      (bref (array-storage array) (apply #'ARRAY-ROW-MAJOR-INDEX subscripts)))
     (t
-     (error "error"))))
+     (type-error array '(ARRAY ,star BIT)))))
 
 (defsetf BIT set-bit)
 
@@ -372,7 +460,7 @@
     ((vector-and-typep array 'bit-array)
      (setf (SBIT (array-storage array) index) bit))
     (t
-     (error "error"))))
+     (type-error array '(ARRAY ,star BIT)))))
 
 (defun SBIT (array index)
   (bref array index))

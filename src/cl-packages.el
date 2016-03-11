@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 11, Packages.
 
 (IN-PACKAGE "EMACS-CL")
@@ -40,7 +40,7 @@
 (defun PACKAGEP (package)
   (vector-and-typep package 'PACKAGE))
 
-(defvar *all-packages* nil)
+(DEFVAR *all-packages* nil)
 
 (defun* EXPORT (symbols &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
@@ -84,16 +84,22 @@
   (MAKE-PACKAGE "EMACS-LISP" (kw NICKNAMES) '("EL")))
 (defvar *emacs-cl-package*
   (MAKE-PACKAGE "EMACS-COMMON-LISP" (kw NICKNAMES) '("EMACS-CL")))
+(defvar *mop-package*
+  (MAKE-PACKAGE "EMACS-COMMON-LISP-MOP" (kw NICKNAMES) '("MOP")))
 (defvar *cl-package*
   (MAKE-PACKAGE "COMMON-LISP" (kw NICKNAMES) '("CL")))
 (defvar *cl-user-package*
   (MAKE-PACKAGE "COMMON-LISP-USER"
-		(kw NICKNAMES) '("CL-USER") (kw USE) '("CL" "EMACS-CL" "EL")))
+		(kw NICKNAMES) '("CL-USER") (kw USE) '("CL" "EMACS-CL")))
 
 (defconst not-found (cons nil nil))
 
+(defvar *find-symbol-searched-packages* nil)
+
 (defun* FIND-SYMBOL (string &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
+    (when (memq package *find-symbol-searched-packages*)
+      (return-from FIND-SYMBOL (cl:values nil nil)))
     (cond
       ((null package)
        (ERROR "Package ~S not found" package-designator))
@@ -112,18 +118,16 @@
 	      (symbol (gethash string table not-found)))
 	 (if (not (eq symbol not-found))
 	     (cl:values symbol
-			(if (member symbol (package-exported package))
+			(if (memq symbol (package-exported package))
 			    kw:EXTERNAL
 			    kw:INTERNAL))
-	     (dolist (p (PACKAGE-USE-LIST package) (cl:values nil nil))
-	       (MULTIPLE-VALUE-BIND (symbol found) (FIND-SYMBOL string p)
-		 (when (and found
-			    ;; Special EMACS-LISP magic: EMACS-LISP doesn't
-			    ;; have a list of exported symbols.
-			    (or (eq p *emacs-lisp-package*)
-				(member symbol (package-exported p))))
-		   (return-from FIND-SYMBOL
-		     (cl:values symbol kw:INHERITED)))))))))))
+	     (let ((*find-symbol-searched-packages*
+		    (cons package *find-symbol-searched-packages*)))
+	       (dolist (p (PACKAGE-USE-LIST package) (cl:values nil nil))
+		 (MULTIPLE-VALUE-BIND (symbol found) (FIND-SYMBOL string p)
+		   (when (eq found kw:EXTERNAL)
+		     (return-from FIND-SYMBOL
+		       (cl:values symbol kw:INHERITED))))))))))))
 
 (defun FIND-ALL-SYMBOLS (name)
   (let ((string (STRING name))
@@ -158,9 +162,10 @@
 (defun* SHADOW (symbol-names &optional (package-designator *PACKAGE*))
   (let ((package (FIND-PACKAGE package-designator)))
     (do-list-designator (name symbol-names (cl:values T))
+      (setq name (STRING name))
       (MULTIPLE-VALUE-BIND (sym status) (FIND-SYMBOL name package)
 	(when (or (null status) (eq status kw:INHERITED))
-	  (setq sym (cl:values (INTERN name package))))
+	  (setq sym (INTERN name package)))
 	(pushnew sym (aref package 3))))))
 
 (defun* SHADOWING-IMPORT (symbols &optional (package-designator *PACKAGE*))
@@ -170,7 +175,9 @@
 	  (FIND-SYMBOL (SYMBOL-NAME symbol) package)
 	(when found
 	  (UNINTERN sym package)))
-      (IMPORT symbol package))))
+      (setf (gethash (SYMBOL-NAME symbol) (package-table package)) symbol)
+      (when (null (SYMBOL-PACKAGE symbol))
+	(setf (SYMBOL-PACKAGE symbol) package)))))
 
 (defun DELETE-PACKAGE (package-designator)
   (let ((package (FIND-PACKAGE package-designator)))
@@ -180,7 +187,7 @@
 	  (unless package
 	    (ERROR "Package ~S not found" package-designator))
 	  (when (PACKAGE-USED-BY-LIST package)
-	    (error "package error"))
+	    (ERROR 'PACKAGE-ERROR))
 	  (dolist (p (PACKAGE-USE-LIST package))
 	    (aset p 5 (delete package (PACKAGE-USED-BY-LIST p))))
 	  (setq *all-packages* (delete package *all-packages*))
@@ -196,10 +203,10 @@
 		   (when (and status (member status types))
 		     (push (cons sym status) result))))
 	       (package-table package))
-      (when (member (kw INHERITED) types)
+      (when (memq kw:INHERITED types)
 	(dolist (p (PACKAGE-USE-LIST package))
 	  (dolist (s (package-exported p))
-	    (push (cons s (kw INHERITED)) result))))
+	    (push (cons s kw:INHERITED) result))))
       result)))
 
 (cl:defmacro WITH-PACKAGE-ITERATOR ((name packages &rest types) &body body)
@@ -250,11 +257,10 @@
 
 (cl:defmacro IN-PACKAGE (package)
   `(EVAL-WHEN (,(kw COMPILE-TOPLEVEL) ,(kw LOAD-TOPLEVEL) ,(kw EXECUTE))
-     (LET* ((p1 ,package)
-	    (p2 (FIND-PACKAGE ,package)))
-       (IF p2
-	   (SETQ *PACKAGE* p2)
-	   (ERROR (QUOTE PACKAGE-ERROR) ,(kw PACKAGE) p1)))))
+     (LET ((p (FIND-PACKAGE (QUOTE ,package))))
+       (IF p
+	   (SETQ *PACKAGE* p)
+	   (ERROR (QUOTE PACKAGE-ERROR) ,(kw PACKAGE) (QUOTE ,package))))))
 
 (cl:defun UNUSE-PACKAGE (packages-to-unuse &OPTIONAL (package *PACKAGE*))
   (let ((package (FIND-PACKAGE package)))
@@ -267,7 +273,7 @@
 (cl:defun USE-PACKAGE (packages-to-use &OPTIONAL (package *PACKAGE*))
   (let ((package (FIND-PACKAGE package)))
     (do-list-designator (p packages-to-use)
-      (aset package 4 (cons (FIND-PACKAGE p) (PACKAGE-USE-LIST package)))))
+      (pushnew (FIND-PACKAGE p) (aref package 4))))
   T)
 
 (cl:defmacro DEFPACKAGE (name &rest options)
@@ -322,13 +328,17 @@
 
 (defun %defpackage (name nicknames shadow-list shadowing-import
 		    use-list import-list intern-list export-list)
-  (let ((package (MAKE-PACKAGE name (kw NICKNAMES) nicknames)))
+  (let ((package (FIND-PACKAGE name)))
+    (if package
+	(aset package 2 (mapcar #'STRING nicknames))
+	(setq package (MAKE-PACKAGE name (kw NICKNAMES) nicknames)))
     (SHADOW shadow-list package)
     (dolist (list shadowing-import)
       (let ((p (FIND-PACKAGE (first list))))
 	(dolist (name (rest list))
 	  (SHADOWING-IMPORT (FIND-SYMBOL name p) package))))
-    (USE-PACKAGE use-list package)
+    (dolist (p use-list)
+      (USE-PACKAGE p package))
     (dolist (list import-list)
       (let ((p (FIND-PACKAGE (first list))))
 	(dolist (name (rest list))
@@ -391,7 +401,7 @@
 	      (pushnew symbol (aref package 7)))
 	    (cl:values symbol nil))))))
 
-(defvar *PACKAGE* *cl-user-package*)
+(DEFVAR *PACKAGE* *cl-user-package*)
 
 ;;; PACKAGE-ERROR and PACKAGE-ERROR-PACKAGE are defined in cl-conditions.el.
 

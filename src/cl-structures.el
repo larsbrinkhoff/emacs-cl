@@ -1,9 +1,22 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 8, Structures.
 
 (IN-PACKAGE "EMACS-CL")
+
+(defvar *initial-classes* nil)
+
+;;; Redefined later.
+(defun ENSURE-CLASS (name &rest keys)
+  (unless (memq (kw METACLASS) keys)
+    (setq keys (list* (kw METACLASS) 'STANDARD-CLASS keys)))
+  (push (cons name keys) *initial-classes*)
+  (ensure-type
+   name
+   (byte-compile `(lambda (obj env)
+		    (and (vectorp obj)
+			 (struct-subtypep (aref obj 0) ',name))))))
 
 ;;; A hash table keyed on a structure name.  The data is a cons which
 ;;; car is a list of structure names that are subtypes of the key.
@@ -14,7 +27,7 @@
 (defun struct-subtypep (type1 type2)
   (or (eq type1 type2)
       (let ((subtypes (car (gethash type2 *structure-info*))))
-	(if (member type1 subtypes)
+	(if (memq type1 subtypes)
 	    T
 	    (some (lambda (type)
 		    (and (struct-subtypep type1 type)
@@ -26,6 +39,10 @@
 	     (setf (car val) (delete sub (car val))))
 	   *structure-info*)
   (push sub (car (gethash struct *structure-info*))))
+
+(defun structurep (object)
+  (and (vectorp object)
+       (gethash (aref object 0) *structure-info*)))
 
 (defun struct-slots (struct)
   (cdr (gethash struct *structure-info*)))
@@ -44,6 +61,17 @@
 
 (defun slot-read-only-p (slot)
   (fourth slot))
+
+(defun canonicalize-slot (slot)
+  (cond
+    ((atom slot)
+     (list slot unbound t nil))
+    ((= (length slot) 1)
+     (list (first slot) unbound t nil))
+    (t
+     (list (first slot) (second slot)
+	   (getf (cddr slot) (kw TYPE) T)
+	   (getf (cddr slot) (kw READ-ONLY))))))
 
 (defun param-with-default (param slots)
   (cond
@@ -140,21 +168,17 @@
 	(setq constructors (list (symcat "MAKE-" name))))
 
       ;; Calculate the effective slot list.
-      (setq slots
-	    (mapcar (lambda (slot)
-		      (cond
-			((atom slot)
-			 (list slot unbound t nil))
-			((= (length slot) 1)
-			 (list (first slot) unbound t nil))
-			(t
-			 (list (first slot) (second slot)
-			       (getf (cddr slot) :type T)
-			       (getf (cddr slot) :read-only)))))
-		    slots))
+      (setq slots (mapcar #'canonicalize-slot slots))
       (when include
-	(setq slots (append (struct-slots (first include)) slots)))
-      (setf (struct-slots name) slots)
+	(let ((included-slots (struct-slots (first include))))
+	  (dolist (slot (rest include))
+	    (setq slot (canonicalize-slot slot))
+	    (setq included-slots
+		  (nsubstitute
+		   slot
+		   (find (slot-name slot) included-slots :key #'slot-name)
+		   included-slots)))
+	  (setq slots (append included-slots slots))))
 
       ;; Calculate initial-offset and structure size.
       (when (and initial-offset (not type))
@@ -165,10 +189,7 @@
       (unless (and type (not named))
 	(incf struct-size))
 
-      ;; Register the structure as a subtype of an included structure,
-      ;; and provide a default predicate if appropriate.
-      (when include
-	(add-struct-subtype (first include) name))
+      ;; Provide a default predicate if appropriate.
       (when (and type (not named) predicate)
 	(error "error"))
       (unless predicate
@@ -187,7 +208,7 @@
 		    constructors))
 
       ;; Macro expansion.
-      `(eval-when (:compile-toplevel :load-toplevel :execute)
+      `(eval-when (:load-toplevel :execute)
 
 	;; Constructors.
 	,@(mapcar
@@ -239,11 +260,20 @@
 		  (and (,type-predicate object)
 		       (struct-subtypep ,get-type ',name))))))
 
-	;; TYPEP.
+	;; Remember information about the slots.
+	(setf (struct-slots ',name) ',slots)
+
+	;; Register the structure as a subtype of an included structure,
+	,@(when include
+	    `((add-struct-subtype ',(first include) ',name)))
+
+	;; Define a new class (and type).
 	,@(unless type
-	   `((define-typep (object ,name env)
-	       (and (vectorp object)
-		    (struct-subtypep (aref object 0) ',name)))))
+	   `((ENSURE-CLASS
+	       ',name
+	       (keyword "METACLASS") 'STRUCTURE-CLASS
+	       (keyword "DIRECT-SUPERCLASSES")
+	       '(,(if include (first include) 'STRUCTURE-OBJECT)))))
 
 	;; Accessors.
 	,@(let ((index initial-offset))
@@ -281,7 +311,7 @@
     (let ((conc-name		(strcat name "-"))
 	  (constructors		nil)
 	  (no-constructor	nil)
-	  (copier		(symcat "COPY-" name))
+	  (copier		(cl:symcat "COPY-" name))
 	  (include		nil)
 	  (initial-offset	nil)
 	  (named		nil)
@@ -328,26 +358,25 @@
 	    (t
 	     (ERROR "Unknown DEFSTRUCT option: ~S" name)))))
 
+      (unless (SUBTYPEP type '(OR LIST VECTOR))
+	(ERROR "Invalid defstruct option :type ~S." type))
+
       ;; Provide a default constructor if appropriate.
       (when (and (null constructors) (not no-constructor))
-	(setq constructors (list (symcat "MAKE-" name))))
+	(setq constructors (list (cl:symcat "MAKE-" name))))
 
       ;; Calculate the effective slot list.
-      (setq slots
-	    (mapcar (lambda (slot)
-		      (cond
-			((atom slot)
-			 (list slot unbound t nil))
-			((= (length slot) 1)
-			 (list (first slot) unbound t nil))
-			(t
-			 (list (first slot) (second slot)
-			       (getf (cddr slot) (kw TYPE) T)
-			       (getf (cddr slot) (kw READ-ONLY))))))
-		    slots))
+      (setq slots (mapcar #'canonicalize-slot slots))
       (when include
-	(setq slots (append (struct-slots (first include)) slots)))
-      (setf (struct-slots name) slots)
+	(let ((included-slots (struct-slots (first include))))
+	  (dolist (slot (rest include))
+	    (setq slot (canonicalize-slot slot))
+	    (setq included-slots
+		  (nsubstitute
+		   slot
+		   (find (slot-name slot) included-slots :key #'slot-name)
+		   included-slots)))
+	  (setq slots (append included-slots slots))))
 
       ;; Calculate initial-offset and structure size.
       (when (and initial-offset (not type))
@@ -358,14 +387,11 @@
       (unless (and type (not named))
 	(incf struct-size))
 
-      ;; Register the structure as a subtype of an included structure,
-      ;; and provide a default predicate if appropriate.
-      (when include
-	(add-struct-subtype (first include) name))
+      ;; Provide a default predicate if appropriate.
       (when (and type (not named) predicate)
 	(ERROR "error"))
       (unless predicate
-	(setq predicate (symcat name "-P")))
+	(setq predicate (cl:symcat name "-P")))
 
       ;; Generate or process the lambda lists of the constructors.
       (setq constructors
@@ -386,8 +412,8 @@
 	,@(mapcar
 	    (lambda (constructor)
 	      `(DEFUN ,@constructor
-		 ,(ecase type
-		    ((nil)
+		 ,(subtypecase type
+		    (nil
 		     `(LET ((object (make-vector ,struct-size (QUOTE ,name))))
 		        ,@(let ((index initial-offset))
 			    (mapcar (lambda (slot)
@@ -425,22 +451,28 @@
 	;; Predicate.
 	,@(when predicate
 	    (multiple-value-bind (type-predicate get-type)
-		(ecase type
-		  ((nil)      (values 'vectorp '(aref object 0)))
-		  (vector     (values 'VECTORP `(AREF object ,initial-offset)))
-		  (list	      (values 'LISTP   `(NTH ,initial-offset object))))
+		(subtypecase type
+		  (nil        (values 'vectorp '(aref object 0)))
+		  (VECTOR     (values 'VECTORP `(AREF object ,initial-offset)))
+		  (LIST	      (values 'LISTP   `(NTH ,initial-offset object))))
 	      `((DEFUN ,predicate (object)
 		  (AND (,type-predicate object)
 		       (struct-subtypep ,get-type (QUOTE ,name)))))))
 
-	;; TYPEP.
+	;; Remember information about the slots.
+	(puthash (QUOTE ,name) (QUOTE (nil ,@slots)) *structure-info*)
+
+	;; Register the structure as a subtype of an included structure,
+	,@(when include
+	    `((add-struct-subtype (QUOTE ,(first include)) (QUOTE ,name))))
+
+	;; Define a new class (and type).
 	,@(unless type
-	    (with-gensyms (obj env)
-	      `((puthash (QUOTE ,name)
-		         (LAMBDA (,obj ,env)
-			   (AND (vectorp ,obj)
-				(struct-typep (aref ,obj 0) (QUOTE ,name))))
-		         *atomic-typespecs*))))
+	    `((ENSURE-CLASS
+	       (QUOTE ,name)
+	       ,(kw METACLASS) (QUOTE STRUCTURE-CLASS)
+	       ,(kw DIRECT-SUPERCLASSES)
+	       (QUOTE (,(if include (first include) 'STRUCTURE-OBJECT))))))
 
 	;; Accessors.
 	,@(let ((index initial-offset))
@@ -454,18 +486,18 @@
 		      (values `(aref object ,index)
 			      `(BACKQUOTE
 				(aset (COMMA object) ,index (COMMA new)))))
-		     (vector
+		     (VECTOR
 		      (values `(AREF object ,index)
 			      `(BACKQUOTE
 				(SETF (AREF (COMMA object) ,index)
 				      (COMMA new)))))
-		     (list
+		     (LIST
 		      (values `(NTH ,index object)
 			      `(BACKQUOTE
 				(SETF (NTH ,index (COMMA object))
 				      (COMMA new))))))
 		 (incf index)
-		 (let ((name (symcat conc-name (slot-name slot))))
+		 (let ((name (cl:symcat conc-name (slot-name slot))))
 		   `((DEFUN ,name (object) ,getter)
 		     ,@(unless (slot-read-only-p slot)
 		         `((DEFSETF ,name (object) (new) ,setter)))))))

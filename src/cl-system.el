@@ -1,6 +1,6 @@
 ;;;; -*- emacs-lisp -*-
 ;;;
-;;; Copyright (C) 2003 Lars Brinkhoff.
+;;; Copyright (C) 2003, 2004 Lars Brinkhoff.
 ;;; This file implements operators in chapter 24, System Construction.
 
 (IN-PACKAGE "EMACS-CL")
@@ -16,6 +16,12 @@
   (let* ((input (MERGE-PATHNAMES input-file)))
     (MERGE-PATHNAMES OUTPUT-FILE input)))
 
+(defun file-has-elc-magic-p (pathname)
+  (WITH-OPEN-FILE (stream pathname)
+    (let ((magic (make-string 4 0)))
+      (and (eq (READ-SEQUENCE magic stream) 4)
+	   (STRING= magic ";ELC")))))
+
 (cl:defun LOAD (file &KEY (VERBOSE *LOAD-VERBOSE*)
 		     	  (PRINT *LOAD-PRINT*)
 		     	  (IF-DOES-NOT-EXIST T)
@@ -27,26 +33,26 @@
     (cond
       ((STREAMP file)
        (let ((eof (gensym)))
-;	 (do ((form #1=(READ file nil eof) #1#))
 	 (do ((form (READ file nil eof) (READ file nil eof)))
 	     ((eq form eof)
-	      T)
+	      (cl:values T))
 	   (let ((val (EVAL form)))
 	     (when PRINT
 	       (PRINT val))))))
       ((or (STRINGP file) (PATHNAMEP file))
        (when VERBOSE
-	 (PRINT "; Loading file ~S" (NAMESTRING file)))
-       (if (STRING= (PATHNAME-TYPE file) "elc")
+	 (FORMAT T "~&;Loading ~A" (NAMESTRING *LOAD-PATHNAME*)))
+       (if (or (STRING= (PATHNAME-TYPE *LOAD-PATHNAME*) "elc")
+	       (file-has-elc-magic-p *LOAD-PATHNAME*))
 	   (load (NAMESTRING *LOAD-PATHNAME*))
-	   (WITH-OPEN-FILE (stream file)
+	   (WITH-OPEN-FILE (stream *LOAD-PATHNAME*)
 	     (LOAD stream (kw PRINT) PRINT)))
-       T)
+       (cl:values T))
       (t
        (type-error file '(OR PATHNAME STRING STREAM))))))
 
-(defvar *compilation-unit* nil)
-(defvar *deferred-compilation-actions* nil)
+(DEFVAR *compilation-unit* nil)
+(DEFVAR *deferred-compilation-actions* nil)
 
 (cl:defmacro WITH-COMPILATION-UNIT ((&key OVERRIDE) &body body)
   `(PROGN
@@ -66,7 +72,7 @@
 	 (FUNCALL fn))
        (setq *deferred-compilation-actions* nil))))
 
-(defvar *FEATURES* (list ;; TODO: (kw ANSI-CL)
+(DEFVAR *FEATURES* (list ;; TODO: (kw ANSI-CL)
 			 (kw EMACS-CL)
 		         (kw COMMON-LISP)))
 
@@ -79,19 +85,19 @@
 					(kw END1) (LENGTH string))))))
   (push (if cons (cdr cons) (kw UNKNOWN-EMACS)) *FEATURES*))
 
-(defvar *COMPILE-FILE-PATHNAME* nil)
-(defvar *COMPILE-FILE-TRUENAME* nil)
+(DEFVAR *COMPILE-FILE-PATHNAME* nil)
+(DEFVAR *COMPILE-FILE-TRUENAME* nil)
 
-(defvar *LOAD-PATHNAME* nil)
-(defvar *LOAD-TRUENAME* nil)
+(DEFVAR *LOAD-PATHNAME* nil)
+(DEFVAR *LOAD-TRUENAME* nil)
 
-(defvar *COMPILE-PRINT* nil)
-(defvar *COMPILE-VERBOSE* nil)
+(DEFVAR *COMPILE-PRINT* nil)
+(DEFVAR *COMPILE-VERBOSE* nil)
 
-(defvar *LOAD-PRINT* nil)
-(defvar *LOAD-VERBOSE* nil)
+(DEFVAR *LOAD-PRINT* nil)
+(DEFVAR *LOAD-VERBOSE* nil)
 
-(defvar *MODULES* nil)
+(DEFVAR *MODULES* nil)
 
 (defun PROVIDE (name)
   (let ((string (STRING name)))
