@@ -138,7 +138,8 @@
 	(&REST
 	 (push `(,var ,rest-sym) bindings))
 	(&KEY
-	 (push `(,var ',unbound) bindings)
+	 ;;(push `(,var ',unbound) bindings)
+	 (push `(,var nil) bindings)
 	 (when supp
 	   (push `(,supp nil) bindings)))
 	(&AUX

@@ -22,7 +22,7 @@
 
 (defun symcat (&rest string-designators)
   (let ((sym (intern (apply #'strcat string-designators))))
-    (when (fboundp 'SYMBOL-PACKAGE)
+    (when nil ;(fboundp 'SYMBOL-PACKAGE)
       (setf (SYMBOL-PACKAGE sym) *PACKAGE*))
     sym))
 

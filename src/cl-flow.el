@@ -50,6 +50,18 @@
 				(BLOCK ,(function-block-name name)
 				  ,@body))))))
 
+(eval-and-compile
+  (defsetf FDEFINITION (name) (fn)
+    `(cond
+       ((symbolp ,name)
+	(setf (SYMBOL-FUNCTION ,name) ,fn))
+       ((setf-name-p ,name)
+	(puthash (second ,name) ,fn *setf-definitions*))
+       (t
+	(not-function-name-error ,name)))))
+
+(defsetf function-name set-function-name)
+
 (defun set-fun (name fn)
   (setf (FDEFINITION name) fn)
   (setf (function-name fn) name)
@@ -79,15 +91,6 @@
 	   fn)))
     (t
      (not-function-name-error name))))
-
-(defsetf FDEFINITION (name) (fn)
-  `(cond
-    ((symbolp ,name)
-     (setf (SYMBOL-FUNCTION ,name) ,fn))
-    ((setf-name-p ,name)
-     (puthash (second ,name) ,fn *setf-definitions*))
-    (t
-     (not-function-name-error ,name))))
 
 (defun FBOUNDP (name)
   (cond

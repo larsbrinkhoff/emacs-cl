@@ -93,11 +93,11 @@
     (MULTIPLE-VALUE-BIND (body decls) (parse-body forms)
       (eval-body body new-env))))
 
-(defun lexical-variable-p (var env)
+(defun emacs-cl--lexical-variable-p (var env)
   (eq (nth-value 0 (variable-information var env)) :lexical))
 
-(defun special-variable-p (var env)
-  (not (lexical-variable-p var env)))
+(defun emacs-cl--special-variable-p (var env)
+  (not (emacs-cl--lexical-variable-p var env)))
 
 ;;; TODO: let* bindings shouldn't be evaluated in an environment where
 ;;; succeeding bindings exist.
@@ -113,7 +113,7 @@
 						   (eval-with-env
 						    (second binding)
 						    (or old-env new-env))))
-	  (if (lexical-variable-p var new-env)
+	  (if (emacs-cl--lexical-variable-p var new-env)
 	      (setf (lexical-value var new-env) val)
 	      (progn
 		(push (if (boundp var) (symbol-value var) unbound) oldvals)
@@ -123,7 +123,7 @@
 	(setq oldvals (nreverse oldvals))
 	(dolist (binding bindings)
 	  (let ((var (if (symbolp binding) binding (first binding))))
-	    (unless (lexical-variable-p var new-env)
+	    (unless (emacs-cl--lexical-variable-p var new-env)
 	      (let ((val (pop oldvals)))
 		(if (eq val unbound)
 		    (makunbound var)
@@ -460,8 +460,6 @@
      "")
     (t
      (type-error fn 'FUNCTION))))
-
-(defsetf function-name set-function-name)
 
 (DEFSETF function-name set-function-name)
 
