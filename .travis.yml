@@ -1,0 +1,16 @@
+# language: emacs-lisp
+dist: xenial
+sudo: required
+env:
+  - EMACS=emacs24
+  - EMACS=emacs25
+#  - EMACS=emacs-snapshot
+install:
+  - lsb_release -a
+  - sudo add-apt-repository -y ppa:ubuntu-elisp
+  - sudo apt-get update -y
+  - sudo apt-get install $EMACS
+  - $EMACS --version
+script: make -C src EMACS=$EMACS
+notifications:
+  email: lars@nocrew.org
