@@ -227,7 +227,7 @@
   (if position
       ;; TODO: implement setting position
       (progn
-	(setf (STREAM-position stream))
+	(setf (STREAM-position stream) position)
 	T)
       (STREAM-position stream)))
 

@@ -5,6 +5,7 @@
 ;;; Loading this file also loads the system as a side effect.
 
 (require 'cl)
+(require 'cl-extra)
 (require 'byte-compile "bytecomp")
 
 (setq max-lisp-eval-depth 10000)
@@ -25,30 +26,30 @@
     "cl-evaluation"
     "cl-flow"
     "cl-numbers"
-    "cl-conses"
     "cl-characters"
     "cl-strings"
     "cl-arrays"
-    "cl-sequences"
     "cl-structures"
     "cl-iteration"
 
     "cl-symbols"
-    "cl-packages"
 
     "cl-types"
-    "cl-typep"
-    "cl-subtypep"
 
-    "cl-hash"
-    "cl-streams"
-    "cl-reader"
-    "cl-printer"
     "cl-environment"
-    "cl-filenames"
     "cl-files"
     "interaction"
     "cl-eval"
+    "cl-printer"
+    "cl-conses"
+    "cl-sequences"
+    "cl-packages"
+    "cl-filenames"
+    "cl-hash"
+    "cl-typep"
+    "cl-reader"
+    "cl-streams"
+    "cl-subtypep"
     "cl-system"
 
     "cl-loop"
